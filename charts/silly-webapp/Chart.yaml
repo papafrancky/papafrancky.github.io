@@ -1,0 +1,7 @@
+apiVersion: v2
+appVersion: "2.4"
+description: A simple web application exposing credentials retrieved from a Vault
+  instance through the External Secrets Operator (ESO).
+name: silly-webapp
+type: application
+version: 0.1.0
