@@ -3,6 +3,17 @@ entries:
   silly-webapp:
   - apiVersion: v2
     appVersion: "2.4"
+    created: "2024-03-12T11:26:05.244449227Z"
+    description: A simple web application exposing credentials retrieved from a Vault
+      instance through the External Secrets Operator (ESO).
+    digest: c8112a1b3084e705942bb4bf9316ea3a0275aadfbcc7db6584f4b54b7c28cfaf
+    name: silly-webapp
+    type: application
+    urls:
+    - https://github.com/papafrancky/papafrancky.github.io/releases/download/silly-webapp-0.1.1/silly-webapp-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: "2.4"
     created: "2024-03-12T11:11:42.411253455Z"
     description: A simple web application exposing credentials retrieved from a Vault
       instance through the External Secrets Operator (ESO).
@@ -12,4 +23,4 @@ entries:
     urls:
     - https://github.com/papafrancky/papafrancky.github.io/releases/download/silly-webapp-0.1.0/silly-webapp-0.1.0.tgz
     version: 0.1.0
-generated: "2024-03-12T11:11:42.411263352Z"
+generated: "2024-03-12T11:26:05.244458444Z"
