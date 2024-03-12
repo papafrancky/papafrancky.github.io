@@ -4,4 +4,4 @@ description: A simple web application exposing credentials retrieved from a Vaul
   instance through the External Secrets Operator (ESO).
 name: silly-webapp
 type: application
-version: 0.1.0
+version: 0.1.1
