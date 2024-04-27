@@ -16,7 +16,7 @@ Plusieurs étapes viendront jalonner notre chemin jusqu'à l'automatisation comp
 -- schéma --
 GitHub
 
-
+----------------------------------------------------------------------------------------------------
 ## Pré-requis
 
 
@@ -60,7 +60,7 @@ git clone git@github.com:papafrancky/k8s-kind-apps.git
 ```
 
 
-
+----------------------------------------------------------------------------------------------------
 ## Bootstrap de FluxCD
 
 Le projet Flux est composé d'un outil en ligne de commande (le FLux CLI) et d'une série de contrôleurs Kubernetes.
@@ -229,6 +229,7 @@ Cherchons les objets créés dans le namespace de FluxCD :
     ```
 
 
+----------------------------------------------------------------------------------------------------
 ## Gestion automatique des déploiements d'applications par FluxCD
 
 FluxCD peut gérer l'automatisation du déploiement d'applications packagées avec Helm ou bien directement depuis un dépôt Git. Nous allons d'abord nous concentrer sur le déploiement d'applications depuis un dépôt Git (GitHub dans notre cas).
@@ -288,6 +289,10 @@ k8s-kind-apps
     kubectl create namespace bar --dry-run=client -o yaml > bar/namespace.yaml
     kubectl apply -f foo/namespace.yaml
     kubectl apply -f bar/namespace.yml
+
+    git add .
+    git commit -m "created namespace 'k8s-kind-apps'."
+    git push
     ```
 
 === "foo namespace"
@@ -306,32 +311,23 @@ k8s-kind-apps
     ```
 
 
-Poussons les modification sur notre dépôt :
+### Dépôt GitHub dédié aux applications
 
-```sh
-export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+Les applications seront récupérées directement depuis un dépôt Git. Si elles avaient été packagées sous la forme d'une Helm Chart, GluxCD les aurait récupéré directement depuis un dépôt Helm.
 
-git add .
-git commit -m "created namespace 'k8s-kind-apps'."
-git push
-```
+Nous avons préalablement créé sur GitHub un dépôt dédié à l'hébergement de toutes les applications que FluxCD va gérer pour notre cluster : github.com/${GITHUB_USERNAME}/__k8s-kind-apps__.
 
-
-### Ajout des applications *'foo'* et *'bar'* dans GitHub
-
-Nous avons créé sur GitHub un dépôt dédié à l'hébergement des applications que FluxCD va gérer : __k8s-kind-apps__.
-Sur notre copie locale, nous allons écrire dans un répertoire dédié à chacune des applications les manifests de *'foo'* et de *'bar'* . 
-
-
+Nous allons créer dans la copie locale (git clone) de ce dépôt sur notre poste de travail un sous-répertoire qui contiendra son application : 
 
 ```sh
 export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 
 cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
 mkdir foo bar
-
 ```
+
+Les applications 'foo' et 'bar' sont très simples, et sont composées d'un pod et d'un service en frontal :
+
 
 === "deployment: foo" 
     ```sh
@@ -465,7 +461,916 @@ Les applications se trouvent désormais bien dans le dépôt GitHub dédié aux 
 
 ![foobar application is uploaded in the Github repository dedicated to apps](../images/foo_bar_apps_in_github_repo.png)
 
+Nous allons pouvoir définir ces dépôts au niveau de FluxCd pour que ce dernier puisse les gérer.
 
+
+
+---
+
+### Définition des GitRepository de chacune de nos applications
+
+Nous allons définir au niveau de FluxCD le dépôt GitHub de chacune des applications et lui permettre de s'y connecter avec les droits d'écriture. Dans notre cas, nous utilisons un même dépôt GitHub pour toutes nos applications. Nous pourrions nous contenter de ne définir qu'un seul GitRepository mais avons fait le choix de réduire tant que possible des adhéences éventuelles entre applications. En définissant un GitRepository par application, nous permettons ainsi la suppression de tous les objets Kubernetes liées à une application sans dépendances avec les autres objets des applications restantes. Il n'y a pas de bon ou de mauvais choix, c'est simplement le nôtre.
+
+
+#### Deploy Keys
+
+Pour permettre à FluxCD de se connecter aux dépôts GitHub des applications qu'il doit gérer, nous devons créer une paire de clés SSH et déployer la clé publique sur les dépôts concernés.
+
+#### Création des *'Deploy Keys'*
+
+Nous devons créer une paire de clés SSH pour permettre à FluxCD de se connecter avec les droits d'écriture au dépôt dédié à FluxCD. Nous en aurons besoin pour définir le *'GitRepository'*.
+S'agissant de 'secrets', nous ne conserverons pas le manifest YAML dans le dépôt.
+
+```sh
+export GITHUB_USERNAME=papafrancky
+
+flux create secret git k8s-kind-apps \
+  --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-apps \
+  --namespace=foo
+flux create secret git k8s-kind-apps \
+  --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-apps \
+  --namespace=bar
+```
+
+Vérifions la bonne création du secret :
+
+=== "code"
+    ```sh
+    kubectl -n foo get secret k8s-kind-apps -o yaml
+    kubectl -n bar get secret k8s-kind-apps -o yaml
+    ```
+
+=== "foo secret"
+    ```sh
+    apiVersion: v1
+    data:
+      identity:     LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JRzJBZ0VBTUJBR0J5cUdTTTQ5QWdFR0JTdUJCQUFpQklHZU1JR2JBZ0VCQkRCWk1HVXAwNTJLT1BmbE85UU4KTlZBbzBzY3Y1bzlMTElUVzFieUorZTFaVlRNQWl1cXd0YkhHdDc3TlVzUUZ0T2FoWkFOaUFBU0JyWXhNOUxUcwp0Wmp1d2hkL0J5bVI3Sks4cy9zQk5zSEkwdGprMFQyRGg    1dlFOTkNaK1lEb2pEb0FBZk82bWN3NytOalV3cGd1CnlOTTNGb081Q3piSTJ0aEwzdHNmMjV2aWZ3blpobERNZDRiSGdCMUNKekJrWHBROUlRTnBQNmM9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
+      identity.pub:     ZWNkc2Etc2hhMi1uaXN0cDM4NCBBQUFBRTJWalpITmhMWE5vWVRJdGJtbHpkSEF6T0RRQUFBQUlibWx6ZEhBek9EUUFBQUJoQklHdGpFejB0T3kxbU83Q0YzOEhLWkhza3J5eit3RTJ3Y2pTMk9UUlBZT0htOUEwMEpuNWdPaU1PZ0FCODdxWnpEdjQyTlRDbUM3STB6Y1dnN2tMTnNqYTJFdmUyeC9ibStKL0NkbUdVTXgzaHNlQUhVSW5NR1J    lbEQwaEEyay9wdz09Cg==
+      known_hosts: Z2l0aHViLmNvbSBlY2RzYS1zaGEyLW5pc3RwMjU2IEFBQUFFMlZqWkhOaExYTm9ZVEl0Ym1semRIQXlOVFlBQUFBSWJtbHpkSEF5TlRZQUFBQkJCRW1LU0VOalFFZXpPbXhrWk15N29wS2d3RkI5bmt0NVlScllNak51RzVOODd1UmdnNkNMcmJvNXdBZFQveTZ2MG1LVjBVMncwV1oyWUIvKytUcG9ja2c9
+    kind: Secret
+    metadata:
+      creationTimestamp: "2024-04-27T08:49:36Z"
+      name: k8s-kind-apps
+      namespace: foo
+      resourceVersion: "1295276"
+      uid: a319b96b-80a0-457a-aa33-0fc23ab7def6
+    type: Opaque
+    ```
+
+=== "bar secret"
+    ```sh
+    apiVersion: v1
+    data:
+      identity:     LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JRzJBZ0VBTUJBR0J5cUdTTTQ5QWdFR0JTdUJCQUFpQklHZU1JR2JBZ0VCQkRDcVRkUlpaK1BuWjRYYWRCelMKb2hoQjdjMVBVNEh5OVYzeXp6dTFJdU9HMlFVd09vMUtBN0I3M0dweGJaUUI2K2VoWkFOaUFBUnA5UmFwaFMzTgpPaVRsTzZ2TEdQSG0va2NHR2YzYzk0eHpRR041Q0ltV1V    WS0xlQi9NajdGK1d0RzEyVmZ3QVRGaTFoclhkVUg4CkxWQ29JUjJoeUp3Y251R2dZaEYrc3pTanBuSDA1dVpuVm5ibXhUZmlleWkxNUNibGpOOGVrQnM9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
+      identity.pub:     ZWNkc2Etc2hhMi1uaXN0cDM4NCBBQUFBRTJWalpITmhMWE5vWVRJdGJtbHpkSEF6T0RRQUFBQUlibWx6ZEhBek9EUUFBQUJoQkduMUZxbUZMYzA2Sk9VN3E4c1k4ZWIrUndZWi9kejNqSE5BWTNrSWlaWlJVb3Q0SDh5UHNYNWEwYlhaVi9BQk1XTFdHdGQxUWZ3dFVLZ2hIYUhJbkJ5ZTRhQmlFWDZ6TktPbWNmVG01bWRXZHViRk4rSjdLTFh    rSnVXTTN4NlFHdz09Cg==
+      known_hosts: Z2l0aHViLmNvbSBlY2RzYS1zaGEyLW5pc3RwMjU2IEFBQUFFMlZqWkhOaExYTm9ZVEl0Ym1semRIQXlOVFlBQUFBSWJtbHpkSEF5TlRZQUFBQkJCRW1LU0VOalFFZXpPbXhrWk15N29wS2d3RkI5bmt0NVlScllNak51RzVOODd1UmdnNkNMcmJvNXdBZFQveTZ2MG1LVjBVMncwV1oyWUIvKytUcG9ja2c9
+    kind: Secret
+    metadata:
+      creationTimestamp: "2024-04-27T08:50:31Z"
+      name: k8s-kind-apps
+      namespace: bar
+      resourceVersion: "1295422"
+      uid: eaab7311-c1f1-4579-8157-0a2d131f9e2b
+    type: Opaque
+    ```
+
+
+#### Ajout de la clé publique sur le dépôt GitHub
+
+Les clés publiques doivent être extraites des 'secrets' et renseignées dans les paramètres du dépôt GitHub  _*k8s-kind-fluxcd*_.
+
+=== "code"
+    ```sh
+    kubectl -n foo get secret k8s-kind-apps -o jsonpath='{.data.identity\.pub}' | base64 -d
+    kubectl -n bar get secret k8s-kind-apps -o jsonpath='{.data.identity\.pub}' | base64 -d
+    ```
+
+=== "foo public key"
+    '''sh
+    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBIGtjEz0tOy1mO7CF38HKZHskryz+wE2wcjS2OTRPYOHm9A00Jn5gOiMOgAB87qZzDv42NTCmC7I0zcWg7kLNsja2Eve2x/bm+J/CdmGUMx3hseAHUInMGRelD0hA2k/pw==
+    '''
+
+=== "bar public key"
+    '''sh
+    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBGn1FqmFLc06JOU7q8sY8eb+RwYZ/dz3jHNAY3kIiZZRUot4H8yPsX5a0bXZV/ABMWLWGtd1QfwtUKghHaHInBye4aBiEX6zNKOmcfTm5mdWdubFN+J7KLXkJuWM3x6QGw==
+    '''
+
+Une fois sur la page de dépôt, cliquer sur le bouton _*Settings*_, puis dans la colonne de gauche sur la page suivante, sur le line _*Deploy Keys*_ dans la partie 'Security' :
+
+![Accéder aux settings sur le dépôt GitHub](../images/github_settings.png)
+
+![Accéder aux Deploy Keys sur le dépôt GitHub](../images/github_deploykeys.png)
+
+![Ajouter une nouvelle Deploy Key](../images/github_add_deploykey.png)
+
+!!! warning
+    La case __'Allow write access'__ doit être cochée pour permettre à FluxCD d'apporter des modifications dans son dépôt !
+
+![Déclarer la Deploy Key 'foo'](../images/github_add_foo_public_key.png)
+
+![Déclarer la Deploy Key 'bar'](../images/github_add_bar_public_key.png)
+
+![Liste des 'Deploy Keys'](../images/github_deploy_keys_list.png)
+
+
+
+#### Définition du GitRepository *"k8s-kind-apps"* pour chacune des applications
+
+L'API GitRepository définit une source pour produire un artefact pour une révision d'un dépôt Git.
+
+!!! info
+    https://fluxcd.io/flux/components/source/gitrepositories/
+
+Voici les informations qu'il faudra donner pour définir un 'GitRepository' :
+
+* Le nom que nous souhaitons lui donner : *k8s-kind-fluxcd*;
+* L'URL du dépôt GitHub : *ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-fluxcd.git*;
+* La branche du dépôt d'où récupérer le code : *main*;
+* Le secret d'où extraire la clé privée pour se connecter au dépôt GitHub : *foo* ou *bar* selon l'application concernée.
+
+
+```sh 
+   export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+   export GITHUB_USERNAME=papafrancky
+
+   cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+   mkdir -p apps/foo apps/bar
+```
+
+=== "code"
+    ```sh
+    flux create source git k8s-kind-apps \
+      --url=ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-apps.git \
+      --branch=main \
+      --secret-ref=k8s-kind-apps \
+      --namespace=foo \
+      --export > apps/foo/gitrepository.yaml
+    
+    flux create source git k8s-kind-apps \
+      --url=ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-apps.git \
+      --branch=main \
+      --secret-ref=k8s-kind-apps \
+      --namespace=bar \
+      --export > apps/bar/gitrepository.yaml
+    ```
+   
+=== "'foo' GitRepository"
+    ```sh
+    ---
+    apiVersion: source.toolkit.fluxcd.io/v1beta2
+    kind: GitRepository
+    metadata:
+      name: k8s-kind-apps
+      namespace: foo
+    spec:
+      interval: 1m0s
+      ref:
+        branch: main
+      secretRef:
+        name: k8s-kind-apps
+      url: ssh://git@github.com/papafrancky/k8s-kind-apps.git
+    ```
+
+=== "'bar' GitRepository"
+    ```
+    ---
+    apiVersion: source.toolkit.fluxcd.io/v1beta2
+    kind: GitRepository
+    metadata:
+      name: k8s-kind-apps
+      namespace: bar
+    spec:
+      interval: 1m0s
+      ref:
+        branch: main
+      secretRef:
+        name: k8s-kind-apps
+      url: ssh://git@github.com/papafrancky/k8s-kind-apps.git
+    ```
+
+
+#### Définition des *'Kustomizations'* pour chacun des GitRepositories
+
+!!! tip
+    Nommer le manifest 'kustomize.yml' pose des problèmes, le nom doit être réservé pour les besoins internes de Flux. Nous le nommerons 'sync.yaml'.
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+    
+    flux create kustomization foo \
+        --source=GitRepository/k8s-kind-apps.foo \
+        --path="./foo" \
+        --prune=true \
+        --namespace=foo \
+        --export > apps/foo/sync.yaml
+
+    flux create kustomization bar \
+        --source=GitRepository/k8s-kind-apps.bar \
+        --path="./bar" \
+        --prune=true \
+        --namespace=bar \
+        --export > apps/bar/sync.yaml
+    ```
+
+=== "'foo' kustomization"
+    ```sh
+    ---
+    apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+    kind: Kustomization
+    metadata:
+      name: foo
+      namespace: foo
+    spec:
+      interval: 1m0s
+      path: ./foo
+      prune: true
+      sourceRef:
+        kind: GitRepository
+        name: k8s-kind-apps
+        namespace: foo
+    ```
+
+=== "'bar' kustomization"
+    ```sh
+    ---
+    apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+    kind: Kustomization
+    metadata:
+      name: bar
+      namespace: bar
+    spec:
+      interval: 1m0s
+      path: ./bar
+      prune: true
+      sourceRef:
+        kind: GitRepository
+        name: k8s-kind-apps
+        namespace: bar
+    ```
+
+
+Il est temps de pousser nos modifications dans le dépôt GitHub :
+
+```sh
+   export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+   cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+   git status
+   git add .
+   git commit -m "feat: added GitRepositories and Kustomizations for 'foo' and 'bar' apps."
+   git push
+```
+
+Forçons la réconciliation :
+
+=== "code"
+    ```sh
+    flux reconcile kustomization flux-system --with-source
+    ```
+
+=== "output"
+    ```sh
+    ► annotating GitRepository flux-system in flux-system namespace
+    ✔ GitRepository annotated
+    ◎ waiting for GitRepository reconciliation
+    ✔ fetched revision main@sha1:f9875e137abb0d4f810b4042fa98713adaca2701
+    ► annotating Kustomization flux-system in flux-system namespace
+    ✔ Kustomization annotated
+    ◎ waiting for Kustomization reconciliation
+    ✔ applied revision main@sha1:f9875e137abb0d4f810b4042fa98713adaca2701
+    ```
+
+Nous devrions désormais voir le GitRepository défini au niveau du cluster :
+
+=== "code"
+    ```
+    k -n foo get gitrepository k8s-kind-apps
+    k -n bar get gitrepository k8s-kind-apps
+    ```
+
+=== "output "
+    ```
+    NAME            URL                                                  AGE     READY   STATUS
+    k8s-kind-apps   ssh://git@github.com/papafrancky/k8s-kind-apps.git   2m11s   True    stored artifact for revision 'main@sha1:cfe1c35724883dce2eaf428f144faeb3da27873b'
+        
+    NAME            URL                                                  AGE     READY   STATUS
+    k8s-kind-apps   ssh://git@github.com/papafrancky/k8s-kind-apps.git   2m28s   True    stored artifact for revision 'main@sha1:cfe1c35724883dce2eaf428f144faeb3da27873b'
+    ```
+
+Surtout, nous devrions voir nos applications 'foo' et 'bar' déployées sur le cluster :
+
+=== "code"
+    ```sh
+    kubectl -n foo get services,deployments,pods
+    kubectl -n bar get services,deployments,pods
+    ```
+
+=== "foo output"
+    ```sh
+    NAME          TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+    service/foo   ClusterIP   10.96.81.216   <none>        8080/TCP   3m30s
+    
+    NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
+    deployment.apps/foo   1/1     1            1           3m30s
+    
+    NAME                       READY   STATUS    RESTARTS   AGE
+    pod/foo-6f6cb79d96-bdjpq   1/1     Running   0          3m30s
+    ```
+
+=== "bar output"
+    ```sh
+    NAME          TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)    AGE
+    service/bar   ClusterIP   10.96.43.89   <none>        8080/TCP   4m53s
+    
+    NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
+    deployment.apps/bar   1/1     1            1           4m53s
+    
+    NAME                       READY   STATUS    RESTARTS   AGE
+    pod/bar-764bd8d889-8wqq2   1/1     Running   0          4m53s
+    ```
+
+
+### ImageRepository
+
+Nos deux applications _*'foo'*_ et _*'bar'*_ utilisent une même image Docker ("__e2e-test-images/agnhost__") et nous aimerions qu'elle soit mise à jour automatiquement si une nouvelle version venait à être publiée.
+La mise en place d'un tel process d'automatisation nécessite la définition préalable d'un __'ImageRepository'__ auquel nous associerons une __'ImagePolicy'__.
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    export GITHUB_USERNAME=papafrancky
+    
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+    
+    flux create image repository agnhost \
+      --image=registry.k8s.io/e2e-test-images/agnhost \
+      --interval=5m \
+      --namespace=foo \
+      --export > apps/foo/agnhost.imagerepository.yaml
+
+    flux create image repository agnhost \
+      --image=registry.k8s.io/e2e-test-images/agnhost \
+      --interval=5m \
+      --namespace=bar \
+      --export > apps/bar/agnhost.imagerepository.yaml
+
+    git add .
+    git commit -m "feat: added image repository for foo and bar apps."
+    git push
+    ```
+
+=== "'foo' ImagePolicy"
+    ```sh
+    ---
+    apiVersion: image.toolkit.fluxcd.io/v1beta2
+    kind: ImageRepository
+    metadata:
+      name: agnhost
+      namespace: foo
+    spec:
+      image: registry.k8s.io/e2e-test-images/agnhost
+      interval: 5m0s
+    ```
+
+=== "'bar' ImagePolicy"
+    ```sh
+    ---
+    apiVersion: image.toolkit.fluxcd.io/v1beta2
+    kind: ImageRepository
+    metadata:
+      name: agnhost
+      namespace: bar
+    spec:
+      image: registry.k8s.io/e2e-test-images/agnhost
+      interval: 5m0s
+    ```
+
+Vérifions la bonne création des *'ImagePolicies'*:
+
+=== "code"
+    ```sh
+    kubectl -n foo get imagerepository agnhost -o yaml
+    kubectl -n bar get imagerepository agnhost -o yaml
+    ```
+
+=== "foo ImageRepository"
+    ```sh
+    apiVersion: image.toolkit.fluxcd.io/v1beta2
+    kind: ImageRepository
+    metadata:
+      creationTimestamp: "2024-04-27T09:52:39Z"
+      finalizers:
+      - finalizers.fluxcd.io
+      generation: 1
+      labels:
+        kustomize.toolkit.fluxcd.io/name: flux-system
+        kustomize.toolkit.fluxcd.io/namespace: flux-system
+      name: agnhost
+      namespace: foo
+      resourceVersion: "1305975"
+      uid: d078ca2e-f277-4d29-bdd3-ef140d6e34a8
+    spec:
+      exclusionList:
+      - ^.*\.sig$
+      image: registry.k8s.io/e2e-test-images/agnhost
+      interval: 5m0s
+      provider: generic
+    status:
+      canonicalImageName: registry.k8s.io/e2e-test-images/agnhost
+      conditions:
+      - lastTransitionTime: "2024-04-27T09:52:39Z"
+        message: 'successful scan: found 27 tags'
+        observedGeneration: 1
+        reason: Succeeded
+        status: "True"
+        type: Ready
+      lastScanResult:
+        latestTags:
+        - "2.9"
+        - "2.51"
+        - "2.50"
+        - "2.48"
+        - "2.47"
+        - "2.45"
+        - "2.44"
+        - "2.43"
+        - "2.41"
+        - "2.40"
+        scanTime: "2024-04-27T09:52:39Z"
+        tagCount: 27
+      observedExclusionList:
+      - ^.*\.sig$
+      observedGeneration: 1
+    ```
+
+=== "bar ImageRepository"
+    ```sh
+    apiVersion: image.toolkit.fluxcd.io/v1beta2
+    kind: ImageRepository
+    metadata:
+      creationTimestamp: "2024-04-27T09:52:38Z"
+      finalizers:
+      - finalizers.fluxcd.io
+      generation: 1
+      labels:
+        kustomize.toolkit.fluxcd.io/name: flux-system
+        kustomize.toolkit.fluxcd.io/namespace: flux-system
+      name: agnhost
+      namespace: bar
+      resourceVersion: "1305978"
+      uid: 57f01130-5ef2-42e2-be24-5509c5232898
+    spec:
+      exclusionList:
+      - ^.*\.sig$
+      image: registry.k8s.io/e2e-test-images/agnhost
+      interval: 5m0s
+      provider: generic
+    status:
+      canonicalImageName: registry.k8s.io/e2e-test-images/agnhost
+      conditions:
+      - lastTransitionTime: "2024-04-27T09:52:39Z"
+        message: 'successful scan: found 27 tags'
+        observedGeneration: 1
+        reason: Succeeded
+        status: "True"
+        type: Ready
+      lastScanResult:
+        latestTags:
+        - "2.9"
+        - "2.51"
+        - "2.50"
+        - "2.48"
+        - "2.47"
+        - "2.45"
+        - "2.44"
+        - "2.43"
+        - "2.41"
+        - "2.40"
+        scanTime: "2024-04-27T09:52:39Z"
+        tagCount: 27
+      observedExclusionList:
+      - ^.*\.sig$
+      observedGeneration: 1
+    ```
+
+Nous pouvons d'ores et déjà constater que nous n'utilisons pas la version la plus récente de l'image __*'e2e-test-images/agnhost'*__.
+
+
+
+### ImagePolicy
+
+* nous utilisons la version __2.39__ :
+
+=== "code"
+    ```sh
+    kubectl -n foo get deployment foo -o jsonpath='{.spec.template.spec.containers[].image}'
+    ```
+
+=== "output"
+    ```sh
+    registry.k8s.io/e2e-test-images/agnhost:2.39
+    ```
+
+* la version la plus récente est la __2.51__ :
+
+=== "code"
+    ```sh
+    kubectl -n foo get imagerepository agnhost -o jsonpath='{.status.lastScanResult.latestTags}' | jq -r '.'
+    ```
+
+=== "output"
+    ```sh
+    [
+      "2.9",
+      "2.51",
+      "2.50",
+      "2.48",
+      "2.47",
+      "2.45",
+      "2.44",
+      "2.43",
+      "2.41",
+      "2.40"
+    ]
+    ```
+
+Imaginons que nous souhaitions disposer de l'image 2.4.x la plus récente. Nous pouvons demander à FluxCD de gérer ces mises à jour automatiquement en définissant une __*'ImagePolicy'*__ distincte pour les __*'ImageRepository'*__ *'agnhost'* de nos applications *'foo'* et *'bar'*.
+
+!!! note
+    https://github.com/Masterminds/semver#checking-version-constraints
+
+!!! warning
+    Les images dans le dépôt ne sont suivent pas le versionnement 'SemVer'. Nous devons ici jouer avec une expression régulière et un tri croissant pour arriver à nos fins.
+
+=== "code"
+    ```
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    export GITHUB_USERNAME=papafrancky
+    
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+    
+    flux create image policy agnhost \
+      --image-ref=agnhost \
+      --namespace=foo \
+      --select-numeric asc \
+      --filter-regex='\d\.\d' \
+      --export > apps/foo/agnhost.imagepolicy.yaml
+    
+    flux create image policy agnhost \
+    --image-ref=agnhost \
+    --namespace=bar \
+    --select-numeric asc \
+    --filter-regex='\d\.\d' \
+    --export > apps/bar/agnhost.imagepolicy.yaml
+
+    git add .
+    git commit -m "feat: defined an image policy for foo and bar apps."
+    git push
+
+    flux reconcile kustomization flux-system --with-source
+    ```
+
+=== "foo ImagePolicy"
+    ```sh
+    ---
+    apiVersion: image.toolkit.fluxcd.io/v1beta2
+    kind: ImagePolicy
+    metadata:
+      name: agnhost
+      namespace: foo
+    spec:
+      imageRepositoryRef:
+        name: agnhost
+      filterTags:
+        pattern: '\d\.\d\d'
+        extract: ""
+      policy:
+        numerical:
+          order: asc
+    ```
+
+=== "bar ImagePolicy"
+    ```sh
+    ---
+    apiVersion: image.toolkit.fluxcd.io/v1beta2
+    kind: ImagePolicy
+    metadata:
+      name: agnhost
+      namespace: bar
+    spec:
+      imageRepositoryRef:
+        name: agnhost
+      filterTags:
+        pattern: '\d\.\d\d'
+        extract: ""
+      policy:
+        numerical:
+          order: asc
+    ```
+
+Vérifions la bonne création des Image Policies :
+
+=== "code"
+    ```sh
+    kubectl get ImagePolicy -A
+    ```
+
+=== "output"
+    ```sh
+    NAMESPACE   NAME      LATESTIMAGE
+    bar         agnhost   registry.k8s.io/e2e-test-images/agnhost:2.51
+    foo         agnhost   registry.k8s.io/e2e-test-images/agnhost:2.51
+    ```
+
+
+### Marquage des manifests de déploiement de de 'foo' et 'bar'
+
+Nous devons maintenant indiquer à FluxCD où mettre la version de l'image à jour dans les manifests de l'application 'foobar'.
+En effet, si FluxCD est capable de détecter une nouvelle version de l'image conforme à notre politique de mise à jour (dans notre cas, toutes les versions 2.x), il doit aussi mettre le code de déploiement de l'application.
+
+Dans le cas de nos applications, l'image Docker et sa version sont définis dans les manifests qui décrivent les *'deployments'* : 
+
+* ${LOCAL_GITHUB_REPOS}/k8s-kind-apps/foo/__deployment.yaml__;
+* ${LOCAL_GITHUB_REPOS}/k8s-kind-apps/bar/__deployment.yaml__.
+
+
+Ajoutons un marqueur pour permettre à FluxCD de mettre la version de l'image à jour :
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    export GITHUB_USERNAME=papafrancky
+    
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+    
+    gsed -i 's/agnhost:2\.39/agnhost:2\.39 # {"$imagepolicy": "foo:agnhost"}/' foo/deployment.yaml
+    gsed -i 's/agnhost:2\.39/agnhost:2\.39 # {"$imagepolicy": "bar:agnhost"}/' bar/deployment.yaml
+    
+    git add .
+    git commit -m "feat: added a marker on foobar's pods manifests."
+    git push
+
+    flux reconcile kustomization flux-system --with-source
+    ```   
+
+!!! info "Configure image update for custom resources"
+    https://fluxcd.io/flux/guides/image-update/#configure-image-update-for-custom-resources
+
+
+Le format du marqueur de l'image policy est le suivant :
+```sh
+* {"$imagepolicy": "<policy-namespace>:<policy-name>"}
+* {"$imagepolicy": "<policy-namespace>:<policy-name>:tag"}
+* {"$imagepolicy": "<policy-namespace>:<policy-name>:name"}
+```
+
+
+=== "'foo' deployment.yaml"
+    ```sh
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: foo
+      namespace: foo
+      labels:
+        app: foo
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: foo
+      template:
+        metadata:
+          labels:
+            app: foo
+        spec:
+          containers:
+          - name: agnhost
+            image: registry.k8s.io/e2e-test-images/agnhost:2.39 # {"$imagepolicy": "foobar:foobar"}
+            command:
+            - /agnhost
+            - netexec
+            - --http-port
+            - "8080"
+    ```
+
+=== "'bar' deployment.yaml"
+    ```sh
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: bar
+      namespace: bar
+      labels:
+        app: bar
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: bar
+      template:
+        metadata:
+          labels:
+            app: bar
+        spec:
+          containers:
+          - name: agnhost
+            image: registry.k8s.io/e2e-test-images/agnhost:2.39 # {"$imagepolicy": "foobar:foobar"}
+            command:
+            - /agnhost
+            - netexec
+            - --http-port
+            - "8080"
+    ```
+
+
+
+
+### Image Update Automation
+
+Il ne nous reste plus qu'à tout mettre en musique en créant une 'ImageUpdateAutomation' pour chacune de nos applications.
+
+
+
+!!! info "flux create image update"
+    https://fluxcd.io/flux/cmd/flux_create_image_update/#examples
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    flux create image update agnhost \
+        --namespace=foo \
+        --git-repo-ref=k8s-kind-apps \
+        --git-repo-path="./foo" \
+        --checkout-branch=main \
+        --author-name=FluxCD \
+        --author-email=19983231-papafrancky@users.noreply.github.com \
+        --commit-template="{{range .Updated.Images}}{{println .}}{{end}}" \
+        --export > apps/foo/imageupdateautomation.yaml
+    
+    flux create image update agnhost \
+        --namespace=bar \
+        --git-repo-ref=k8s-kind-apps \
+        --git-repo-path="./bar" \
+        --checkout-branch=main \
+        --author-name=FluxCD \
+        --author-email=19983231-papafrancky@users.noreply.github.com \
+        --commit-template="{{range .Updated.Images}}{{println .}}{{end}}" \
+        --export > apps/bar/imageupdateautomation.yaml
+    
+    git add .
+    git commit -m "feat: added ImageUpdateAutomations to foo and bar applications respectively."
+    git push
+
+    flux reconcile kustomization flux-system --with-source
+    ```
+
+=== "'foo' ImageUpdateAutomation"
+    ```sh
+    ---
+    apiVersion: image.toolkit.fluxcd.io/v1beta1
+    kind: ImageUpdateAutomation
+    metadata:
+      name: agnhost
+      namespace: foo
+    spec:
+      git:
+        checkout:
+          ref:
+            branch: main
+        commit:
+          author:
+            email: 19983231-papafrancky@users.noreply.github.com
+            name: FluxCD
+          messageTemplate: '{{range .Updated.Images}}{{println .}}{{end}}'
+      interval: 1m0s
+      sourceRef:
+        kind: GitRepository
+        name: k8s-kind-apps
+      update:
+        path: ./foo
+        strategy: Setters
+    ```
+
+=== "'bar' ImageUpdateAutomation"
+    ```sh
+    ---
+    apiVersion: image.toolkit.fluxcd.io/v1beta1
+    kind: ImageUpdateAutomation
+    metadata:
+      name: agnhost
+      namespace: bar
+    spec:
+      git:
+        checkout:
+          ref:
+            branch: main
+        commit:
+          author:
+            email: 19983231-papafrancky@users.noreply.github.com
+            name: FluxCD
+          messageTemplate: '{{range .Updated.Images}}{{println .}}{{end}}'
+      interval: 1m0s
+      sourceRef:
+        kind: GitRepository
+        name: k8s-kind-apps
+      update:
+        path: ./bar
+        strategy: Setters
+    ```
+
+
+!!! note "Définir son adresse email de commit"
+    https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address#about-commit-email-addresses
+
+!!! note "Comment récupérer l'ID de son compte GitHub"
+    https://api.github.com/users/${GITHUB_USERNAME}
+
+
+
+
+Surveillons la mise à jour des images :
+
+```sh
+kubectl get pods --all-namespaces -l 'app in (foo, bar)'  -w
+```
+
+
+
+Vérifions la version des images utilisées :
+
+=== "code"
+    ```sh
+    kubectl get pod --all-namespaces -l 'app in (foo, bar)' -o jsonpath='{.items[*].spec.containers[*].image}'
+    ```
+
+=== "avant"
+    ```sh
+    registry.k8s.io/e2e-test-images/agnhost:2.39 registry.k8s.io/e2e-test-images/agnhost:2.39%
+    ```
+
+=== "après"
+    ```
+    registry.k8s.io/e2e-test-images/agnhost:2.51 registry.k8s.io/e2e-test-images/agnhost:2.51%
+    ```
+
+Enfin, assurons-nous que FluxCD ait bien pu modifier le _*deployment*_ des applications pour prendre la version de l'image la plus récente en compte :
+
+!!! warning
+    Nous devons mettre à jour notre copie locale du dépôt des applications pour constater la boone réécriture de FluxCD.
+
+=== "code"
+    ```sh
+       export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    
+       cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+       git fetch
+       git pull
+
+       cat */deployment.yaml | grep image
+    ```
+
+=== "output"
+    ```sh
+    Mise à jour 17cb1e2..0925cae
+    Fast-forward
+     bar/deployment.yaml | 2 +-
+     foo/deployment.yaml | 2 +-
+     2 files changed, 2 insertions(+), 2 deletions(-)
+    ```
+
+Les manifests ont bien été modifiés.
+Vérifions la mise à jour de la version des images :
+
+=== "code"
+    ```sh
+    cat */deployment.yaml | grep image
+    ```
+
+=== "output"
+    ```sh
+    image: registry.k8s.io/e2e-test-images/agnhost:2.51 # {"$imagepolicy": "bar:agnhost"}
+    image: registry.k8s.io/e2e-test-images/agnhost:2.51 # {"$imagepolicy": "foo:agnhost"}
+    ```
+
+Les images sont passées de la version initiale (2.39) à la version la plus récente conforme à l'ImagePolicy (2.51).
+
+Tout fonctionne comme attendu ! :fontawesome-regular-face-laugh-wink:
+
+
+
+
+
+
+
+
+
+----------------------------------------------------------------------------------------------------
 ### Exposition des applications
 
 L'exposition des applications hébergées sur le cluster doit être gérée en dehors des applications. Nous allons définir les règles de routage de notre Ingress controller Nginx dans le dépôt GitHub dédié à FluxCD :
@@ -516,549 +1421,4 @@ git commit -m 'feat: defined ingress routes.'
 git push
 ```
 
-
-
-
-### GitRepository *'k8s-kind-fluxcd'*
-
-Nous allons définir au niveau de FluxCD le dépôt GitHub et lui permettre de s'y connecter avec les droits d'écriture.
-
-
-#### Deploy Keys
-
-Pour permettre à FluxCD de se connecter au dépôt GitHub qui lui est dédié, nous devons créer une paire de clés SSH et déployer la clé publique sur le dépôt.
-
-#### Création des *'Deploy Keys'*
-
-Nous devons créer une paire de clés SSH pour permettre à FluxCD de se connecter avec les droits d'écriture au dépôt dédié à FluxCD. Nous en aurons besoin pour définir le *'GitRepository'*.
-S'agissant de 'secrets', nous ne conserverons pas le manifest YAML dans le dépôt.
-
-```sh
-flux create secret git k8s-kind-fluxcd \
-  --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-fluxcd \
-  --namespace=foo
-flux create secret git k8s-kind-fluxcd \
-  --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-fluxcd \
-  --namespace=bar
-```
-
-Vérifions la bonne création du secret :
-
-=== "code"
-    ```sh
-    kubectl -n foo get secret k8s-kind-fluxcd -o yaml
-    kubectl -n bar get secret k8s-kind-fluxcd -o yaml
-    ```
-
-=== "foo secret"
-    ```sh
-    apiVersion: v1
-    data:
-      identity:     LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JRzJBZ0VBTUJBR0J5cUdTTTQ5QWdFR0JTdUJCQUFpQklHZU1JR2JBZ0VCQkRBcVd6Y1pQZUwrLys3RWJ5NHQKN1dKMmdvZjUvOWNmS1VmVmxrVHFZMzZnQTl2N2NYbDFRN0RHMHBKR3Y4Q1hER0doWkFOaUFBUllnemlJWWxragpIUnRROVV6dDB3c3o5eHJ2aWtYYzFhWm5jelBnMnpUelA1    a1pGS2ZqNVRSb1U3Tmt0Y3h6MS8zRjM5MWFid1VyCmRBeXZ6bkZHeEd2eG1INXJBNmtLUTI5MFpENGJnb1BzeEphTU9aWHBwckRncm5mdTNFZmw4Z2s9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
-      identity.pub:     ZWNkc2Etc2hhMi1uaXN0cDM4NCBBQUFBRTJWalpITmhMWE5vWVRJdGJtbHpkSEF6T0RRQUFBQUlibWx6ZEhBek9EUUFBQUJoQkZpRE9JaGlXU01kRzFEMVRPM1RDelAzR3UrS1JkelZwbWR6TStEYk5QTS9tUmtVcCtQbE5HaFRzMlMxekhQWC9jWGYzVnB2QlN0MERLL09jVWJFYS9HWWZtc0RxUXBEYjNSa1BodUNnK3pFbG93NWxlbW1zT0N1    ZCs3Y1IrWHlDUT09Cg==
-      known_hosts: Z2l0aHViLmNvbSBlY2RzYS1zaGEyLW5pc3RwMjU2IEFBQUFFMlZqWkhOaExYTm9ZVEl0Ym1semRIQXlOVFlBQUFBSWJtbHpkSEF5TlRZQUFBQkJCRW1LU0VOalFFZXpPbXhrWk15N29wS2d3RkI5bmt0NVlScllNak51RzVOODd1UmdnNkNMcmJvNXdBZFQveTZ2MG1LVjBVMncwV1oyWUIvKytUcG9ja2c9
-    kind: Secret
-    metadata:
-      creationTimestamp: "2024-04-24T16:56:47Z"
-      name: k8s-kind-fluxcd
-      namespace: foo
-      resourceVersion: "1027167"
-      uid: e01fd494-515c-4496-b189-568af395975d
-    type: Opaque
-    ```
-
-=== "bar secret"
-    ```sh
-    apiVersion: v1
-    data:
-      identity:     LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JRzJBZ0VBTUJBR0J5cUdTTTQ5QWdFR0JTdUJCQUFpQklHZU1JR2JBZ0VCQkRBK29WdkpmT1V5QWpDcVJjbDYKMG1MZjE4NjNxLy9JZTNBdzBpL2w2eFRXcjhJWERXRVB5ZkxIYWJmdWg2MHQyK21oWkFOaUFBU05hcm1PWE9YTQpidHVaM0c0YmtiZHBlSjVyY28zS2ZSTWFrL1pFTDY5UVl    qSTIvdXdKbGRMTkt3d2VjUVl0UFFxSzB5Zlg1QTNoCkpiZVdZM1JVUWhVMFJhcktWaGJ3bURGOWNwRnRNR0g4c1JFRTQ3QS9GbkxRbVc0VW04UUhTYlE9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
-      identity.pub:     ZWNkc2Etc2hhMi1uaXN0cDM4NCBBQUFBRTJWalpITmhMWE5vWVRJdGJtbHpkSEF6T0RRQUFBQUlibWx6ZEhBek9EUUFBQUJoQkkxcXVZNWM1Y3h1MjVuY2JodVJ0Mmw0bm10eWpjcDlFeHFUOWtRdnIxQmlNamIrN0FtVjBzMHJEQjV4QmkwOUNvclRKOWZrRGVFbHQ1WmpkRlJDRlRSRnFzcFdGdkNZTVgxeWtXMHdZZnl4RVFUanNEOFdjdEN    aYmhTYnhBZEp0QT09Cg==
-      known_hosts: Z2l0aHViLmNvbSBlY2RzYS1zaGEyLW5pc3RwMjU2IEFBQUFFMlZqWkhOaExYTm9ZVEl0Ym1semRIQXlOVFlBQUFBSWJtbHpkSEF5TlRZQUFBQkJCRW1LU0VOalFFZXpPbXhrWk15N29wS2d3RkI5bmt0NVlScllNak51RzVOODd1UmdnNkNMcmJvNXdBZFQveTZ2MG1LVjBVMncwV1oyWUIvKytUcG9ja2c9
-    kind: Secret
-    metadata:
-      creationTimestamp: "2024-04-24T16:57:07Z"
-      name: k8s-kind-fluxcd
-      namespace: bar
-      resourceVersion: "1027222"
-      uid: 889f3be7-833c-4dc6-a8df-1505cd605618
-    type: Opaque
-    ```
-
-
-#### Ajout de la clé publique sur le dépôt GitHub
-
-Les clés publiques doivent être extraites des 'secrets' et renseignées dans les paramètres du dépôt GitHub  _*k8s-kind-fluxcd*_.
-
-=== "code"
-    ```sh
-    kubectl -n foo get secret k8s-kind-fluxcd -o jsonpath='{.data.identity\.pub}' | base64 -d
-    kubectl -n bar get secret k8s-kind-fluxcd -o jsonpath='{.data.identity\.pub}' | base64 -d
-    ```
-
-=== "foo public key"
-    '''sh
-    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBFiDOIhiWSMdG1D1TO3TCzP3Gu+KRdzVpmdzM+DbNPM/mRkUp+PlNGhTs2S1zHPX/cXf3VpvBSt0DK/OcUbEa/GYfmsDqQpDb3RkPhuCg+zElow5lemmsOCud+7cR+XyCQ==
-    '''
-
-=== "bar public key"
-    '''sh
-    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBI1quY5c5cxu25ncbhuRt2l4nmtyjcp9ExqT9kQvr1BiMjb+7AmV0s0rDB5xBi09CorTJ9fkDeElt5ZjdFRCFTRFqspWFvCYMX1ykW0wYfyxEQTjsD8WctCZbhSbxAdJtA==
-    '''
-
-Une fois sur la page de dépôt, cliquer sur le bouton _*Settings*_, puis dans la colonne de gauche sur la page suivante, sur le line _*Deploy Keys*_ dans la partie 'Security' :
-
-![Accéder aux settings sur le dépôt GitHub](../images/github_settings.png)
-
-![Accéder aux Deploy Keys sur le dépôt GitHub](../images/github_deploykeys.png)
-
-![Ajouter une nouvelle Deploy Key](../images/github_add_deploykey.png)
-
-!!! warning
-    La case __'Allow write access'__ doit être cochée pour permettre à FluxCD d'apporter des modifications dans son dépôt !
-
-![Déclarer la Deploy Key 'foo'](../images/github_add_foo_public_key.png)
-
-![Déclarer la Deploy Key 'bar'](../images/github_add_bar_public_key.png)
-
-![Liste des 'Deploy Keys'](../images/github_deploy_keys_list.png)
-
-
-
-#### Définition du GitRepository *"k8s-kind-apps"*
-
-L'API GitRepository définit une source pour produire un artefact pour une révision d'un dépôt Git.
-
-!!! info
-    https://fluxcd.io/flux/components/source/gitrepositories/
-
-Voici les informations qu'il faudra donner pour définir un 'GitRepository' :
-
-* Le nom que nous souhaitons lui donner : *k8s-kind-fluxcd*;
-* L'URL du dépôt GitHub : *ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-fluxcd.git*;
-* La branche du dépôt d'où récupérer le code : *main*;
-* Le secret d'où extraire la clé privée pour se connecter au dépôt GitHub : *foo* ou *bar* selon l'application concernée.
-
-
-```sh 
-   export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-   export GITHUB_USERNAME=papafrancky
-
-   cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-   mkdir -p apps/foo apps/bar
-```
-
-=== "code"
-    ```sh
-    flux create source git k8s-kind-fluxcd \
-      --url=ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-fluxcd.git \
-      --branch=main \
-      --secret-ref=k8s-kind-fluxcd \
-      --namespace=foo \
-      --export > apps/foo/gitrepository.yaml
-    
-    flux create source git k8s-kind-fluxcd \
-      --url=ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-fluxcd.git \
-      --branch=main \
-      --secret-ref=k8s-kind-fluxcd \
-      --namespace=bar \
-      --export > apps/bar/gitrepository.yaml
-    ```
-   
-=== "'foo' GitRepository"
-    ```sh
-    ---
-    apiVersion: source.toolkit.fluxcd.io/v1beta2
-    kind: GitRepository
-    metadata:
-      name: k8s-kind-fluxcd
-      namespace: foo
-    spec:
-      interval: 1m0s
-      ref:
-        branch: main
-      secretRef:
-        name: k8s-kind-fluxcd
-      url: ssh://git@github.com/papafrancky/k8s-kind-fluxcd.git
-    ```
-
-=== "'bar' GitRepository"
-    ```
-    ---
-    apiVersion: source.toolkit.fluxcd.io/v1beta2
-    kind: GitRepository
-    metadata:
-      name: k8s-kind-fluxcd
-      namespace: bar
-    spec:
-      interval: 1m0s
-      ref:
-        branch: main
-      secretRef:
-        name: k8s-kind-fluxcd
-      url: ssh://git@github.com/papafrancky/k8s-kind-fluxcd.git
-    ```
-
-
-#### Définition des *'Kustomizations'*
-
-!!! tip
-    Nommer le manifest 'kustomize.yml' pose des problèmes, le nom doit être réservé pour les besoins internes de Flux. Nous le nommerons 'sync.yaml'.
-
-=== "code"
-    ```sh
-    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-    
-    flux create kustomization foo \
-        --source=GitRepository/k8s-kind-apps.foo \
-        --path="./foo" \
-        --prune=true \
-        --namespace=foo \
-        --export > apps/foo/sync.yaml
-
-    flux create kustomization bar \
-        --source=GitRepository/k8s-kind-apps.bar \
-        --path="./bar" \
-        --prune=true \
-        --namespace=bar \
-        --export > apps/bar/sync.yaml
-    ```
-
-=== "'foo' kustomization"
-    ```sh
-    ---
-    apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
-    kind: Kustomization
-    metadata:
-      name: foo
-      namespace: foo
-    spec:
-      interval: 1m0s
-      path: ./apps/foo
-      prune: true
-      sourceRef:
-        kind: GitRepository
-        name: k8s-kind-apps
-        namespace: foo
-    ```
-
-=== "'bar' kustomization"
-    ```sh
-    ---
-    apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
-    kind: Kustomization
-    metadata:
-      name: bar
-      namespace: bar
-    spec:
-      interval: 1m0s
-      path: ./apps/bar
-      prune: true
-      sourceRef:
-        kind: GitRepository
-        name: k8s-kind-apps
-        namespace: bar
-    ```
-
-
-Il est temps de pousser nos modifications dans le dépôt GitHub :
-
-```sh
-   export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-   cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-
-   git status
-   git add .
-   git commit -m "feat: added GitRepositories and Kustomizations for 'foo' and 'bar' apps."
-   git push
-```
-
-Forçons la réconciliation :
-
-=== "code"
-    ```sh
-    flux reconcile kustomization flux-system --with-source
-    ```
-
-=== "output"
-    ```sh
-    ► annotating GitRepository flux-system in flux-system namespace
-    ✔ GitRepository annotated
-    ◎ waiting for GitRepository reconciliation
-    ✔ fetched revision main@sha1:c4b0b431e0b2d382a9278ecb56698212f46e10fe
-    ► annotating Kustomization flux-system in flux-system namespace
-    ✔ Kustomization annotated
-    ◎ waiting for Kustomization reconciliation
-    ✔ applied revision main@sha1:c4b0b431e0b2d382a9278ecb56698212f46e10fe
-    ```
-
-Nous devrions désormais voir le GitRepository défini au niveau du cluster :
-
-=== "code"
-    ```
-    k -n foo get gitrepository k8s-kind-fluxcd
-    k -n bar get gitrepository k8s-kind-fluxcd
-    ```
-
-=== "output "
-    ```
-    NAME              URL                                                    AGE   READY   STATUS
-    k8s-kind-fluxcd   ssh://git@github.com/papafrancky/k8s-kind-fluxcd.git   19m   True    stored artifact for revision 'main@sha1:755c207ac8a2e883a08aedd1c57fbe7004d1c801'
-    
-    NAME              URL                                                    AGE   READY   STATUS
-    k8s-kind-fluxcd   ssh://git@github.com/papafrancky/k8s-kind-fluxcd.git   19m   True    stored artifact for revision 'main@sha1:755c207ac8a2e883a08aedd1c57fbe7004d1c801'
-    ```
-
-
-### ImageRepository
-
-Nos deux applications _*foo*_ et _*bar*_ utilisent une même image Docker ("__e2e-test-images/agnhost__") et nous aimerions qu'elle soit mise à jour automatiquement si une nouvelle version venait à être publiée.
-La mise en place d'un tel process d'automatisation nécessite la définition préalable d'un __'ImageRepository'__ auquel nous associerons une __'ImagePolicy'__.
-
-=== "code"
-    ```sh
-    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-    export GITHUB_USERNAME=papafrancky
-    
-    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-    
-    flux create image repository foo \
-      --image=registry.k8s.io/e2e-test-images/agnhost \
-      --interval=5m \
-      --namespace=foo \
-      --export > apps/foo/imagerepository.yaml
-
-    flux create image repository bar \
-      --image=registry.k8s.io/e2e-test-images/agnhost \
-      --interval=5m \
-      --namespace=bar \
-      --export > apps/bar/imagerepository.yaml
-
-    git add .
-    git commit -m "feat: added image repository for foo and bar apps."
-    git push
-    ```
-
-=== "'foo' ImagePolicy"
-    ```sh
-    ---
-    apiVersion: image.toolkit.fluxcd.io/v1beta2
-    kind: ImageRepository
-    metadata:
-      name: foo
-      namespace: foo
-    spec:
-      image: registry.k8s.io/e2e-test-images/agnhost
-      interval: 5m0s
-    ```
-
-=== "'bar' ImagePolicy"
-    ```sh
-    ---
-    apiVersion: image.toolkit.fluxcd.io/v1beta2
-    kind: ImageRepository
-    metadata:
-      name: bar
-      namespace: bar
-    spec:
-      image: registry.k8s.io/e2e-test-images/agnhost
-      interval: 5m0s
-    ```
-
-Vérifions la bonne création des *'ImagePolicies'*:
-
-=== "code"
-    ```sh
-    kubectl -n foo get imagerepository foobar -o yaml
-    kubectl -n bar get imagerepository foobar -o yaml
-    ```
-
-=== "output"
-    ```sh
-    apiVersion: image.toolkit.fluxcd.io/v1beta2
-    kind: ImageRepository
-    metadata:
-      creationTimestamp: "2024-04-23T18:43:59Z"
-      finalizers:
-      - finalizers.fluxcd.io
-      generation: 1
-      labels:
-        kustomize.toolkit.fluxcd.io/name: flux-system
-        kustomize.toolkit.fluxcd.io/namespace: flux-system
-      name: foobar
-      namespace: foobar
-      resourceVersion: "882404"
-      uid: a8a4608e-2bb9-4149-b2d5-2fe5c3ca7a93
-    spec:
-      exclusionList:
-      - ^.*\.sig$
-      image: registry.k8s.io/e2e-test-images/agnhost
-      interval: 5m0s
-      provider: generic
-    status:
-      canonicalImageName: registry.k8s.io/e2e-test-images/agnhost
-      conditions:
-      - lastTransitionTime: "2024-04-23T18:44:00Z"
-        message: 'successful scan: found 25 tags'
-        observedGeneration: 1
-        reason: Succeeded
-        status: "True"
-        type: Ready
-      lastScanResult:
-        latestTags:
-        - "2.9"
-        - "2.48"
-        - "2.47"
-        - "2.45"
-        - "2.44"
-        - "2.43"
-        - "2.41"
-        - "2.40"
-        - "2.39"
-        - "2.38"
-        scanTime: "2024-04-23T18:44:00Z"
-        tagCount: 25
-      observedExclusionList:
-      - ^.*\.sig$
-      observedGeneration: 1
-    ```
-
-Nous pouvons d'ores et déjà constater que nous n'utilisons pas la version la plus récente de l'image __*'e2e-test-images/agnhost'*__ :
-
-* nous utilisons la version __2.39__;
-* la version la plus récente est la __2.48__.
-
-=== "code"
-    ```sh
-    kubectl -n foobar get imagerepository foobar -o jsonpath='{.status.lastScanResult.latestTags}' | jq -r '.'
-    ```
-
-=== "output"
-    ```sh
-    [
-      "2.9",
-      "2.48",
-      "2.47",
-      "2.45",
-      "2.44",
-      "2.43",
-      "2.41",
-      "2.40",
-      "2.39",
-      "2.38"
-    ]
-    ```
-
-
-### ImagePolicy
-
-Imaginons que nous souhaitions disposer de l'image 2.x la plus récente. Nous pouvons demander à FluxCD de gérer ces mises à jour automatiquement en définissant une __*'ImagePolicy'*__ que nous rattacherons à l'__*'ImageRepository'*__ 'foobar'.
-
-!!! note
-    https://github.com/Masterminds/semver#checking-version-constraints
-
-=== "code"
-    ```
-    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-    export GITHUB_USERNAME=papafrancky
-    
-    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/foobar
-    
-    flux create image policy foobar \
-      --image-ref=foobar \
-      --select-semver='<=2.x' \
-      --namespace=foobar \
-      --export > imagepolicy.yaml
-    
-    git add imagepolicy.yaml
-    git commit -m "feat: defined an image policy for foobar app."
-    git push
-    ```
-
-=== "manifest"
-    ```
-    ---
-    apiVersion: image.toolkit.fluxcd.io/v1beta2
-    kind: ImagePolicy
-    metadata:
-      name: foobar
-      namespace: foobar
-    spec:
-      imageRepositoryRef:
-        name: foobar
-      policy:
-        semver:
-          range: <=2.x
-    ```
-
-
-### Marquage du manifest de déploiement de l'application 'foobar'
-
-Nous devons maintenant indiquer à FluxCD où mettre la version de l'image à jour dans les manifests de l'application 'foobar'.
-En effet, si FluxCD est capable de détecter une nouvelle version de l'image conforme à notre politique de mise à jour (dans notre cas, toutes les versions 2.x), il doit aussi mettre le code de déploiement de l'application.
-
-Dans le cas de notre application 'foobar', l'image Docker et sa version sont précisés dans 2 manifests : 
-
-* ${LOCAL_GITHUB_REPOS}/k8s-kind-apps/foobar/__foo.pod.yaml__;
-* ${LOCAL_GITHUB_REPOS}/k8s-kind-apps/foobar/__bar.pod.yaml__.
-
-
-=== "code"
-    ```sh
-    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-    export GITHUB_USERNAME=papafrancky
-    
-    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps/foobar
-    
-    gsed -i 's/agnhost:2\.39/agnhost:2\.39 # {"$imagepolicy": "foobar:foobar"}/' foo.pod.yaml
-    gsed -i 's/agnhost:2\.39/agnhost:2\.39 # {"$imagepolicy": "foobar:foobar"}/' bar.pod.yaml
-    
-    git add .
-    git commit -m "feat: added a marker on foobar's pods manifests."
-    git push
-    ```   
-
-!!! note
-    "foobar.foobar" correspond à "<namespace>.<imagepolicy>"
-
-=== "foo.pod.yaml"
-    ```sh
-    kind: Pod
-    apiVersion: v1
-    metadata:
-      name: foo-app
-      labels:
-        app: foo
-    spec:
-      containers:
-      - command:
-        - /agnhost
-        - netexec
-        - --http-port
-        - "8080"
-        image: registry.k8s.io/e2e-test-images/agnhost:2.39 # {"$imagepolicy": "foobar:foobar"}
-        name: foo-app
-    ```
-
-=== "bar.pod.yaml"
-    ```sh
-    kind: Pod
-    apiVersion: v1
-    metadata:
-      name: bar-app
-      labels:
-        app: bar
-    spec:
-      containers:
-      - command:
-        - /agnhost
-        - netexec
-        - --http-port
-        - "8080"
-        image: registry.k8s.io/e2e-test-images/agnhost:2.39 # {"$imagepolicy": "foobar:foobar"}
-        name: bar-app
-    ```
-
-
-### Image Update Automation
 
