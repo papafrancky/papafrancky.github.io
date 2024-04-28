@@ -39,9 +39,9 @@ Commençons par nous identifier sur GitHub et créons deux nouveaux dépôts pri
 |k8s-kind-fluxcd|dépôt GitHub dédié à FluxCD sur notre cluster|
 |k8s-kind-apps|dépôt GitHub dédié à l'hébergement des applications à déployer via FluxCD|
 
-![Nouveau dépôt GitHub dédié à FluxCD](../images/new_github_repository_dedicated_to_fluxcd.png)
+![Nouveau dépôt GitHub dédié à FluxCD](./images/new_github_repository_dedicated_to_fluxcd.png)
 
-![Nouveau dépôt GitHub dédié aux applications](../images/new_github_repository_dedicated_to_apps.png)
+![Nouveau dépôt GitHub dédié aux applications](./images/new_github_repository_dedicated_to_apps.png)
 
 
 ### Clonage des dépôts en local
@@ -459,7 +459,7 @@ git push
 
 Les applications se trouvent désormais bien dans le dépôt GitHub dédié aux applications :
 
-![foobar application is uploaded in the Github repository dedicated to apps](../images/foo_bar_apps_in_github_repo.png)
+![foobar application is uploaded in the Github repository dedicated to apps](./images/foo_bar_apps_in_github_repo.png)
 
 Nous allons pouvoir définir ces dépôts au niveau de FluxCd pour que ce dernier puisse les gérer.
 
@@ -557,20 +557,20 @@ Les clés publiques doivent être extraites des 'secrets' et renseignées dans l
 
 Une fois sur la page de dépôt, cliquer sur le bouton _*Settings*_, puis dans la colonne de gauche sur la page suivante, sur le line _*Deploy Keys*_ dans la partie 'Security' :
 
-![Accéder aux settings sur le dépôt GitHub](../images/github_settings.png)
+![Accéder aux settings sur le dépôt GitHub](./images/github_settings.png)
 
-![Accéder aux Deploy Keys sur le dépôt GitHub](../images/github_deploykeys.png)
+![Accéder aux Deploy Keys sur le dépôt GitHub](./images/github_deploykeys.png)
 
-![Ajouter une nouvelle Deploy Key](../images/github_add_deploykey.png)
+![Ajouter une nouvelle Deploy Key](./images/github_add_deploykey.png)
 
 !!! warning
     La case __'Allow write access'__ doit être cochée pour permettre à FluxCD d'apporter des modifications dans son dépôt !
 
-![Déclarer la Deploy Key 'foo'](../images/github_add_foo_public_key.png)
+![Déclarer la Deploy Key 'foo'](./images/github_add_foo_public_key.png)
 
-![Déclarer la Deploy Key 'bar'](../images/github_add_bar_public_key.png)
+![Déclarer la Deploy Key 'bar'](./images/github_add_bar_public_key.png)
 
-![Liste des 'Deploy Keys'](../images/github_deploy_keys_list.png)
+![Liste des 'Deploy Keys'](./images/github_deploy_keys_list.png)
 
 
 
@@ -1447,4 +1447,52 @@ Le routage fonctionne comme attendu ! :fontawesome-regular-face-laugh-wink:
 ----------------------------------------------------------------------------------------------------
 
 ## Notifications Discord
+
+Nous avons configuré FluxCD pour gérer automatiquement la mise à jour des images de nos applications _*'foo'*_ et _*'bar'*_ et avons exposé ces dernières via notre Ingress controller Nginx.
+
+Nous aimerions maintenant être informés lorsqu'un changement est opéré sur nos applications et allons nous y atteler dans cette partie.
+
+Nous avons retenu la plateforme de messagere instantanée **'Discord'** car elle permet de configurer des _*'webhooks'*_ sur des _*'channels'*_ sans pour autant devoir payer un abonnement, comme c'est le cas par exemple avec **Slack**.
+
+
+### Installation du client _*'Discord'*_
+
+Pour l'installer, il faut accéder au site web **discord.com** et télécharger le client :
+
+```sh
+https://discord.com/api/download?platform=osx
+```
+
+
+### Création d'un _*'serveur'*_ et d'un _*'channel'*_ pour chaque application
+
+Nous souhaitons que chaque application dispose de son propre channel Discord. 
+
+![Add a Discord server #1](./images/discord_add_server_1.png)
+
+![Add a Discord server #2](./images/discord_add_server_2.png)
+
+![Add a Discord server #3](./images/discord_add_server_3.png)
+
+![Add a Discord server #4](./images/discord_add_server_4.png)
+
+![Add a Discord channel #1](./images/discord_add_channel_1.png)
+
+![Add a Discord channel #2](./images/discord_add_channel_2.png)
+
+![Add a Discord channel 3](./images/discord_add_channel_3.png)
+
+![Configure a webhook #1](./images/discord_configure_webhook_1.png)
+
+![Configure a webhook #2](./images/discord_configure_webhook_2.png)
+
+![Configure a webhook #3](./images/discord_configure_webhook_3.png)
+
+![Configure a webhook #4](./images/discord_configure_webhook_4.png)
+
+![Configure a webhook #5](./images/discord_configure_webhook_5.png)
+
+Webhook k8s-kind / foo : https://discord.com/api/webhooks/1234167966258561045/z-vEpmh08xnLZHypqKsjzUQd4FwdCDvFWhKAHaJKg7k6YbuU1VfkxqLROXme7ihb8jKP
+
+Webhook k8s-kind / bar : https://discord.com/api/webhooks/1234169188231413912/ppnMSjYpE-efPic1AVIGlpZW0m5p_nzj8qiaqldJgd_u_O97Rhm5FJbQLlUg9z5DBC_0
 

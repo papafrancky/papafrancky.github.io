@@ -55,3 +55,15 @@ brew install fluxctl
 brew install helm
 helm version
 ```
+
+
+
+## Discord
+
+Discord est une messagerie instantanée permettant de configurer des _*'webhooks'*_ sur ses _*'channels'*_ sans devoir payer d'abonnement ou de souscription pour autant, comme c'est le cas avec la plateforme _*'Slack'*_ par exemple.
+
+Pour l'installer, il faut accéder au site web **discord.com** et télécharger le client :
+
+```sh
+https://discord.com/api/download?platform=osx
+```
