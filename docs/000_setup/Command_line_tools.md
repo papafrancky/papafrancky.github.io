@@ -67,3 +67,28 @@ Pour l'installer, il faut accéder au site web **discord.com** et télécharger 
 ```sh
 https://discord.com/api/download?platform=osx
 ```
+
+
+
+## Docker Desktop
+
+L'alternative possible reste Rancher.
+
+```sh
+https://www.docker.com/products/docker-desktop/
+```
+
+
+
+## Material for MkDocs
+
+MkDocs est très pratique pour créer de la documentation à partir de fichiers écrits en MarkDown.
+
+!!! info
+    https://squidfunk.github.io/mkdocs-material/
+
+Pour voir directement les modifications apportées sur une copie locale, il faut se placer dans le répertoire racine du dépôt de la documentation concernée et lancer le conteneur suivant :
+
+```sh
+docker run --rm -it -p 8000:8000 -v ${PWD}:/docs squidfunk/mkdocs-material
+```
