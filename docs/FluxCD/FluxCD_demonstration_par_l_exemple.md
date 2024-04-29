@@ -1466,7 +1466,12 @@ https://discord.com/api/download?platform=osx
 
 ### Création d'un _*'serveur'*_ et d'un _*'channel'*_ pour chaque application
 
-Nous souhaitons que chaque application dispose de son propre channel Discord. 
+
+#### Création d'un serveur Discord
+
+Discord permet la création de _*'serveurs'*_ que nous pouvons restreindre pour notre usage personnel et qui hébergeront les _*'salons'*_ que nous dédierons à l'envoi de notifications de FluxCD concernant nos applications.
+
+Une fois le client Discord démarré, cliquons sur le **'+'** situé dasn la colonne de gauche. Nous répondrons ensuite aux différentes questions et donnerons à notre serveur le nom de notre cluster Kubernetes : **k8s-kind**.
 
 ![Add a Discord server #1](./images/discord_add_server_1.png)
 
@@ -1476,11 +1481,27 @@ Nous souhaitons que chaque application dispose de son propre channel Discord.
 
 ![Add a Discord server #4](./images/discord_add_server_4.png)
 
+#### Création d'un salon dans notre serveur Discord
+
+Nous souhaitons créer un salon pour chacune de nos applications. La procédure étant la même pour tous les salons, nous montrerons la création du salon pour l'application _*'foo'*_. Vous devrez faire la même chose pour l'application _*'bar'*_.
+
+Sélectionnez le serveur _*'k8s-kind'*_ dans la colonne de gauche, puis dans la partie 'salons textuels', cliquez sur le __'+'__ :
+
 ![Add a Discord channel #1](./images/discord_add_channel_1.png)
+
+Précisez qu'il s'agit bien d'un salon textuel, précisez son nom _*'foo'*_ et choisissez de le rendre __privé__ :
 
 ![Add a Discord channel #2](./images/discord_add_channel_2.png)
 
+Passez l'étape d'ajout de membres :
+
 ![Add a Discord channel 3](./images/discord_add_channel_3.png)
+
+Votre salon est prêt.
+
+#### Création d'un _*'webhook'*_ pour chaque salon
+
+Cliquez sur la roue dentée *'paramètres'* à droite du nom du salon, puis sur *'intégrations'* et enfin sur le bouton *'Créer un webhook'*.
 
 ![Configure a webhook #1](./images/discord_configure_webhook_1.png)
 
@@ -1488,11 +1509,231 @@ Nous souhaitons que chaque application dispose de son propre channel Discord.
 
 ![Configure a webhook #3](./images/discord_configure_webhook_3.png)
 
+Un nom lui est donné e manière aléatoire (ex: 'Spidey Bot'). Pour changer le nom du *'webhook'* par 'FluxCD', copiez l'URL en cliquant sur le bouton idoine, et enregistrez les modifications :
+
 ![Configure a webhook #4](./images/discord_configure_webhook_4.png)
 
 ![Configure a webhook #5](./images/discord_configure_webhook_5.png)
 
-Webhook k8s-kind / foo : https://discord.com/api/webhooks/1234167966258561045/z-vEpmh08xnLZHypqKsjzUQd4FwdCDvFWhKAHaJKg7k6YbuU1VfkxqLROXme7ihb8jKP
+Nous répétons les mêmes opérations pour la création du salon privé _*'bar'*_.
 
-Webhook k8s-kind / bar : https://discord.com/api/webhooks/1234169188231413912/ppnMSjYpE-efPic1AVIGlpZW0m5p_nzj8qiaqldJgd_u_O97Rhm5FJbQLlUg9z5DBC_0
+Les URLs des webhooks des salons sont les suivants :
+
+|Salon privé|URL|
+|:---:|---|
+|**foo**|https://discord.com/api/webhooks/1234167966258561045/z-vEpmh08xnLZHypqKsjzUQd4FwdCDvFWhKAHaJKg7k6YbuU1VfkxqLROXme7ihb8jKP|
+|**bar**|https://discord.com/api/webhooks/1234169188231413912/ppnMSjYpE-efPic1AVIGlpZW0m5p_nzj8qiaqldJgd_u_O97Rhm5FJbQLlUg9z5DBC_0|
+
+
+### Enregistrement des webhook des salons Discord
+
+Ces informations sont considérées comme sensibles dasn la mesure où quiconque en disposerait pourrait publier des informations dans nos salons privés. Nous les enregistrerons dans Kubernetes comme des *'secrets'*.
+
+=== "code"
+    ```sh
+    export WEBHOOK_FOO="https://discord.com/api/webhooks/1234167966258561045/z-vEpmh08xnLZHypqKsjzUQd4FwdCDvFWhKAHaJKg7k6YbuU1VfkxqLROXme7ihb8jKP"
+    export WEBHOOK_BAR="https://discord.com/api/webhooks/1234169188231413912/ppnMSjYpE-efPic1AVIGlpZW0m5p_nzj8qiaqldJgd_u_O97Rhm5FJbQLlUg9z5DBC_0"
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    kubectl -n foo create secret generic discord-webhook --from-literal=address=${WEBHOOK_FOO} > apps/foo/discord-webhook.secret.yaml
+    kubectl -n bar create secret generic discord-webhook --from-literal=address=${WEBHOOK_FOO} > apps/bar/discord-webhook.secret.yaml
+    ```
+
+=== "'foo' webhook"
+    ```sh
+    
+    ```
+
+=== "'bar' webhook"
+    ```sh
+    
+    ```
+
+### Création des _*'notification providers'*_
+
+!!! info
+    https://fluxcd.io/flux/components/notification/providers/#discord
+
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    flux create alert-provider discord \
+      --type=discord \
+      --secret-ref=discord-webhook \
+      --channel=foo \
+      --username=FluxCD \
+      --namespace=foo \
+      --export > apps/foo/notification-provider.yaml
+
+    flux create alert-provider discord \
+      --type=discord \
+      --secret-ref=discord-webhook \
+      --channel=bar \
+      --username=FluxCD \
+      --namespace=bar \
+      --export > apps/bar/notification-provider.yaml
+    ```
+
+=== "'foo' notification provider"
+    ```sh
+
+    ```
+
+=== "'bar' notification provider"
+    ```sh
+
+    ```
+
+### Configuration des alertes Discord
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    flux create alert discord \
+      --event-severity=info \
+      --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*' \
+      --provider-ref=discord \
+      --namespace=foo \
+      --export > apps/foo/notification-alert.yaml
+
+    flux create alert discord \
+      --event-severity=info \
+      --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*' \
+      --provider-ref=discord \
+      --namespace=bar \
+      --export > apps/foo/notification-alert.yaml
+    ```
+
+=== "'foo' alert"
+    ```sh
+
+    ```
+
+=== "'bar' alert"
+    ```sh
+
+    ```
+
+
+### Activation des alertes et notifications
+
+
+#### Mise en place
+
+Poussons nos modifications dans notre dépôt GitHub :
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+git add .
+git commit -m "feat: setting up Discord alerting."
+git push
+```
+
+
+### Tests
+
+Vérifions la bonne création des alertes et notification providers :
+
+=== "code"
+    ```sh
+    kubectl get providers,alerts -A
+    ```
+
+=== "output"
+    ```sh
+
+    ```
+
+Testons leur bon fonctionnement : nous allons désactiver les _*'Image Policies'*_ de sorte qu'elles installent la version la plus ancienne des images.
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    gsed -i 's/order: asc/order: desc/' apps/foo/agnhost.imagepolicy.yaml
+    gsed -i 's/order: asc/order: desc/' apps/foo/agnhost.imagepolicy.yaml
+
+    git add .
+    git commit -m "test: changing image policies to test Discord alerting."
+    git push
+    ```
+=== "'foo' image policy"
+    ```sh
+    ---
+    apiVersion: image.toolkit.fluxcd.io/v1beta2
+    kind: ImagePolicy
+    metadata:
+      name: agnhost
+      namespace: foo
+    spec:
+      imageRepositoryRef:
+        name: agnhost
+      filterTags:
+        pattern: '\d\.\d\d'
+        extract: ""
+      policy:
+        numerical:
+          order: desc
+    ```
+
+=== "'foo' image policy"
+    ---
+    apiVersion: image.toolkit.fluxcd.io/v1beta2
+    kind: ImagePolicy
+    metadata:
+      name: agnhost
+      namespace: bar
+    spec:
+      imageRepositoryRef:
+        name: agnhost
+      filterTags:
+        pattern: '\d\.\d\d'
+        extract: ""
+      policy:
+        numerical:
+          order: desc
+
+
+=> Mettre des screenshots de Discord et des alertes reçues.
+
+### Rollback
+
+Le test est concluant, revenons à la situation initiale où FluxCD s'assure de déployer la version la plus récente de l'image Docker.
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    gsed -i 's/order: desc/order: asc/' apps/foo/agnhost.imagepolicy.yaml
+    gsed -i 's/order: desc/order: asc/' apps/foo/agnhost.imagepolicy.yaml
+
+    git add .
+    git commit -m "test: rollback to normal."
+    git push
+    ```
+
+
+
+
+----------
+TODO
+
+* mettre screenshots des alertes Discors reçues
+* Faire le schéma en mermaid avec les imageupdateautomations, imagepolicies, imagerepositories, gitrepositories etc
 
