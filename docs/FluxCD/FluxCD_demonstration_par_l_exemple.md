@@ -1,20 +1,37 @@
 # FluxCD - Démonstration par l'exemple
 
+----------------------------------------------------------------------------------------------------
 ## Abstract
 
-Sur un cluster Kind 'propre', nous allons mettre en place FluxCD (ie. *'bootstrap'*) et lui faire gérer le déploiement et la mise à jour d'une application très simple que nous avons déjà utilisée pour tester le bon fonctionnement de notre Ingress controller Nginx lorsque nous avons installé notre cluster Kind en local.
+Sur un cluster Kind fraîchement installé, nous installerons FluxCD (ie. *'bootstrap'*) pour gérer le déploiement et la mise à jour de 2 applications très simples, que nous exposerons par la suite avec le contrôleur Nginx du cluster. Nous mettrons également en place des notifications pour nous alerter via la messagerie instantanée Discord des évolutions apportées à nos applications.
 
-!!! note
-    https://kind.sigs.k8s.io/docs/user/ingress/#ingress-nginx
+``` mermaid
 
-Plusieurs étapes viendront jalonner notre chemin jusqu'à l'automatisation complète du déploiement de notre application avec FluxCD :
-* *bootstrapping* de FluxCD sur notre cluster;
-* ...
-* ...
+graph TD
+
+A(users)
+B(("ingress\n'foobar'"))
+C{service\n'foo'}
+D{service\n'bar'}
+E[deployment\n'foo']
+F[deployment\n'bar']
+
+A -.-> B
+B --> C & D
+
+subgraph application 'foo'
+C --> E
+end
+
+subgraph application 'bar'
+D --> F
+end
+```
 
 
--- schéma --
-GitHub
+En réalité, ces deux applications sont strictement les mêmes, puisqu'elles consistent chacune en 1 pod faisant usage de la même image *'e2e-test-images/agnhost'*, mais nous considérerons qu'il s'agit bel et bien de 2 applications distinctes différentes.
+
+
 
 ----------------------------------------------------------------------------------------------------
 ## Pré-requis
@@ -234,49 +251,45 @@ Cherchons les objets créés dans le namespace de FluxCD :
 
 FluxCD peut gérer l'automatisation du déploiement d'applications packagées avec Helm ou bien directement depuis un dépôt Git. Nous allons d'abord nous concentrer sur le déploiement d'applications depuis un dépôt Git (GitHub dans notre cas).
 
-Pour illluster le fonctionnement de FluxCD, nous allons déployer 2 applications que nous exposerons par la suite avec notre Ingress Controller Nginx : foo & bar.
-En réalité, ces deux applications sont strictement les mêmes, puisqu'elles consistent chacune en un pod utilisant la même image *'e2e-test-images/agnhost'*, mais nous considérerons qu'il s'agit bel et bien de 2 applications distinctes différentes.
+Les objets de FluxCD sont un peu comme des poupées Russes, il est important de garder en tête leurs interdépendances pour comprendre l'ordre dans lequel nous devrons les créer.
+
 
 ``` mermaid
+graph RL
 
-graph TD
+ImagePolicy("Image\nPolicy")
+ImageRepository("Image\nRepository")
+ImageRegistry("Docker\nimage\nregistry")
+Deployment("Deployment")
+ImageUpdateAutomation("Image\nUpdate\nAutomation")
+GithubRepository("GitHub\nRepository")
+Kustomization("Kustomization")
+GitRepository("Git\nRepository")
+DeployKeys("(secret)\ndeploy\nkeys")
+Alert("Alert")
+Provider("Provider")
+InstantMessaging("Discord\nInstant\nMessaging")
+Webhook("(secret)\nDiscord\nWebhook")
 
-A(users)
-B(("ingress\n'foobar'"))
-C{service\n'foo'}
-D{service\n'bar'}
-E[deployment\n'foo']
-F[deployment\n'bar']
+classDef FluxCDObject fill:olivedrab,stroke:darkolivegreen,stroke-width:3px;
+class ImagePolicy,ImageRepository,ImageUpdateAutomation,Kustomization,GitRepository,Alert,Provider FluxCDObject
 
-A -.-> B
-B --> C & D
+ImageRegistry ----> ImageRepository
+ImageRegistry --> Deployment
+ImageRepository --> ImagePolicy
+Deployment --> GithubRepository
+GithubRepository --> ImageUpdateAutomation & GitRepository
+DeployKeys --> GitRepository
+GitRepository ---> Kustomization
 
-subgraph application 'foo'
-C --> E
-end
-
-subgraph application 'bar'
-D --> F
-end
-```
-
-Chaque application sera hébergée dans son propre namespace.
-Dans le dépôt GitHub dédié aux applications qui seront pilotées par FluxCD, nous créerons un répertoire pour chaque application 'foo' et bar' et y déposerons les manifests YAML qui définiront les services et déploiements pour chacune d'entre elles.
-
-```sh title="${LOCAL_GITHUB_REPOS}/k8s-kins-apps"
-k8s-kind-apps
-├── bar
-│   ├── bar.deployment.yaml
-│   ├── bar.service.yaml
-│   └── namespace.yaml
-└── foo
-    ├── foo.deployment.yaml
-    ├── foo.service.yaml
-    └── namespace.yaml
+InstantMessaging & Webhook ---> Provider
+Provider --> Alert
 ```
 
 
 ### Namespaces dédiés à l'application
+
+Chaque application sera hébergée dans son propre namespace.
 
 === "code"
     ```sh
@@ -313,7 +326,7 @@ k8s-kind-apps
 
 ### Dépôt GitHub dédié aux applications
 
-Les applications seront récupérées directement depuis un dépôt Git. Si elles avaient été packagées sous la forme d'une Helm Chart, GluxCD les aurait récupéré directement depuis un dépôt Helm.
+Les applications seront récupérées directement depuis un dépôt Git. Si elles avaient été packagées sous la forme d'une Helm Chart, FluxCD les aurait récupéré directement depuis un dépôt Helm.
 
 Nous avons préalablement créé sur GitHub un dépôt dédié à l'hébergement de toutes les applications que FluxCD va gérer pour notre cluster : github.com/${GITHUB_USERNAME}/__k8s-kind-apps__.
 
@@ -1509,13 +1522,13 @@ Cliquez sur la roue dentée *'paramètres'* à droite du nom du salon, puis sur 
 
 ![Configure a webhook #3](./images/discord_configure_webhook_3.png)
 
-Un nom lui est donné e manière aléatoire (ex: 'Spidey Bot'). Pour changer le nom du *'webhook'* par 'FluxCD', copiez l'URL en cliquant sur le bouton idoine, et enregistrez les modifications :
+Un nom lui est donné de manière aléatoire (ex: 'Spidey Bot'). Pour changer le nom du *'webhook'* par 'FluxCD', copiez l'URL en cliquant sur le bouton idoine, et enregistrez les modifications :
 
 ![Configure a webhook #4](./images/discord_configure_webhook_4.png)
 
 ![Configure a webhook #5](./images/discord_configure_webhook_5.png)
 
-Nous répétons les mêmes opérations pour la création du salon privé _*'bar'*_.
+**Nous répétons les mêmes opérations pour la création du salon privé _*'bar'*_.**
 
 Les URLs des webhooks des salons sont les suivants :
 
@@ -1537,18 +1550,32 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
 
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
-    kubectl -n foo create secret generic discord-webhook --from-literal=address=${WEBHOOK_FOO} > apps/foo/discord-webhook.secret.yaml
-    kubectl -n bar create secret generic discord-webhook --from-literal=address=${WEBHOOK_FOO} > apps/bar/discord-webhook.secret.yaml
+    kubectl -n foo create secret generic discord-webhook --from-literal=address=${WEBHOOK_FOO} --dry-run=client -o yaml > apps/foo/discord-webhook.secret.yaml
+    kubectl -n bar create secret generic discord-webhook --from-literal=address=${WEBHOOK_BAR} --dry-run=client -o yaml > apps/bar/discord-webhook.secret.yaml
     ```
 
 === "'foo' webhook"
     ```sh
-    
+    apiVersion: v1
+    data:
+      address: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTIzNDE2Nzk2NjI1ODU2MTA0NS96LXZFcG1oMDh4bkxaSHlwcUtzanpVUWQ0RndkQ0R2RldoS0FIYUpLZzdrNllidVUxVmZreHFMUk9YbWU3aWhiOGpLUA==
+    kind: Secret
+    metadata:
+      creationTimestamp: null
+      name: discord-webhook
+      namespace: foo
     ```
 
 === "'bar' webhook"
     ```sh
-    
+    apiVersion: v1
+    data:
+      address: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTIzNDE2OTE4ODIzMTQxMzkxMi9wcG5NU2pZcEUtZWZQaWMxQVZJR2xwWlcwbTVwX256ajhxaWFxbGRKZ2RfdV9POTdSaG01RkpiUUxsVWc5ejVEQkNfMA==
+    kind: Secret
+    metadata:
+      creationTimestamp: null
+      name: discord-webhook
+      namespace: bar
     ```
 
 ### Création des _*'notification providers'*_
@@ -1582,12 +1609,34 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
 
 === "'foo' notification provider"
     ```sh
-
+    ---
+    apiVersion: notification.toolkit.fluxcd.io/v1beta2
+    kind: Provider
+    metadata:
+      name: discord
+      namespace: foo
+    spec:
+      channel: foo
+      secretRef:
+        name: discord-webhook
+      type: discord
+      username: FluxCD
     ```
 
 === "'bar' notification provider"
     ```sh
-
+    ---
+    apiVersion: notification.toolkit.fluxcd.io/v1beta2
+    kind: Provider
+    metadata:
+      name: discord
+      namespace: bar
+    spec:
+      channel: bar
+      secretRef:
+        name: discord-webhook
+      type: discord
+      username: FluxCD
     ```
 
 ### Configuration des alertes Discord
@@ -1610,17 +1659,57 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
       --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*' \
       --provider-ref=discord \
       --namespace=bar \
-      --export > apps/foo/notification-alert.yaml
+      --export > apps/bar/notification-alert.yaml
     ```
 
 === "'foo' alert"
     ```sh
-
+    ---
+    apiVersion: notification.toolkit.fluxcd.io/v1beta2
+    kind: Alert
+    metadata:
+      name: discord
+      namespace: foo
+    spec:
+      eventSeverity: info
+      eventSources:
+      - kind: GitRepository
+        name: '*'
+      - kind: Kustomization
+        name: '*'
+      - kind: ImageRepository
+        name: '*'
+      - kind: ImagePolicy
+        name: '*'
+      - kind: HelmRepository
+        name: '*'
+      providerRef:
+        name: discord
     ```
 
 === "'bar' alert"
     ```sh
-
+    ---
+    apiVersion: notification.toolkit.fluxcd.io/v1beta2
+    kind: Alert
+    metadata:
+      name: discord
+      namespace: bar
+    spec:
+      eventSeverity: info
+      eventSources:
+      - kind: GitRepository
+        name: '*'
+      - kind: Kustomization
+        name: '*'
+      - kind: ImageRepository
+        name: '*'
+      - kind: ImagePolicy
+        name: '*'
+      - kind: HelmRepository
+        name: '*'
+      providerRef:
+        name: discord
     ```
 
 
@@ -1639,6 +1728,8 @@ cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 git add .
 git commit -m "feat: setting up Discord alerting."
 git push
+
+flux reconcile kustomization flux-system --with-source
 ```
 
 
@@ -1653,7 +1744,13 @@ Vérifions la bonne création des alertes et notification providers :
 
 === "output"
     ```sh
+    NAMESPACE   NAME                                              AGE     READY   STATUS
+    bar         provider.notification.toolkit.fluxcd.io/discord   3m16s   True    Initialized
+    foo         provider.notification.toolkit.fluxcd.io/discord   3m16s   True    Initialized
 
+    NAMESPACE   NAME                                           AGE     READY   STATUS
+    bar         alert.notification.toolkit.fluxcd.io/discord   3m16s   True    Initialized
+    foo         alert.notification.toolkit.fluxcd.io/discord   3m16s   True    Initialized
     ```
 
 Testons leur bon fonctionnement : nous allons désactiver les _*'Image Policies'*_ de sorte qu'elles installent la version la plus ancienne des images.
@@ -1665,11 +1762,13 @@ Testons leur bon fonctionnement : nous allons désactiver les _*'Image Policies'
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
     gsed -i 's/order: asc/order: desc/' apps/foo/agnhost.imagepolicy.yaml
-    gsed -i 's/order: asc/order: desc/' apps/foo/agnhost.imagepolicy.yaml
+    gsed -i 's/order: asc/order: desc/' apps/bar/agnhost.imagepolicy.yaml
 
     git add .
     git commit -m "test: changing image policies to test Discord alerting."
     git push
+
+    flux reconcile kustomization flux-system --with-source
     ```
 === "'foo' image policy"
     ```sh
@@ -1707,8 +1806,24 @@ Testons leur bon fonctionnement : nous allons désactiver les _*'Image Policies'
         numerical:
           order: desc
 
+Nous recevons les notifications suivantes dans les salons '#foo' et '#bar' :
 
-=> Mettre des screenshots de Discord et des alertes reçues.
+![Discord alerting for 'foo' app](images/discord_alerting_foo.png)
+
+![Discord alerting for 'bar' app](images/discord_alerting_bar.png)
+
+=== "code"
+    ```sh
+    printf "foo - ";kubectl -n foo get pods -o json | jq -r '.items[].spec.containers[].image'
+    printf "bar - ";kubectl -n bar get pods -o json | jq -r '.items[].spec.containers[].image'
+    ```
+
+=== "output"
+    ```sh
+    foo - registry.k8s.io/e2e-test-images/agnhost:2.10
+    bar - registry.k8s.io/e2e-test-images/agnhost:2.10
+    ```
+
 
 ### Rollback
 
@@ -1721,19 +1836,99 @@ Le test est concluant, revenons à la situation initiale où FluxCD s'assure de 
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
     gsed -i 's/order: desc/order: asc/' apps/foo/agnhost.imagepolicy.yaml
-    gsed -i 's/order: desc/order: asc/' apps/foo/agnhost.imagepolicy.yaml
+    gsed -i 's/order: desc/order: asc/' apps/bar/agnhost.imagepolicy.yaml
 
     git add .
     git commit -m "test: rollback to normal."
     git push
+
+    flux reconcile kustomization flux-system --with-source
     ```
 
+Discord nous informe directement des modifications apportées à nos applications :
 
+![Discord alerting for 'foo' rollback operation](images/discord_alerting_foo_rollback.png)
 
+![Discord alerting for 'bar' rollback operation](images/discord_alerting_bar_rollback.png)
+
+Juste avant de pousser les modifications sur notre dépôt GitHub et de forcer la réconciliation Flux, nous avions exécuté la commande suivante dans un terminal pour surveiller le cycle de vie des pods concernés :
+
+=== "code"
+    ```sh
+    kubectl get pods --all-namespaces -l 'app in (foo, bar)' -w
+    ```
+
+=== "output"
+    ```sh
+    NAMESPACE   NAME                   READY   STATUS    RESTARTS   AGE
+    bar         bar-5f6dc76fcd-xrtk2   1/1     Running   0          25m
+    foo         foo-774bffc7f5-r7q6g   1/1     Running   0          25m
+    foo         foo-6b7d6f775c-fhtdj   0/1     Pending   0          0s
+    foo         foo-6b7d6f775c-fhtdj   0/1     Pending   0          0s
+    foo         foo-6b7d6f775c-fhtdj   0/1     ContainerCreating   0          0s
+    foo         foo-6b7d6f775c-fhtdj   1/1     Running             0          1s
+    foo         foo-774bffc7f5-r7q6g   1/1     Terminating         0          27m
+    foo         foo-774bffc7f5-r7q6g   0/1     Terminating         0          27m
+    foo         foo-774bffc7f5-r7q6g   0/1     Terminating         0          27m
+    foo         foo-774bffc7f5-r7q6g   0/1     Terminating         0          27m
+    foo         foo-774bffc7f5-r7q6g   0/1     Terminating         0          27m
+    bar         bar-76848b7788-zc6r2   0/1     Pending             0          0s
+    bar         bar-76848b7788-zc6r2   0/1     Pending             0          0s
+    bar         bar-76848b7788-zc6r2   0/1     ContainerCreating   0          0s
+    bar         bar-76848b7788-zc6r2   1/1     Running             0          1s
+    bar         bar-5f6dc76fcd-xrtk2   1/1     Terminating         0          27m
+    bar         bar-5f6dc76fcd-xrtk2   0/1     Terminating         0          27m
+    bar         bar-5f6dc76fcd-xrtk2   0/1     Terminating         0          27m
+    bar         bar-5f6dc76fcd-xrtk2   0/1     Terminating         0          27m
+    bar         bar-5f6dc76fcd-xrtk2   0/1     Terminating         0          27m
+    ```
+
+Nous constatons que pour 'foo' comme pour 'bar', un nouveau pod est créé et une fois opérationnel, le pod qu'il remplace est supprimé.
+
+Le version des images correspond à nouveau la plus récente des versions proposées :
+
+=== "code"
+    ```sh
+    printf "foo - ";kubectl -n foo get pods -o json | jq -r '.items[].spec.containers[].image'
+    printf "bar - ";kubectl -n bar get pods -o json | jq -r '.items[].spec.containers[].image'
+    ```
+
+=== "output"
+    ```sh
+    foo - registry.k8s.io/e2e-test-images/agnhost:2.52
+    bar - registry.k8s.io/e2e-test-images/agnhost:2.52
+        ```
+
+!!! note
+    Il semblerait bien que pendant que nous réalisions nos tests de notifications Discord, la version 2.52 de l'image agnhost a été publiée.
+
+Vérifions à nouveau la liste des versions proposées par le dépôt des images 'agnhost' :
+
+=== "code"
+    ```sh
+    kubectl -n foo get imagerepository agnhost -o jsonpath='{.status.lastScanResult.latestTags}' | jq
+    ```
+
+=== "output"
+    ```sh
+    [
+      "2.9",
+      "2.52",
+      "2.51",
+      "2.50",
+      "2.48",
+      "2.47",
+      "2.45",
+      "2.44",
+      "2.43",
+      "2.41"
+    ]
+    ```
+
+Effectivement, nous voyons bien la version 2.52 apparaître désormais :fontawesome-regular-face-laugh-wink:
 
 ----------
 TODO
 
-* mettre screenshots des alertes Discors reçues
 * Faire le schéma en mermaid avec les imageupdateautomations, imagepolicies, imagerepositories, gitrepositories etc
 
