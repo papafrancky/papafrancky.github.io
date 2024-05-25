@@ -106,7 +106,7 @@ La commande *'flux bootstrap github'* déploie les contrôleurs Flux sur un clus
     flux bootstrap github \
       --token-auth \
       --owner ${GITHUB_USER} \
-      --repository ${GITHUB_REPOSITORY} \
+      --repository ${FLUXCD_GITHUB_REPO} \
       --branch=main \
       --path=. \
       --personal \
@@ -266,13 +266,16 @@ GithubRepository("GitHub\nRepository")
 Kustomization("Kustomization")
 GitRepository("Git\nRepository")
 DeployKeys("(secret)\ndeploy\nkeys")
+HelmRelease("Helm\nRelease")
+HelmRepository("Helm\nRepository")
+HelmRegistry("Helm\nRegistry")
 Alert("Alert")
 Provider("Provider")
 InstantMessaging("Discord\nInstant\nMessaging")
 Webhook("(secret)\nDiscord\nWebhook")
 
 classDef FluxCDObject fill:olivedrab,stroke:darkolivegreen,stroke-width:3px;
-class ImagePolicy,ImageRepository,ImageUpdateAutomation,Kustomization,GitRepository,Alert,Provider FluxCDObject
+class ImagePolicy,ImageRepository,ImageUpdateAutomation,Kustomization,GitRepository,HelmRelease,HelmRepository,Alert,Provider FluxCDObject
 
 ImageRegistry ----> ImageRepository
 ImageRegistry --> Deployment
@@ -280,9 +283,12 @@ ImageRepository --> ImagePolicy
 Deployment --> GithubRepository
 GithubRepository --> ImageUpdateAutomation & GitRepository
 DeployKeys --> GitRepository
-GitRepository ---> Kustomization
+GitRepository --> Kustomization
 
-InstantMessaging & Webhook ---> Provider
+HelmRepository --> HelmRelease
+HelmRegistry ----> HelmRepository
+
+InstantMessaging & Webhook ----> Provider
 Provider --> Alert
 ```
 
@@ -1649,14 +1655,14 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
 
     flux create alert discord \
       --event-severity=info \
-      --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*' \
+      --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*,HelmRelease/*' \
       --provider-ref=discord \
       --namespace=foo \
       --export > apps/foo/notification-alert.yaml
 
     flux create alert discord \
       --event-severity=info \
-      --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*' \
+      --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*,HelmRelease/*' \
       --provider-ref=discord \
       --namespace=bar \
       --export > apps/bar/notification-alert.yaml
@@ -1683,6 +1689,8 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
         name: '*'
       - kind: HelmRepository
         name: '*'
+      - kind: HelmRelease
+        name: '*'
       providerRef:
         name: discord
     ```
@@ -1707,6 +1715,8 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
       - kind: ImagePolicy
         name: '*'
       - kind: HelmRepository
+        name: '*'
+      - kind: HelmRelease
         name: '*'
       providerRef:
         name: discord
