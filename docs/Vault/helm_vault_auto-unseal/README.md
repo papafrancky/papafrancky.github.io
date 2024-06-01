@@ -31,69 +31,70 @@ Lorsque nous arriverons à nos fins, nous configurerons FluxCD pour qu'il gère 
 
 Accès à la console GCP :  https://console.cloud.google.com
 
-- project
-  - project name : vault
-  - project ID : vault-415918
-  - project number : 226383909329
+* project
+  * project name : vault
+  * project ID : vault-415918
+  * project number : 226383909329
 
-- service account
-  - service account name : sa-vault
-  - service account ID : 114299537044679868050
-  - email address : sa-vault@vault-415918.iam.gserviceaccount.com
-  - private key (json file) : /Users/franck/Downloads/credentials.json 
+* service account
+  * service account name : sa-vault
+  * service account ID : 114299537044679868050
+  * email address : sa-vault@vault-415918.iam.gserviceaccount.com
+  * private key (json file) : /Users/franck/Downloads/credentials.json 
 
 ``` 
-    cat /Users/franck/Downloads/credentials.json
+cat /Users/franck/Downloads/credentials.json
 
-    #  {
-    #    "type": "service_account",
-    #    "project_id": "vault-415918",
-    #    "private_key_id": "0f05bb392e8450a34f96b0fe813137ca06210a8b",
-    #    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDWvrEgapjonPkm\n32zmC6Dyo/PyXSnyfaiNQ4TYL0HWvExXkal9P8rsvyK+I+tyEEZuCMzGjlzS9v1e\nlAwwE3gcTQ1wuS    #  +eaMVOTy4FD4cdjsJMenRTolfRVLFCO5McTAsHwwLhirOQbeNb\nLehLagxEN3q0rzG0eFHpVFL1p9T29hcnFmCLPUWBGyliAUY1d8DThyr7KoxT3ShG\n3vhOnsNVPMw+30EC    #  +JITZbqx3XBuiIAjLDctWOsWr34yHLkmdDQ6tepU7DW5Vv26\ngNjEoseXfs59gya2g15CYwMqex+1iE8v6lwFbP2y/iydr6jbK9xR9j5EQtQjjkr4\nwfD6Rg9BAgMBAAECggEAGzlQ5+TQ/mmquxSHZWFDWzS7ysBS1Ay9dIMtxou0fg5L\nDgLyXhAwn/    #  OElQmlYfAm7ZuB/Qiz7dl6uiXB/HT2Eihr3sbV/vAWALJ7CWXe4Y66\nmnV1D9vnOYDSJAJnc6aUSLyekzdBQmXGn/A29cXmSN5RA7JTdnyWbc0kje4On+wh\nWedadJMWzNFq9y1K6pLfWQINUzRYqlmexqfSYbEzoUgYHCk0PhHbk5+fTV8JU+Id\n1E    #  +jtxnnvowi6b9002Zeoxrb2u9kKm/vaxGug40LiWNLguR6UWAkGR377LDXOe2S\nxLJBz1IW9uKO5b7Mcn2xJD7+05UwRefe9JhqupqmLQKBgQDsLGF6gOW/60wXJ4Oe\nsBhjc6XYcdjKUtXfHTnHE5wMcUVJo+88dEmF0df+6Kr5GAYEsqn    #  +0CzgdeM1zQDY\nbkuogaN79A7h0tm+jzcIu4FuJG6OCqCekLlZ/b49DvQJWF0uqKXID8Q6Ai5zU4+2\nFL0oKzDT/OFKLNsjVFIy1A8KuwKBgQDoxcpNW1IbmoGVp/Bdv/a3xYnjEdQedgEU\nDdglCJK    #  +C2zvQJX4r6ZmhYzx6c6KWgd3naetUL7rPKFjUX2Tnu1f31tIhChiO8Eh\niaSpGiRdx9quq1qpvNkurbto0Ublt92siCPe0OcxIIAsOytqNzuD2YfJvQ2hfb8N\nf795sZQEMwKBgQDSp+NquX40aVQ9culbqgaW7piHL0UHckuB7zeR8lPGZWJABRFn\nAvJxgnL    #  +09lsxZjYp+QpfNYKgBxh6LFQW1DwxHFmJpL/qmq+JlAYYedYrvZNi/0o\ncj5hnosJO0VA8Khs7dCxWh7U/w0foPEWn/j4002CSJVK7Ceqo5ON8shX8QKBgGve\n9VCCCHv4TyMuj4qyokAp0CuloHp5Tyie/dKztWVS4CnD8Xws0l1ieJ3HL0sYS6uY\nKRN9fux    #  +zX+8TQizNugeFyx06k4TyP2kzuT6022OZ35YtIxCkxc5tcbubP+aBKWm\n9ZCVmP5ARIW66fSwIemJTo8kCIQVRQuZbv+TVrfXAoGAA46OjdCsPVbQOI/agbsK\nC3EGrBYz2g76i4t9wUoHMUjbZ1Jul/X7YXWBfKqAiimZuBBxkLKirKAfGLKGJovg\n/HWop    #  +llvqJxwZtQkMzkyVG/J9R2N41wBf5exT/aDSdsoZXqkqW2oiFlO5nBt+03\nQjcnzsHFcLrp3qzBco4aL04=\n-----END PRIVATE KEY-----\n",
-    #    "client_email": "sa-vault@vault-415918.iam.gserviceaccount.com",
-    #    "client_id": "114299537044679868050",
-    #    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    #    "token_uri": "https://oauth2.googleapis.com/token",
-    #    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    #    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/sa-vault%40vault-415918.iam.gserviceaccount.com",
-    #    "universe_domain": "googleapis.com"
-    #  }
+ {
+  "type": "service_account",
+  "project_id": "vault-415918",
+  "private_key_id": "0f05bb392e8450a34f96b0fe813137ca06210a8b",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDWvrEgapjonPkm\n32zmC6Dyo/PyXSnyfaiNQ4TYL0HWvExXkal9P8rsvyK+I+tyEEZuCMzGjlzS9v1e\nlAwwE3gcTQ1wuS    #  +eaMVOTy4FD4cdjsJMenRTolfRVLFCO5McTAsHwwLhirOQbeNb\nLehLagxEN3q0rzG0eFHpVFL1p9T29hcnFmCLPUWBGyliAUY1d8DThyr7KoxT3ShG\n3vhOnsNVPMw+30EC    #  +JITZbqx3XBuiIAjLDctWOsWr34yHLkmdDQ6tepU7DW5Vv26\ngNjEoseXfs59gya2g15CYwMqex+1iE8v6lwFbP2y/iydr6jbK9xR9j5EQtQjjkr4\nwfD6Rg9BAgMBAAECggEAGzlQ5+TQ/mmquxSHZWFDWzS7ysBS1Ay9dIMtxou0fg5L\nDgLyXhAwn/    #  OElQmlYfAm7ZuB/Qiz7dl6uiXB/HT2Eihr3sbV/vAWALJ7CWXe4Y66\nmnV1D9vnOYDSJAJnc6aUSLyekzdBQmXGn/A29cXmSN5RA7JTdnyWbc0kje4On+wh\nWedadJMWzNFq9y1K6pLfWQINUzRYqlmexqfSYbEzoUgYHCk0PhHbk5+fTV8JU+Id\n1E    #  +jtxnnvowi6b9002Zeoxrb2u9kKm/vaxGug40LiWNLguR6UWAkGR377LDXOe2S\nxLJBz1IW9uKO5b7Mcn2xJD7+05UwRefe9JhqupqmLQKBgQDsLGF6gOW/60wXJ4Oe\nsBhjc6XYcdjKUtXfHTnHE5wMcUVJo+88dEmF0df+6Kr5GAYEsqn    #  +0CzgdeM1zQDY\nbkuogaN79A7h0tm+jzcIu4FuJG6OCqCekLlZ/b49DvQJWF0uqKXID8Q6Ai5zU4+2\nFL0oKzDT/OFKLNsjVFIy1A8KuwKBgQDoxcpNW1IbmoGVp/Bdv/a3xYnjEdQedgEU\nDdglCJK    #  +C2zvQJX4r6ZmhYzx6c6KWgd3naetUL7rPKFjUX2Tnu1f31tIhChiO8Eh\niaSpGiRdx9quq1qpvNkurbto0Ublt92siCPe0OcxIIAsOytqNzuD2YfJvQ2hfb8N\nf795sZQEMwKBgQDSp+NquX40aVQ9culbqgaW7piHL0UHckuB7zeR8lPGZWJABRFn\nAvJxgnL    #  +09lsxZjYp+QpfNYKgBxh6LFQW1DwxHFmJpL/qmq+JlAYYedYrvZNi/0o\ncj5hnosJO0VA8Khs7dCxWh7U/w0foPEWn/j4002CSJVK7Ceqo5ON8shX8QKBgGve\n9VCCCHv4TyMuj4qyokAp0CuloHp5Tyie/dKztWVS4CnD8Xws0l1ieJ3HL0sYS6uY\nKRN9fux    #  +zX+8TQizNugeFyx06k4TyP2kzuT6022OZ35YtIxCkxc5tcbubP+aBKWm\n9ZCVmP5ARIW66fSwIemJTo8kCIQVRQuZbv+TVrfXAoGAA46OjdCsPVbQOI/agbsK\nC3EGrBYz2g76i4t9wUoHMUjbZ1Jul/X7YXWBfKqAiimZuBBxkLKirKAfGLKGJovg\n/HWop    #  +llvqJxwZtQkMzkyVG/J9R2N41wBf5exT/aDSdsoZXqkqW2oiFlO5nBt+03\nQjcnzsHFcLrp3qzBco4aL04=\n-----END PRIVATE KEY-----\n",
+  "client_email": "sa-vault@vault-415918.iam.gserviceaccount.com",
+  "client_id": "114299537044679868050",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/sa-vault%40vault-415918.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
 ``` 
 
-- création du key ring : vault-helm-unseal-kr
-- création de la clé : vault-helm-unseal-key
+* création du key ring : vault-helm-unseal-kr
+* création de la clé : vault-helm-unseal-key
   -> grant access sur la clé vault-helm-unseal-key au principal 'sa-vault' avec les rôles ' Cloud KMS Viewer' et 'Cloud KMS CryptoKey Encrypter/Decrypter'
 
-- activation des APIs :
-  - Cloud Key Management Service (KMS) API : enabled
-  - Compute Engine API : enabled (pour définir la région/zone)
+* activation des APIs :
+  * Cloud Key Management Service (KMS) API : enabled
+  * Compute Engine API : enabled (pour définir la région/zone)
 
-- définition de la région et de la zone :
-  - via la console :
-    - https://console.cloud.google.com/compute/settings?hl=fr&project=vault-415918
-    - région : europe-west9 (Paris)
-    - zone: europe-west9-a
+* définition de la région et de la zone :
+  * via la console :
+    * https://console.cloud.google.com/compute/settings?hl=fr&project=vault-415918
+    * région : europe-west9 (Paris)
+    * zone: europe-west9-a
+  * via la CLI :
 
-  - via la CLI :
-  ``` 
-    gcloud auth login
-    gcloud compute project-info describe --project vault-415918
-    gcloud config set project vault-415918
-    gcloud services enable compute.googleapis.com cloudkms.googleapis.com
-    gcloud config set compute/region europe-west9
-    gcloud config set compute/zone europe-west9-a
-    gcloud config list
+  ```sh
+  gcloud auth login
+  gcloud compute project-info describe --project vault-415918
+  gcloud config set project vault-415918
+  gcloud services enable compute.googleapis.com cloudkms.googleapis.com
+  gcloud config set compute/region europe-west9
+  gcloud config set compute/zone europe-west9-a
+  gcloud config list
+  ```
 
-- création d'un secret Kubernetes pour la clé privée du service account 'sa-vault'  
-``` 
-    kubectl -n vault create secret generic kms-creds --from-file=/Users/franck/Downloads/credentials.json
-    kubectl get secret kms-creds -o yaml | yq -r '.data' | awk '{print $2}' | base64 -d | jq -r '.'
+* création d'un secret Kubernetes pour la clé privée du service account 'sa-vault'  
+```sh 
+kubectl -n vault create secret generic kms-creds --from-file=/Users/franck/Downloads/credentials.json
+kubectl get secret kms-creds -o yaml | yq -r '.data' | awk '{print $2}' | base64 -d | jq -r '.'
       
-    -> même sortie que : cat /Users/franck/Downloads/credentials.json 
+-> même sortie que : cat /Users/franck/Downloads/credentials.json 
 ```  
 
 
-## Déploiement manuel de Vault ne mode auto-unseal depuis le Helm Chart officiel
+## Déploiement manuel de Vault en mode auto-unseal depuis le Helm Chart officiel
 
 
 ### Helm repository HashiCorp
