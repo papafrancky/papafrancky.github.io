@@ -946,3 +946,320 @@ Même si la dernière commande ne retourne aucun objet, au moins nous sommes sû
 
 !!! Success
     **'External-Secrets Operator (ESO)'** est déployé correctement sur notre cluster ! :fontawesome-regular-face-laugh-wink:
+
+
+
+
+
+## Intégration de Vault et External-Secrets à la Helm Release 'kube-prometheus-stack'
+
+La stack de monitoring définit un mot de passe par défaut pour le compte admin de Grafana. Et c'est moche.
+
+Nous allons définir un nouveau mot de passe que nous allons placer dans Vault. Nous définirons une politique donnant accès à ce 'secret' que nous rattacherons à un compte
+(...) A COMPLETER !
+
+
+### Ajout du *'secret'* dans Vault
+
+```sh
+# Accès au pod du micro-service 'vault'
+kubectl -n vault exec -it vault-0 -- sh
+
+# Login sur Vault avec le Root token
+vault login hvs.VPcxxUbQjWt66U3jRzMjfIaI
+
+# Activation du 'secret engine' KVv2
+vault secrets enable -version=2 kv
+
+# Ecriture du secret 
+vault kv put -mount kv monitoring/grafana/admin-account login=admin password=secretpassword
+
+vault kv get -mount kv monitoring/grafana/admin-account
+
+# Vérification
+vault kv get -mount=kv monitoring/grafana/admin-account/login
+
+============== Secret Path ==============
+kv/data/monitoring/grafana/admin-account
+
+======= Metadata =======
+Key                Value
+---                -----
+created_time       2024-06-04T14:45:27.639679075Z
+custom_metadata    <nil>
+deletion_time      n/a
+destroyed          false
+version            2
+
+====== Data ======
+Key         Value
+---         -----
+login       admin
+password    secretpassword
+
+# Deconnexion du pod 
+exit
+```
+
+
+### Définition d'une *'policy'* permettant d'accéder en lecture aux secrets dédiés à Grafana
+
+```sh
+# Accès au pod du micro-service 'vault'
+kubectl -n vault exec -it vault-0 -- sh
+
+# Login sur Vault avec le Root token
+vault login hvs.VPcxxUbQjWt66U3jRzMjfIaI
+
+# Definition de la 'policy' donnant accès aux 'secrets' de Grafana en lecture
+vault policy write monitoring-grafana--RO - << EOF     
+path "kv/metadata/"{
+  capabilities = ["list"]
+}
+path "kv/metadata/monitoring/" {
+  capabilities = ["list"]
+}
+path "kv/metadata/monitoring/grafana" {
+  capabilities = ["list"]
+}
+path "kv/metadata/monitoring/grafana/*" {
+  capabilities = ["list","read"]
+}
+path "kv/data/monitoring"{
+  capabilities = ["list"]
+}
+
+path "kv/data/monitoring/grafana"{
+  capabilities = ["list"]
+}
+path "kv/data/monitoring/grafana/*" {
+  capabilities = ["list","read"]
+}
+EOF
+
+vault policy write monitoring-grafana--RO - << EOF     
+path "kv/metadata/*"{
+  capabilities = ["list"]
+}
+path "kv/data/*"{
+  capabilities = ["list","read"]
+}
+EOF
+
+# Vérification
+vault policy read monitoring-grafana--RO
+
+path "kv/metadata/"{
+  capabilities = ["list"]
+}
+path "kv/metadata/monitoring/" {
+  capabilities = ["list"]
+}
+path "kv/metadata/monitoring/grafana" {
+  capabilities = ["list"]
+}
+path "kv/metadata/monitoring/grafana/*" {
+  capabilities = ["list","read"]
+}
+path "kv/data/monitoring"{
+  capabilities = ["list"]
+}
+
+path "kv/data/monitoring/grafana"{
+  capabilities = ["list"]
+}
+path "kv/data/monitoring/grafana/*" {
+  capabilities = ["list","read"]
+}
+
+# Deconnexion du pod 
+exit
+```
+
+### Authentification Kubernetes sur Vault
+
+!!! Info
+    https://developer.hashicorp.com/vault/docs/auth/kubernetes#kubernetes-auth-method
+
+    Use local service account token as the reviewer JWT :
+
+    When running Vault in a Kubernetes pod the recommended option is to use the pod's local service account token.
+    Vault will periodically re-read the file to support short-lived tokens. To use the local token and CA certificate,
+    omit token_reviewer_jwt and kubernetes_ca_cert when configuring the auth method. Vault will attempt to load them
+    from token and ca.crt respectively inside the default mount folder /var/run/secrets/kubernetes.io/serviceaccount/.
+
+    Each client of Vault would need the **system:auth-delegator** ClusterRole
+
+```sh
+# Accès au pod du micro-service 'vault'
+kubectl -n vault exec -it vault-0 -- sh
+
+# Login sur Vault avec le Root token
+vault login hvs.VPcxxUbQjWt66U3jRzMjfIaI
+
+
+# Activation de l'authentification Kubernetes
+vault auth enable kubernetes
+vault auth list
+
+# Configuration de l'authentification Kubernetes 
+vault write auth/kubernetes/config kubernetes_host=https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}
+
+# Deconnexion du pod 
+exit
+```
+
+
+
+### Etablissement de la relation entre le service-account Kubernetes et celui de Vault
+
+Notre Helm Release 'kube-prometheus-monitoring' a créé plusieurs service-accounts Kubernetes, et plus spécifiquement pour Grafana, le service-account **'kube-prometheus-stack-grafana'**. Nous allons donner à ce compte le droit de déléguer son authentification avant de rattacher les 2 services-accounts au niveau de Vault.
+
+
+#### ClusterRoleBinding
+
+Vault nécessite certaines autorisations Kubernetes supplémentaires pour effectuer ses opérations. Par conséquent, il est nécessaire d'attribuer un ClusterRole (avec les autorisations appropriées) à son ServiceAccount via un ClusterRoleBinding.
+
+```sh
+# Role binding 
+kubectl create clusterrolebinding grafana-tokenreview-access \
+    --clusterrole=system:auth-delegator \
+    --serviceaccount=monitoring:kube-prometheus-stack-grafana
+```
+
+
+#### Rattachement de la policy Vault au service-accounrt Kubernetes
+
+Pour ce faire, nous allons définir un rôle au niveau de Vault.
+
+```sh
+# Accès au pod du micro-service 'vault'
+kubectl -n vault exec -it vault-0 -- sh
+
+# Login sur Vault avec le Root token
+vault login hvs.VPcxxUbQjWt66U3jRzMjfIaI
+
+# Role autorisant le service-account Kubernetes à lire les secrets de Grafana
+vault write auth/kubernetes/role/monitoring-grafana-RO \
+    bound_service_account_names=kube-prometheus-stack-grafana \
+    bound_service_account_namespaces=monitoring \
+    policies=monitoring-grafana-RO \
+    ttl=1h
+
+# Vérification
+vault read auth/kubernetes/role/monitoring-grafana-RO
+
+# Key                                         Value
+# ---                                         -----
+# alias_name_source                           serviceaccount_uid
+# bound_service_account_names                 [kube-prometheus-stack-grafana]
+# bound_service_account_namespace_selector    n/a
+# bound_service_account_namespaces            [monitoring]
+# policies                                    [monitoring-grafana-ro]
+# token_bound_cidrs                           []
+# token_explicit_max_ttl                      0s
+# token_max_ttl                               0s
+# token_no_default_policy                     false
+# token_num_uses                              0
+# token_period                                0s
+# token_policies                              [monitoring-grafana-ro]
+# token_ttl                                   1h
+# token_type                                  default
+# ttl                                         1h
+
+# Deconnexion du pod 
+exit
+```
+
+
+#### Test de l'accès du service-account Kubernetes au secret Vault
+
+Pour tester que le service-account Kubernetes *'kube-prometheus-stack-grafana'* du namespace *'monitoring'* accède bien au secret de Grafana dans Vault, nous allons déployer un pod temporaire qui s'exécutera ave ce service-account.
+
+```sh
+# Lancement d'un pod Alpine avec le service-account 'monitoring:kube-prometheus-stack-grafana'
+kubectl -n monitoring run --tty --stdin test --image=alpine --rm --overrides='{ "spec": { "serviceAccount": "kube-prometheus-stack-grafana" }  }' -- /bin/sh
+
+# Installation de cURL
+apk update && apk add curl jq
+
+# Récupération du service-token JWT
+SA_JWT_TOKEN=$( cat /var/run/secrets/kubernetes.io/serviceaccount/token )
+    # -> Pour regarder son contenu : https://jwt.io/ website.
+
+# Authentification sur Vault et récupération du token de session
+CLIENT_TOKEN=$( curl --silent --request POST --data '{"jwt": "'"${SA_JWT_TOKEN}"'", "role": "monitoring-grafana-RO"}' http://vault.vault:8200/v1/auth/kubernetes/login  | jq -r .auth.client_token )
+
+# Récupération du mot de passe du compte admin de Grafana
+curl --silent --header "X-Vault-Token:${CLIENT_TOKEN}"  http://vault.vault:8200/v1/kv/data/monitoring/grafana/admin-account | jq
+
+```
+
+Autre test : on déploie un pod de test sur lequel on install Vault
+
+```sh
+# Lancement d'un pod Alpine avec le service-account 'monitoring:kube-prometheus-stack-grafana'
+kubectl -n monitoring run --tty --stdin fedora --image=fedora --rm --overrides='{ "spec": { "serviceAccount": "kube-prometheus-stack-grafana" }  }' -- /bin/bash
+
+# Installation de Vault : 
+dnf install -y dnf-plugins-core
+dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+dnf -y install vault jq
+
+# Test d'accès aux secrets de Grafana
+export VAULT_ADDR="http://vault.vault:8200"
+SA_TOKEN=$( cat /var/run/secrets/kubernetes.io/serviceaccount/token )
+VAULT_TOKEN=$( vault write auth/kubernetes/login role=monitoring-grafana-RO jwt=${SA_TOKEN} | grep -w ^token | awk '{print $2}' )
+
+vault login ${VAULT_TOKEN}
+
+Success! You are now authenticated. The token information displayed below
+is already stored in the token helper. You do NOT need to run "vault login"
+again. Future Vault requests will automatically use this token.
+
+Key                                       Value
+---                                       -----
+token                                     hvs.CAESIPyTyIf48ys84H-v9HtMPFJa8bWwSJrWMHdu3jZLLhHEGh4KHGh2cy51R3pFOE5qb1lGTGhTc2wwS0VvUGwzYmk
+token_accessor                            cBViyVWbBLIv5z8lkvg7qujl
+token_duration                            59m51s
+token_renewable                           true
+token_policies                            ["default" "monitoring-grafana-ro"]
+identity_policies                         []
+policies                                  ["default" "monitoring-grafana-ro"]
+token_meta_service_account_secret_name    n/a
+token_meta_service_account_uid            50f4a2f7-2b95-4c4b-a7c3-a362b87eecff
+token_meta_role                           monitoring-grafana-RO
+token_meta_service_account_name           kube-prometheus-stack-grafana
+token_meta_service_account_namespace      monitoring
+
+vault kv list -mount=kv monitoring/grafana
+
+Keys
+----
+admin-account
+
+
+vault kv get -mount=kv monitoring/grafana/admin-account
+
+============== Secret Path ==============
+kv/data/monitoring/grafana/admin-account
+
+======= Metadata =======
+Key                Value
+---                -----
+created_time       2024-06-04T14:45:27.639679075Z
+custom_metadata    <nil>
+deletion_time      n/a
+destroyed          false
+version            2
+
+====== Data ======
+Key         Value
+---         -----
+login       admin
+password    secretpassword
+```
+
+
+
+TODO : reste à faire fonctionner le truc avec une policy plus fine...
