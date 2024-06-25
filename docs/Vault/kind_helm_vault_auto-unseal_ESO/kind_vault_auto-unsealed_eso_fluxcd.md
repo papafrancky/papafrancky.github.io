@@ -1268,5 +1268,166 @@ vault kv get -mount=kv monitoring/grafana/admin-account
 # ---         -----
 # login       admin
 # password    secretpassword
+
+
+vault kv get -mount=kv -field=password monitoring/grafana/admin-account
+
+# secretpassword
 ```
 
+
+
+
+### Configuration d'External Secrets Operator (ESO)
+
+
+
+#### Definition du Secret Store (ESO)
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/
+
+
+cat << EOF > apps/monitoring/grafana.secretstore.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  provider:
+    vault:
+      server: "http://vault.vault:8200"
+      path: "kv"
+      version: "v2"
+      auth:
+        # Authenticate against Vault using a Kubernetes ServiceAccount
+        # token stored in a Secret.
+        # https://www.vaultproject.io/docs/auth/kubernetes
+        kubernetes:
+          # Path where the Kubernetes authentication backend is mounted in Vault
+          mountPath: "kubernetes"
+          # A required field containing the Vault Role to assume.
+          role: "monitoring-grafana--ro"
+          # Optional service account field containing the name
+          # of a kubernetes ServiceAccount
+          serviceAccountRef:
+            name: "kube-prometheus-stack-grafana"
+          # Optional secret field containing a Kubernetes ServiceAccount JWT
+          #  used for authenticating with Vault
+          #secretRef:
+          #  name: "my-secret"
+          #  key: "vault"
+EOF
+```
+
+
+
+#### Définition de l'External Secret (ESO)
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/
+
+
+cat << EOF > apps/monitoring/grafana.externalsecret.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: grafana-secrets
+  namespace: monitoring
+spec:
+  refreshInterval: "15s"
+  secretStoreRef:
+    name: grafana
+    kind: SecretStore
+  target:
+    name: admin-password
+  data:
+  - secretKey: admin_password
+    remoteRef:
+      key: kv/monitoring/grafana/admin-account
+      property: password
+EOF
+```
+
+
+
+#### Prise en compte des modifications 
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+git add .
+git commit -m "feat: setting up grafana secretstore and external-secret."
+git push
+
+flux reconcile kustomization flux-system --with-source
+```
+
+
+Vérifions la bonne création des nouveaux objets ESO :
+
+=== "code"
+    ```sh
+    kubectl -n monitoring get secretstore,externalsecret
+    ```
+=== "output"
+    ```sh
+    NAME                                      AGE    STATUS   CAPABILITIES   READY
+    secretstore.external-secrets.io/grafana   109s   Valid    ReadWrite      True
+    
+    NAME                                                 STORE     REFRESH INTERVAL   STATUS         READY
+    externalsecret.external-secrets.io/grafana-secrets   grafana   15s                SecretSynced   True
+    ```
+
+
+
+#### Récupération de l'External Secret depuis un pod de test
+
+```sh
+# Création d'un pod Apline excuté avec le service-account dédié à l'application Grafana
+# et affichant le mot de passe du compte d'administration :
+cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: test
+  name: test
+  namespace: monitoring
+spec:
+  containers:
+  - name: test
+    image: alpine
+    command: ["printenv"]
+    args: ["ADMIN_PASSWORD"]
+    env:
+    - name: ADMIN_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: admin-password
+          key: admin_password
+  restartPolicy: Never
+  serviceAccount: kube-prometheus-stack-grafana
+EOF
+```
+
+Le pod pase à l'état 'Completed'. Consultons ses logs :
+
+=== "code"
+    ```sh
+    kubectl -n monitoring logs test
+    ```
+=== "output"
+    ```sh
+    secretpassword
+    ```
+
+!!! success
+    Nous récupérons comme attendu le mot de passe du compte d'administration de Grafana présent dans Vault.  :fontawesome-regular-face-laugh-wink:
