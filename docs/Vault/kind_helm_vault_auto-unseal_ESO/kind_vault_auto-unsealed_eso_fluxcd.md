@@ -1431,3 +1431,453 @@ Le pod pase à l'état 'Completed'. Consultons ses logs :
 
 !!! success
     Nous récupérons comme attendu le mot de passe du compte d'administration de Grafana présent dans Vault.  :fontawesome-regular-face-laugh-wink:
+
+
+
+
+### Intégration de l'external secret de la Helm Release *'kube-prometheus-stack'*
+
+Avançons à petits pas. Nous avions déployé *'kube-prometheus-stack'* avec les valeurs par défaut. Avant d'intégrer ESO, nous allons modifier manuellement le mot de passe du compte d'administration de Grafana dans notre *HelmRelease*.
+
+
+
+#### Static custom values
+
+La première étape consiste à récupérer les *'default values'* de notre Helm Chart :
+
+```sh
+# Lister les dépôts de Charts
+helm repo list
+
+# Rechercher une occurrence (ici, 'prometheus-community') parmi tous les dépôts de Charts référencés
+helm search repo prometheus-community
+
+# Lister les valeurs par défaut du Chart 'kube-prometheus-stack' présent dans le dépôt ' prometheus-community'
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+helm show values prometheus-community/kube-prometheus-stack > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/monitoring/kube-prometheus-stack.default.values.txt 
+```
+
+Finalement, notre fichier de définition de *'custom values'* sera très simple :
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+cat << EOF >> ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/monitoring/kube-prometheus-stack.custom.values.txt
+grafana:
+  adminPassword: my-custom-password
+EOF
+```
+
+Appliquons ce nouveau mot de passe à notre Helm Release déjà déployée :
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    
+    flux create helmrelease kube-prometheus-stack \
+      --source=HelmRepository/prometheus-community \
+      --chart=kube-prometheus-stack \
+      --namespace=monitoring \
+      --values=${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/monitoring/kube-prometheus-stack.custom.values.txt \
+      --export > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/monitoring/helm-release.yaml
+    ```
+
+=== "'kube-prometheus-stack' helm release"
+    ```sh
+    ---
+    apiVersion: helm.toolkit.fluxcd.io/v2beta1
+    kind: HelmRelease
+    metadata:
+      name: kube-prometheus-stack
+      namespace: monitoring
+    spec:
+      chart:
+        spec:
+          chart: kube-prometheus-stack
+          reconcileStrategy: ChartVersion
+          sourceRef:
+            kind: HelmRepository
+            name: prometheus-community
+      interval: 1m0s
+      values:
+        grafana:
+          adminPassword: my-custom-password
+    ```
+
+Appliquons la modification :
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+git add .
+git commit -m "feat: manually changed the password for grafana's admin account."
+git push
+
+flux reconcile kustomization flux-system --with-source
+```
+
+Nous recevons immédiatement des alertes sur notre salon Discord :
+
+![Manual grafana password update](./images/discord_helm_release_manual_update.png)
+
+
+Vérifions la bonne prise en compte de notre mot de passe 'custom' :
+
+```sh
+kubectl -n monitoring port-forward service/kube-prometheus-stack-grafana 8080:80
+```
+
+Ouvrons un navigateur sur l'adresse de port-forwarding **http://localhost:8080** :
+
+![Grafana login page](./images/grafana_login_page.png)
+
+!!! Success
+    nous accédons à Grafana avec le compte **'admin'** et le mot de passe **'my-custom-password'**
+
+
+
+#### Dynamic custom values
+
+Cette fois-ci, nous n'écrirons pas le mot de passe en clair dans la configuration de notre Helm Release et utiliserons **'External Secrets'**.
+
+!!! Info
+    https://blog.gitguardian.com/how-to-handle-secrets-in-helm/#external-secrets-operator
+
+"ESO récupère automatiquement les *'secrets managers'* via des API externes **et les injecte dans Kubernetes Secrets**.
+
+Contrairement à helm-secrets qui fait référence à des secrets stockés dans des *'Cloud secrets managers'* dans le fichier *'values'*, ESO ne nécessite pas d'inclure secrets.yaml dans les *'Helm templates'*. Il utilise une autre ressource personnalisée *'ExternalSecret'*, qui contient la référence aux gestionnaires de secrets dans le Cloud."
+
+
+!!! Info
+    https://external-secrets.io/latest/guides/templating/#templatefrom
+
+!!! Info
+    https://fluxcd.io/flux/cmd/flux_create_helmrelease/#options
+
+Il est possible de définir une *'Helm Release'* avec la CLI *'flux'* en surchargeant les *'default vaules'* à partir d'un objet Kubernetes de type *'Secret'* ou *'ConfigMap'*.
+
+Nous allons (re)définir notre *'Helm Release'* **'kube-prometheus-stack'** en lui indiquant de récupérer ses *'custom values'* depuis un *'Secret Kubernetes'*. Cet objet ne contiendra pas de *'secret'* à proprement parler, mais plutôt une référence à un *'ExternalSecret'* qui va l'utiliser comme un *'template'* pour forger un fichier final de type *'values.yaml'* en récupérant le secret demandé dans Vault.
+
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cat << EOF > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/monitoring/kube-prometheus-stack.custom.values.ESO.txt
+    grafana:
+      adminPassword:{{ \`{{ .grafanaadminpassword }}\` }}
+    EOF
+    
+    cat ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/monitoring/kube-prometheus-stack.custom.values.ESO.txt | base64
+    ```
+
+=== "kube-prometheus-stack.custom.values.ESO.txt"
+    ```sh
+    grafana:
+      adminPassword:{{ `{{ .grafanaadminpassword }}` }}
+    ```
+
+=== "encodage en base64"
+    ```sh
+    Z3JhZmFuYToKICBhZG1pblBhc3N3b3JkOnt7IGB7eyAuZ3JhZmFuYWFkbWlucGFzc3dvcmQgfX1gIH19Cg==
+    ```
+
+Créons les premiers objets :
+
+
+=== "code"
+    ```sh
+    cat << EOF > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/monitoring/kube-prometheus-stack.custom.values.yaml
+    ---
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: kube-prometheus-stack-custom-values-configmap
+      namespace: monitoring
+    data:
+      grafana.custom.values.yaml: |
+        Z3JhZmFuYToKICBhZG1pblBhc3N3b3JkOnt7IGB7eyAuZ3JhZmFuYWFkbWlucGFzc3dvcmQgfX1gIH19Cg==
+    
+    ---
+    apiVersion: external-secrets.io/v1beta1
+    kind: ExternalSecret
+    metadata:
+      name: kube-prometheus-stack-custom-values-externalsecret
+    spec:
+      target:
+        name: secret-to-be-created
+        template:
+          engineVersion: v2
+          templateFrom:
+          - target: Data
+            secret:
+              # name of the secret to pull in
+              name: kube-prometheus-stack-custom-values-configmap
+              # here you define the keys that should be used as template
+              items:
+              - key: grafana.custom.values.yaml
+                templateAs: Values
+      data:
+      - secretKey: grafanaadminpassword
+        remoteRef:
+          key: kv/monitoring/grafana/admin-account
+          property: password
+    EOF
+    ```
+
+=== "output"
+    ```sh
+    ---
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: kube-prometheus-stack-custom-values-configmap
+      namespace: monitoring
+    data:
+      grafana.custom.values.yaml: |
+        grafana:
+          adminPassword:{{ `{{ .grafanaadminpassword }}` }}
+    
+    ---
+    apiVersion: external-secrets.io/v1beta1
+    kind: ExternalSecret
+    metadata:
+      name: kube-prometheus-stack-custom-values-externalsecret
+    spec:
+      target:
+        name: secret-to-be-created
+        template:
+          engineVersion: v2
+          templateFrom:
+          - target: Data
+            secret:
+              # name of the secret to pull in
+              name: kube-prometheus-stack-custom-values-configmap
+              # here you define the keys that should be used as template
+              items:
+              - key: grafana.custom.values.yaml
+                templateAs: Values
+      data:
+      - secretKey: grafanaadminpassword
+        remoteRef:
+          key: kv/monitoring/grafana/admin-account
+          property: password
+    ```
+
+Créons ces nouveaux objets sur notre cluster :
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+git add .
+git commit -m "feat: creating external secret and custom values secret for kube-prometheus-stack."
+git push
+
+flux reconcile kustomization flux-system --with-source
+```
+
+
+
+Il ne nous reste plus qu'à (re)définir notre *'HelmRelease'* en lui indiquant qu'il doit récupérer ses *'custom values'* depuis un objet Kubernetes de type *'Secret'* que nous venons de définir plus haut :
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    
+    flux create helmrelease kube-prometheus-stack \
+      --source=HelmRepository/prometheus-community \
+      --chart=kube-prometheus-stack \
+      --namespace=monitoring \
+      --values-from=Secret/kube-prometheus-stack-custom-values-configmap \
+      --export > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/monitoring/helm-release.2.yaml
+    ```
+=== "version précédente"
+    ```sh
+    ---
+    apiVersion: helm.toolkit.fluxcd.io/v2beta1
+    kind: HelmRelease
+    metadata:
+      name: kube-prometheus-stack
+      namespace: monitoring
+    spec:
+      chart:
+        spec:
+          chart: kube-prometheus-stack
+          reconcileStrategy: ChartVersion
+          sourceRef:
+            kind: HelmRepository
+            name: prometheus-community
+      interval: 1m0s
+      values:
+        grafana:
+          adminPassword: my-custom-password
+    ```
+
+=== "nouvelle définition"
+    ```sh
+    ---
+    apiVersion: helm.toolkit.fluxcd.io/v2beta1
+    kind: HelmRelease
+    metadata:
+      name: kube-prometheus-stack
+      namespace: monitoring
+    spec:
+      chart:
+        spec:
+          chart: kube-prometheus-stack
+          reconcileStrategy: ChartVersion
+          sourceRef:
+            kind: HelmRepository
+            name: prometheus-community
+      interval: 1m0s
+      valuesFrom:
+      - kind: Secret
+        name: kube-prometheus-stack-custom-values-configmap
+    ```
+
+Appliquons les modifications : 
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+git add .
+git commit -m "feat: using ESO advanced templating to define kube-prometheus-stack custom values."
+git push
+
+flux reconcile kustomization flux-system --with-source
+```
+
+
+
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+
+kubectl -n monitoring create serviceaccount vault-grafana --dry-run=client -o yaml > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/monitoring/vault-grafana.serviceaccount.yaml
+
+EOF
+
+k exec -it vault-0 -n vault -- sh
+vault login hvs.VPcxxUbQjWt66U3jRzMjfIaI
+
+vault write auth/kubernetes/role/monitoring-grafana--ro \
+>   bound_service_account_names=kube-prometheus-stack-grafana,vault-grafana \
+>   bound_service_account_namespaces=monitoring \
+>   policies=monitoring-grafana--ro \
+>   ttl=1h
+
+
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/
+
+
+cat << EOF > apps/monitoring/grafana.secretstore.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  provider:
+    vault:
+      server: "http://vault.vault:8200"
+      path: "kv"
+      version: "v2"
+      auth:
+        # Authenticate against Vault using a Kubernetes ServiceAccount
+        # token stored in a Secret.
+        # https://www.vaultproject.io/docs/auth/kubernetes
+        kubernetes:
+          # Path where the Kubernetes authentication backend is mounted in Vault
+          mountPath: "kubernetes"
+          # A required field containing the Vault Role to assume.
+          role: "monitoring-grafana--ro"
+          # Optional service account field containing the name
+          # of a kubernetes ServiceAccount
+          serviceAccountRef:
+            name: "vault-grafana"
+          # Optional secret field containing a Kubernetes ServiceAccount JWT
+          #  used for authenticating with Vault
+          #secretRef:
+          #  name: "my-secret"
+          #  key: "vault"
+EOF
+
+
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+git add .
+git commit -m "feat: creating a kubernetes service-account allowed to access grafana's secrets in Vault."
+git push
+
+flux reconcile kustomization flux-system --with-source
+
+
+kubectl -n monitoring get sa vault-grafana
+NAME            SECRETS   AGE
+vault-grafana   0         34s
+
+![Helm Release successfull installation](./images/helm_release_install.png)
+
+
+k get ss,es
+
+NAME                                      AGE    STATUS   CAPABILITIES   READY
+secretstore.external-secrets.io/grafana   3h1m   Valid    ReadWrite      True
+
+NAME                                                                                    STORE     REFRESH INTERVAL   STATUS         READY
+externalsecret.external-secrets.io/grafana-secrets                                      grafana   15s                SecretSynced   True
+externalsecret.external-secrets.io/kube-prometheus-stack-custom-values-externalsecret   grafana   1h                 SecretSynced   True
+
+
+
+kubectl -n monitoring get all
+
+NAME                                                            READY   STATUS    RESTARTS   AGE
+pod/alertmanager-kube-prometheus-stack-alertmanager-0           2/2     Running   0          6m19s
+pod/kube-prometheus-stack-grafana-565c8b845d-bv8cp              3/3     Running   0          6m21s
+pod/kube-prometheus-stack-kube-state-metrics-6dcd966b95-cz79d   1/1     Running   0          6m21s
+pod/kube-prometheus-stack-operator-7db4d6cd65-msf9c             1/1     Running   0          6m21s
+pod/kube-prometheus-stack-prometheus-node-exporter-9gv69        1/1     Running   0          6m21s
+pod/prometheus-kube-prometheus-stack-prometheus-0               2/2     Running   0          6m18s
+
+NAME                                                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+service/alertmanager-operated                            ClusterIP   None            <none>        9093/TCP,9094/TCP,9094/UDP   6m19s
+service/kube-prometheus-stack-alertmanager               ClusterIP   10.96.40.95     <none>        9093/TCP,8080/TCP            6m21s
+service/kube-prometheus-stack-grafana                    ClusterIP   10.96.212.102   <none>        80/TCP                       6m21s
+service/kube-prometheus-stack-kube-state-metrics         ClusterIP   10.96.84.151    <none>        8080/TCP                     6m21s
+service/kube-prometheus-stack-operator                   ClusterIP   10.96.238.7     <none>        443/TCP                      6m21s
+service/kube-prometheus-stack-prometheus                 ClusterIP   10.96.36.156    <none>        9090/TCP,8080/TCP            6m21s
+service/kube-prometheus-stack-prometheus-node-exporter   ClusterIP   10.96.97.125    <none>        9100/TCP                     6m21s
+service/prometheus-operated                              ClusterIP   None            <none>        9090/TCP                     6m18s
+
+NAME                                                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+daemonset.apps/kube-prometheus-stack-prometheus-node-exporter   1         1         1       1            1           kubernetes.io/os=linux   6m21s
+
+NAME                                                       READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/kube-prometheus-stack-grafana              1/1     1            1           6m21s
+deployment.apps/kube-prometheus-stack-kube-state-metrics   1/1     1            1           6m21s
+deployment.apps/kube-prometheus-stack-operator             1/1     1            1           6m21s
+
+NAME                                                                  DESIRED   CURRENT   READY   AGE
+replicaset.apps/kube-prometheus-stack-grafana-565c8b845d              1         1         1       6m21s
+replicaset.apps/kube-prometheus-stack-kube-state-metrics-6dcd966b95   1         1         1       6m21s
+replicaset.apps/kube-prometheus-stack-operator-7db4d6cd65             1         1         1       6m21s
+
+NAME                                                               READY   AGE
+statefulset.apps/alertmanager-kube-prometheus-stack-alertmanager   1/1     6m19s
+statefulset.apps/prometheus-kube-prometheus-stack-prometheus       1/1     6m18s
+
+
+kubectl -n monitoring port-forward service/kube-prometheus-stack-grafana 8080:80
+-> navigateur - l'URL http://localhost:8080
+-> login avec admin / secretpassword
+
+
+-> success ^^
