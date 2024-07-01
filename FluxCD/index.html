@@ -1,0 +1,2621 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../Docker/build_pull_image_on_dockerhub/">
+      
+      
+        <link rel="next" href="FlucCD_arborescence_par_produit/">
+      
+      
+      <link rel="icon" href="../images/poo.ico">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.27">
+    
+    
+      
+        <title>Index - Papa Francky's HowTos</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6543a935.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+  
+  
+    
+    
+  
+    
+    
+  
+    
+    
+  
+    
+    
+  
+    
+    
+  
+    
+    
+  
+    
+    
+  
+    
+    
+  
+    
+    
+  
+    
+    
+  
+    
+    
+  
+    
+    
+  
+  
+  <style>:root{--md-admonition-icon--note:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M1 7.775V2.75C1 1.784 1.784 1 2.75 1h5.025c.464 0 .91.184 1.238.513l6.25 6.25a1.75 1.75 0 0 1 0 2.474l-5.026 5.026a1.75 1.75 0 0 1-2.474 0l-6.25-6.25A1.752 1.752 0 0 1 1 7.775Zm1.5 0c0 .066.026.13.073.177l6.25 6.25a.25.25 0 0 0 .354 0l5.025-5.025a.25.25 0 0 0 0-.354l-6.25-6.25a.25.25 0 0 0-.177-.073H2.75a.25.25 0 0 0-.25.25ZM6 5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"/></svg>');--md-admonition-icon--abstract:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M2.5 1.75v11.5c0 .138.112.25.25.25h3.17a.75.75 0 0 1 0 1.5H2.75A1.75 1.75 0 0 1 1 13.25V1.75C1 .784 1.784 0 2.75 0h8.5C12.216 0 13 .784 13 1.75v7.736a.75.75 0 0 1-1.5 0V1.75a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13.274 9.537v-.001l-4.557 4.45a.75.75 0 0 1-1.055-.008l-1.943-1.95a.75.75 0 0 1 1.062-1.058l1.419 1.425 4.026-3.932a.75.75 0 1 1 1.048 1.074ZM4.75 4h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM4 7.75A.75.75 0 0 1 4.75 7h2a.75.75 0 0 1 0 1.5h-2A.75.75 0 0 1 4 7.75Z"/></svg>');--md-admonition-icon--info:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>');--md-admonition-icon--tip:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M3.499.75a.75.75 0 0 1 1.5 0v.996C5.9 2.903 6.793 3.65 7.662 4.376l.24.202c-.036-.694.055-1.422.426-2.163C9.1.873 10.794-.045 12.622.26 14.408.558 16 1.94 16 4.25c0 1.278-.954 2.575-2.44 2.734l.146.508.065.22c.203.701.412 1.455.476 2.226.142 1.707-.4 3.03-1.487 3.898C11.714 14.671 10.27 15 8.75 15h-6a.75.75 0 0 1 0-1.5h1.376a4.484 4.484 0 0 1-.563-1.191 3.835 3.835 0 0 1-.05-2.063 4.647 4.647 0 0 1-2.025-.293.75.75 0 0 1 .525-1.406c1.357.507 2.376-.006 2.698-.318l.009-.01a.747.747 0 0 1 1.06 0 .748.748 0 0 1-.012 1.074c-.912.92-.992 1.835-.768 2.586.221.74.745 1.337 1.196 1.621H8.75c1.343 0 2.398-.296 3.074-.836.635-.507 1.036-1.31.928-2.602-.05-.603-.216-1.224-.422-1.93l-.064-.221c-.12-.407-.246-.84-.353-1.29a2.425 2.425 0 0 1-.507-.441 3.075 3.075 0 0 1-.633-1.248.75.75 0 0 1 1.455-.364c.046.185.144.436.31.627.146.168.353.305.712.305.738 0 1.25-.615 1.25-1.25 0-1.47-.95-2.315-2.123-2.51-1.172-.196-2.227.387-2.706 1.345-.46.92-.27 1.774.019 3.062l.042.19a.884.884 0 0 1 .01.05c.348.443.666.949.94 1.553a.75.75 0 1 1-1.365.62c-.553-1.217-1.32-1.94-2.3-2.768L6.7 5.527c-.814-.68-1.75-1.462-2.692-2.619a3.737 3.737 0 0 0-1.023.88c-.406.495-.663 1.036-.722 1.508.116.122.306.21.591.239.388.038.797-.06 1.032-.19a.75.75 0 0 1 .728 1.31c-.515.287-1.23.439-1.906.373-.682-.067-1.473-.38-1.879-1.193L.75 5.677V5.5c0-.984.48-1.94 1.077-2.664.46-.559 1.05-1.055 1.673-1.353V.75Z"/></svg>');--md-admonition-icon--success:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>');--md-admonition-icon--question:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.92 6.085h.001a.749.749 0 1 1-1.342-.67c.169-.339.436-.701.849-.977C6.845 4.16 7.369 4 8 4a2.756 2.756 0 0 1 1.637.525c.503.377.863.965.863 1.725 0 .448-.115.83-.329 1.15-.205.307-.47.513-.692.662-.109.072-.22.138-.313.195l-.006.004a6.24 6.24 0 0 0-.26.16.952.952 0 0 0-.276.245.75.75 0 0 1-1.248-.832c.184-.264.42-.489.692-.661.103-.067.207-.132.313-.195l.007-.004c.1-.061.182-.11.258-.161a.969.969 0 0 0 .277-.245C8.96 6.514 9 6.427 9 6.25a.612.612 0 0 0-.262-.525A1.27 1.27 0 0 0 8 5.5c-.369 0-.595.09-.74.187a1.01 1.01 0 0 0-.34.398ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>');--md-admonition-icon--warning:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>');--md-admonition-icon--failure:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M2.344 2.343h-.001a8 8 0 0 1 11.314 11.314A8.002 8.002 0 0 1 .234 10.089a8 8 0 0 1 2.11-7.746Zm1.06 10.253a6.5 6.5 0 1 0 9.108-9.275 6.5 6.5 0 0 0-9.108 9.275ZM6.03 4.97 8 6.94l1.97-1.97a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l1.97 1.97a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-1.97 1.97a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L6.94 8 4.97 6.03a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018Z"/></svg>');--md-admonition-icon--danger:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-7.34 7.142a1.249 1.249 0 0 1-.871.354h-.302a1.25 1.25 0 0 1-1.157-1.723L5.633 10.5H3.462c-1.57 0-2.346-1.909-1.22-3.004L9.503.429Zm1.047 1.074L3.286 8.571A.25.25 0 0 0 3.462 9H6.75a.75.75 0 0 1 .694 1.034l-1.713 4.188 6.982-6.793A.25.25 0 0 0 12.538 7H9.25a.75.75 0 0 1-.683-1.06l2.008-4.418.003-.006a.036.036 0 0 0-.004-.009l-.006-.006-.008-.001c-.003 0-.006.002-.009.004Z"/></svg>');--md-admonition-icon--bug:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M4.72.22a.75.75 0 0 1 1.06 0l1 .999a3.488 3.488 0 0 1 2.441 0l.999-1a.748.748 0 0 1 1.265.332.75.75 0 0 1-.205.729l-.775.776c.616.63.995 1.493.995 2.444v.327c0 .1-.009.197-.025.292.408.14.764.392 1.029.722l1.968-.787a.75.75 0 0 1 .556 1.392L13 7.258V9h2.25a.75.75 0 0 1 0 1.5H13v.5c0 .409-.049.806-.141 1.186l2.17.868a.75.75 0 0 1-.557 1.392l-2.184-.873A4.997 4.997 0 0 1 8 16a4.997 4.997 0 0 1-4.288-2.427l-2.183.873a.75.75 0 0 1-.558-1.392l2.17-.868A5.036 5.036 0 0 1 3 11v-.5H.75a.75.75 0 0 1 0-1.5H3V7.258L.971 6.446a.75.75 0 0 1 .558-1.392l1.967.787c.265-.33.62-.583 1.03-.722a1.677 1.677 0 0 1-.026-.292V4.5c0-.951.38-1.814.995-2.444L4.72 1.28a.75.75 0 0 1 0-1.06Zm.53 6.28a.75.75 0 0 0-.75.75V11a3.5 3.5 0 1 0 7 0V7.25a.75.75 0 0 0-.75-.75ZM6.173 5h3.654A.172.172 0 0 0 10 4.827V4.5a2 2 0 1 0-4 0v.327c0 .096.077.173.173.173Z"/></svg>');--md-admonition-icon--example:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M5 5.782V2.5h-.25a.75.75 0 0 1 0-1.5h6.5a.75.75 0 0 1 0 1.5H11v3.282l3.666 5.76C15.619 13.04 14.543 15 12.767 15H3.233c-1.776 0-2.852-1.96-1.899-3.458Zm-2.4 6.565a.75.75 0 0 0 .633 1.153h9.534a.75.75 0 0 0 .633-1.153L12.225 10.5h-8.45ZM9.5 2.5h-3V6c0 .143-.04.283-.117.403L4.73 9h6.54L9.617 6.403A.746.746 0 0 1 9.5 6Z"/></svg>');--md-admonition-icon--quote:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M1.75 2.5h10.5a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5Zm4 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5Zm0 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5ZM2.5 7.75v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 1 1.5 0Z"/></svg>');}</style>
+
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 13h-4v4h-2v-4H7v-2h4V7h2v4h4m-5-9A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2Z"/></svg>');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="blue-grey" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pre-requisites" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Papa Francky&#39;s HowTos" class="md-header__button md-logo" aria-label="Papa Francky's HowTos" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M268.9.9c-5.5-.7-11 1.4-14.5 5.7s-4.6 10.1-2.8 15.4c2.8 8.2 4.3 16.9 4.3 26.1 0 44.1-35.7 79.9-79.8 80H160c-35.3 0-64 28.7-64 64 0 19.1 8.4 36.3 21.7 48H104c-39.8 0-72 32.2-72 72 0 23.2 11 43.8 28 57-34.1 5.7-60 35.3-60 71 0 39.8 32.2 72 72 72h368c39.8 0 72-32.2 72-72 0-35.7-25.9-65.3-60-71 17-13.2 28-33.8 28-57 0-39.8-32.2-72-72-72h-13.7c13.3-11.7 21.7-28.9 21.7-48 0-35.3-28.7-64-64-64h-5.5c3.5-10 5.5-20.8 5.5-32 0-48.6-36.2-88.8-83.1-95.1zM192 256a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm96 32a32 32 0 1 1 64 0 32 32 0 1 1-64 0zm64 108.3c0 2.4-.7 4.8-2.2 6.7-8.2 10.5-39.5 45-93.8 45s-85.6-34.6-93.8-45c-1.5-1.9-2.2-4.3-2.2-6.7 0-6.8 5.5-12.3 12.3-12.3h167.4c6.8 0 12.3 5.5 12.3 12.3z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Papa Francky's HowTos
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Index
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue-grey" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7M9 21v-1h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1m3-17a5 5 0 0 0-5 5c0 2.05 1.23 3.81 3 4.58V16h4v-2.42c1.77-.77 3-2.53 3-4.58a5 5 0 0 0-5-5Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="orange" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7M9 21a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-1H9v1Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Papa Francky&#39;s HowTos" class="md-nav__button md-logo" aria-label="Papa Francky's HowTos" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M268.9.9c-5.5-.7-11 1.4-14.5 5.7s-4.6 10.1-2.8 15.4c2.8 8.2 4.3 16.9 4.3 26.1 0 44.1-35.7 79.9-79.8 80H160c-35.3 0-64 28.7-64 64 0 19.1 8.4 36.3 21.7 48H104c-39.8 0-72 32.2-72 72 0 23.2 11 43.8 28 57-34.1 5.7-60 35.3-60 71 0 39.8 32.2 72 72 72h368c39.8 0 72-32.2 72-72 0-35.7-25.9-65.3-60-71 17-13.2 28-33.8 28-57 0-39.8-32.2-72-72-72h-13.7c13.3-11.7 21.7-28.9 21.7-48 0-35.3-28.7-64-64-64h-5.5c3.5-10 5.5-20.8 5.5-32 0-48.6-36.2-88.8-83.1-95.1zM192 256a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm96 32a32 32 0 1 1 64 0 32 32 0 1 1-64 0zm64 108.3c0 2.4-.7 4.8-2.2 6.7-8.2 10.5-39.5 45-93.8 45s-85.6-34.6-93.8-45c-1.5-1.9-2.2-4.3-2.2-6.7 0-6.8 5.5-12.3 12.3-12.3h167.4c6.8 0 12.3 5.5 12.3 12.3z"/></svg>
+
+    </a>
+    Papa Francky's HowTos
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MkDocs cheatsheet
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    000 setup
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            000 setup
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../000_setup/Command_line_tools/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command Line Tools
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../000_setup/Kubernetes_en_local/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kubernetes en local
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Docker
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Docker
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Docker/build_pull_image_on_dockerhub/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Créer et publier une image sur DockerHub
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    FluxCD
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            FluxCD
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Index
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Index
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#my-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      My variables
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kind-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      Kind install
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flux-cli-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flux CLI install
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#github-repositories" class="md-nav__link">
+    <span class="md-ellipsis">
+      GitHub repositories :
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#make-sure-your-kubernetes-cluster-complies-with-fluxcd" class="md-nav__link">
+    <span class="md-ellipsis">
+      Make sure your Kubernetes cluster complies with FluxCD
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#boostrap-fluxcd" class="md-nav__link">
+    <span class="md-ellipsis">
+      Boostrap FluxCD
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="FlucCD_arborescence_par_produit/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FluxCD - Proposition de nouvelle organisation des manifests
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="FluxCD_demonstration_par_l_exemple/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FluxCD - Démonstration par l'exemple
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    GKE
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            GKE
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    cluster GKE SSL load balancer
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            cluster GKE SSL load balancer
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GKE/cluster_GKE_SSL_load-balancer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Cluster GKE en mode autopilot, load-balancer HTTPS et application 'stateless'
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    cluster GKE Wordpress CloudSQL
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            cluster GKE Wordpress CloudSQL
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GKE/cluster_GKE_Wordpress_CloudSQL/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploy WordPress on GKE with Persistent Disk and Cloud SQL
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Dkt upgrade cluster gke
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3">
+            <span class="md-nav__icon md-icon"></span>
+            Dkt upgrade cluster gke
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GKE/dkt_upgrade_cluster_gke/readme/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Mise à jour des clusters Kubernetes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    terraform GKE cluster
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            terraform GKE cluster
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GKE/terraform_GKE_cluster/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Minikube
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Minikube
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Minikube/minikube_nginx_controller_macos/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Minikube et l'ingress Nginx sur macOS
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Prometheus on minikube from scratch
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            Prometheus on minikube from scratch
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Minikube/prometheus_on_minikube_from_scratch/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prometheus on MiniKube from scratch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Prometheus and Grafana
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Prometheus and Grafana
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Prometheus_and_Grafana/kube-prometheus-stack_managed_with_fluxcd/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    'kube-prometheus-stack' managed with FluxCD
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Prometheus_and_Grafana/prometheus_grafana_on_k8s/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prometheus &amp; Grafana on Kubernetes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Vault
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            Vault
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_1" id="__nav_8_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Cluster minikube vault with raft storage
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1">
+            <span class="md-nav__icon md-icon"></span>
+            Cluster minikube vault with raft storage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Vault/cluster_minikube_vault_with_raft_storage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Cluster [kind|minikube] - HashiCorp Vault with Raft integrated storage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_2" id="__nav_8_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Helm vault auto unseal
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_2">
+            <span class="md-nav__icon md-icon"></span>
+            Helm vault auto unseal
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Vault/helm_vault_auto-unseal/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Auto-unsealed Vault Helm deployment managed with FluxCD
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_3" id="__nav_8_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    kind helm vault auto unseal ESO
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_3">
+            <span class="md-nav__icon md-icon"></span>
+            kind helm vault auto unseal ESO
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Vault/kind_helm_vault_auto-unseal_ESO/kind_vault_auto-unsealed_eso_fluxcd/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Déploiement de Vault (auto-unsealed) et ESO via FluxCD sur un cluster KinD
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_4" id="__nav_8_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Kind vault external secrets operator
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_4">
+            <span class="md-nav__icon md-icon"></span>
+            Kind vault external secrets operator
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Vault/kind_vault_external_secrets_operator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kind - Vault - External-secrets operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Vault/kind_vault_external_secrets_operator/README.2/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kind - Vault - External-secrets operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_5" id="__nav_8_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    protect secrets using Vault and External Secrets Operator
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_5">
+            <span class="md-nav__icon md-icon"></span>
+            protect secrets using Vault and External Secrets Operator
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Vault/protect_secrets_using_Vault_and_External_Secrets_Operator/readme/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Protect the secrets of your application using HashiCorp Vault and the External Secrets Operator (ESO)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#my-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      My variables
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kind-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      Kind install
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flux-cli-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flux CLI install
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#github-repositories" class="md-nav__link">
+    <span class="md-ellipsis">
+      GitHub repositories :
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#make-sure-your-kubernetes-cluster-complies-with-fluxcd" class="md-nav__link">
+    <span class="md-ellipsis">
+      Make sure your Kubernetes cluster complies with FluxCD
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#boostrap-fluxcd" class="md-nav__link">
+    <span class="md-ellipsis">
+      Boostrap FluxCD
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kind install</td>
+<td>https://kind.sigs.k8s.io/docs/user/quick-start</td>
+</tr>
+<tr>
+<td>Flux install</td>
+<td>https://fluxcd.io/flux/installation/</td>
+</tr>
+<tr>
+<td>Flux alerts</td>
+<td>https://fluxcd.io/flux/monitoring/alerts/</td>
+</tr>
+<tr>
+<td>Flux - notification controller - discord provider</td>
+<td>https://fluxcd.io/flux/components/notification/providers/#discord</td>
+</tr>
+<tr>
+<td>FluxCD - image policies - filter tags</td>
+<td>https://fluxcd.io/flux/components/image/imagepolicies/#filter-tags</td>
+</tr>
+<tr>
+<td>FluxCD - Guides - Automate image updates to Git</td>
+<td>https://fluxcd.io/flux/guides/image-update/</td>
+</tr>
+<tr>
+<td>Force FluxCD reconciliation</td>
+<td>flux reconcile kustomization flux-system --with-source</td>
+</tr>
+<tr>
+<td>Medium - How to make ahs share your own Helm package</td>
+<td>https://medium.com/containerum/how-to-make-and-share-your-own-helm-package-50ae40f6c221</td>
+</tr>
+<tr>
+<td>GitHub Pages</td>
+<td>https://pages.github.com/</td>
+</tr>
+<tr>
+<td>OCI repositories</td>
+<td>https://fluxcd.io/flux/components/source/ocirepositories/</td>
+</tr>
+</tbody>
+</table>
+<h1 id="pre-requisites">Pre-requisites</h1>
+<h2 id="my-variables">My variables</h2>
+<table>
+<thead>
+<tr>
+<th>variable</th>
+<th>value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>KIND_CLUSTER_NAME</td>
+<td>sandbox</td>
+</tr>
+<tr>
+<td>GITHUB_USERNAME</td>
+<td>papafrancky</td>
+</tr>
+<tr>
+<td>GITHUB_PAT</td>
+<td>\$( cat ~/secrets/github.${GITHUB_USERNAME}.PAT.FluxCD.txt )</td>
+</tr>
+<tr>
+<td>DISCORD_WEBHOOK</td>
+<td>\$( cat ${HOME}/secrets/discord.gitops.webhook.txt )</td>
+</tr>
+<tr>
+<td>WORKING_DIR</td>
+<td>${HOME}/code/github</td>
+</tr>
+</tbody>
+</table>
+<h2 id="kind-install">Kind install</h2>
+<div class="language-text highlight"><pre><span></span><code>brew upgrade &amp;&amp; brew install kind
+kind version
+kind create cluster --name ${KIND_CLUSTER_NAME}
+kind get clusters
+</code></pre></div>
+<h2 id="flux-cli-install">Flux CLI install</h2>
+<div class="language-text highlight"><pre><span></span><code>curl -s https://fluxcd.io/install.sh | sudo bash
+</code></pre></div>
+<h2 id="github-repositories">GitHub repositories :</h2>
+<p>2 GitHub repos must be created to meet our needs :
+|USAGE|URL|
+|---|---|
+|One for FluxCD itself|https://github.com/${GITHUB_USERNAME}/gitops|
+|Another one for the apps to be deployed|https://github.com/${GITHUB_USERNAME}/gitops-deployments|</p>
+<h2 id="make-sure-your-kubernetes-cluster-complies-with-fluxcd">Make sure your Kubernetes cluster complies with FluxCD</h2>
+<div class="language-text highlight"><pre><span></span><code>flux check --pre
+</code></pre></div>
+<h2 id="boostrap-fluxcd">Boostrap FluxCD</h2>
+<p>To do this, you will need a GitHub classic Personal Access Token (PAT) with full repo access.</p>
+<div class="language-text highlight"><pre><span></span><code>export GITHUB_USER=${GITHUB_USERNAME}
+export GITHUB_TOKEN=${GITHUB_PAT}
+
+flux bootstrap github \
+  --token-auth \
+  --owner ${GITHUB_USER} \
+  --repository gitops \
+  --branch=main \
+  --path=clusters/${KIND_CLUSTER_NAME} \
+  --personal \
+  --components-extra=image-reflector-controller,image-automation-controller
+
+-&gt; Check with your browser :
+https://github.com/${GITHUB_USERNAME}/gitops/tree/main/clusters/${KIND_CLUSTER_NAME}/flux-system
+
+kubectl -n flux-system get all
+</code></pre></div>
+<h1 id="alerting-discord">Alerting (Discord)</h1>
+<h2 id="local-stuff">Local stuff</h2>
+<div class="language-text highlight"><pre><span></span><code># Clone &#39;gitops&#39; repo locally :
+cd ${WORKING_DIR}
+git clone git@github.com:${GITHUB_USERNAME}/gitops.git
+
+# Create directories related to notifications :
+cd gitops/clusters/${KIND_CLUSTER_NAME}
+mkdir -p notifications/{providers,alerts}
+
+# Create a Kubernetes secrets from the Discord webhook :
+k create secret generic discord-gitops --from-file=address=${HOME}/secrets/discord.gitops.webhook.txt
+</code></pre></div>
+<h2 id="create-an-alert-provider-on-the-gitops-discord-channel">Create an alert-provider on the #gitops Discord channel</h2>
+<div class="language-text highlight"><pre><span></span><code>flux create alert-provider discord-gitops \
+  --type=discord \
+  --secret-ref=discord-gitops \
+  --channel=gitops \
+  --username=FluxCD \
+  --namespace=default \
+  --export &gt; notifications/providers/discord-gitops-provider.yaml
+
+cat notifications/providers/discord-gitops-provider.yaml
+  #  ---
+  #  apiVersion: notification.toolkit.fluxcd.io/v1beta3
+  #  kind: Provider
+  #  metadata:
+  #    name: discord-gitops
+  #    namespace: default
+  #  spec:
+  #    channel: gitops
+  #    secretRef:
+  #      name: discord-gitops
+  #    type: discord
+  #    username: FluxCD
+</code></pre></div>
+<h2 id="create-an-alert-on-git-repos-and-kustomizations">Create an alert on Git repos and Kustomizations</h2>
+<div class="language-text highlight"><pre><span></span><code>flux create alert discord-gitops-alert \
+  --event-severity=info \
+  --event-source=&#39;GitRepository/*,Kustomization/*&#39; \
+  --provider-ref=discord-gitops \
+  --namespace=default \
+  --export &gt; notifications/alerts/discord-gitops-alert.yaml
+
+cat notifications/alerts/discord-gitops-alert.yaml
+  # ---
+  # apiVersion: notification.toolkit.fluxcd.io/v1beta3
+  # kind: Alert
+  # metadata:
+  #   name: discord-gitops-alert
+  #   namespace: default
+  # spec:
+  #   eventSeverity: info
+  #   eventSources:
+  #   - kind: GitRepository
+  #     name: &#39;*&#39;
+  #   - kind: Kustomization
+  #     name: &#39;*&#39;
+  #   providerRef:
+  #     name: discord-gitops
+
+
+cd ${WORKING_DIR}/gitops
+git st
+git add notifications
+git commit -m &#39;feat: discord alerting&#39;
+git push
+
+
+kubectl get providers,alerts -n default
+  # NAME                                                        AGE
+  # provider.notification.toolkit.fluxcd.io/discord-gitops      32m
+  #
+  # NAME                                                        AGE
+  # alert.notification.toolkit.fluxcd.io/discord-gitops-alert   29s
+</code></pre></div>
+<h2 id="allow-fluxcd-to-authenticate-to-github">Allow FluxCD to authenticate to GitHub</h2>
+<h3 id="secret-creation-ssh-keys">Secret creation (SSH keys)</h3>
+<div class="language-text highlight"><pre><span></span><code>flux create secret git gitops-deployments-auth \
+  --url=ssh://github.com/${GITHUB_USERNAME}/gitops-deployments \
+  --namespace=default
+
+  # ✚ deploy key: ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBEww+J8GaJDlxQHeB6M+qrWyn3hcv2Jj8IS5gC+O6kQOvu2hKr0iqaduoottECNXEgRbdEqABzY8gZ9Xb77e5wfskVUOqKfdiv12/CVbLFj1eH1WFlUH+Vy7Wff0I0JEAw==
+  #
+  # ► git secret &#39;gitops-deployments-auth&#39; created in &#39;default&#39; namespace
+</code></pre></div>
+<h3 id="add-the-newly-created-public-key-to-the-gitops-deployments-github-repository">Add the newly created public key to the 'gitops-deployments' Github repository</h3>
+<ul>
+<li>The public key appears as the 'deploy key' at its creation time.</li>
+<li>Add the public key (deploy key) in https://github.com/${GITHUB_USERNAME}/gitops-deployments/settings/keys/new; give it the name <em>'gitops'</em> et check the box <em>'Allow write access'</em>.</li>
+</ul>
+<h3 id="clone-the-apps-github-repository-locally">Clone the apps Github repository locally</h3>
+<div class="language-text highlight"><pre><span></span><code>git clone git@github.com:${GITHUB_USERNAME}/gitops-deployments.git
+</code></pre></div>
+<h2 id="configure-fluxcd-for-automated-deployments">Configure FluxCD for automated deployments</h2>
+<h3 id="create-a-gitrepository-manifest">Create a GitRepository manifest</h3>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}
+mkdir -p {sources,kustomizations}
+
+flux create source git nginxhello \
+  --url=ssh://github.com/${GITHUB_USERNAME}/gitops-deployments \
+  --branch=main \
+  --secret-ref=gitops-deployments-auth \
+  --namespace=default \
+  --export &gt; sources/nginxhello-source.yaml
+
+cat sources/nginxhello-source.yaml
+
+  # ---
+  # apiVersion: source.toolkit.fluxcd.io/v1
+  # kind: GitRepository
+  # metadata:
+  #   name: nginxhello
+  #   namespace: default
+  # spec:
+  #   interval: 1m0s
+  #   ref:
+  #     branch: main
+  #   secretRef:
+  #     name: gitops-deployments-auth
+  #   url: ssh://github.com/${GITHUB_USERNAME}/gitops-deployments
+</code></pre></div>
+<h3 id="create-a-kustomization-manifest">Create a Kustomization manifest</h3>
+<div class="language-text highlight"><pre><span></span><code>  flux create kustomization nginxhello \
+    --source=GitRepository/nginxhello.default \
+    --path=./nginxhello \
+    --prune=true \
+    --target-namespace=default \
+    --namespace=default \
+    --export &gt; kustomizations/nginxhello-kustomization.yaml
+
+  cat kustomizations/nginxhello-kustomization.yaml
+
+  # ---
+  # apiVersion: kustomize.toolkit.fluxcd.io/v1
+  # kind: Kustomization
+  # metadata:
+  #   name: nginxhello
+  #   namespace: default
+  # spec:
+  #   interval: 1m0s
+  #   path: ./nginxhello
+  #   prune: true
+  #   sourceRef:
+  #     kind: GitRepository
+  #     name: nginxhello
+  #     namespace: default
+  #    targetNamespace: default
+</code></pre></div>
+<h3 id="push-changes-to-github-repo">Push changes to GitHub repo</h3>
+<div class="language-text highlight"><pre><span></span><code>git add sources kustomizations
+git commit -m &quot;&quot;
+git push
+</code></pre></div>
+<p>-&gt; From now on, FluxCD will reconcile the apps Github repository.</p>
+<h3 id="check-fluxcd-manages-the-new-objects-as-expected">check FluxCD manages the new objects as expected</h3>
+<div class="language-text highlight"><pre><span></span><code>kubectl get GitRepositories -n default
+
+  # NAME         URL                                               AGE     READY   STATUS
+  # nginxhello   ssh://github.com/${GITHUB_USERNAME}/gitops-deployments   2m14s   False   git repository is empty
+
+
+kubectl get kustomizations -n default
+
+  # NAME         AGE    READY   STATUS
+  # nginxhello   3m1s   False   Source artifact not found, retrying in 30s
+</code></pre></div>
+<h3 id="add-an-application-into-the-apps-github-repository">Add an application into the apps Github repository</h3>
+<p>Copy the <em>'deployment.yaml'</em> and <em>'service.yaml'</em> manifests :
+* from Nigel Brown's example repository ( https://github.com/nbrownuk/gitops-nginxhello/ )
+* to our Github repo dedicated to FluxCD ( https://github.com/${GITHUB_USERNAME}/gitops ) </p>
+<p>Then, push the changes to your 'gitops' repo : </p>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/ gitops
+git add .
+git commit -m &#39;feat: added the application &#39;nginxhello&#39;.&#39;
+git push
+</code></pre></div>
+<p>Finally, let's check wether FluxCD manages the deployment of the application as expected :</p>
+<div class="language-text highlight"><pre><span></span><code>kubectl get GitRepositories
+
+  # NAME         URL                                               AGE   READY   STATUS
+  # nginxhello   ssh://github.com/${GITHUB_USERNAME}/gitops-deployments   26m   True    stored artifact for revision &#39;main@sha1:b223021b6ff0fee832941e0825a6203e4775196c&#39;
+
+
+kubectl get kustomizations
+
+  # NAME         AGE   READY   STATUS
+  # nginxhello   28h   True    Applied revision: main@sha1:3a1755be8df43fc45bb467490aa0adc52117a4e7
+
+
+kubectl get services
+
+kubectl port-forward service/nginxhello 8080:80
+  # -&gt; open a browser and check if you can see nginxhello&#39;s page correctly : http://localhost:8080
+</code></pre></div>
+<h3 id="testing-a-modification-on-the-newly-deployed-application">Testing a modification on the newly deployed application</h3>
+<p>We will change the number of replicas and the version of the application :</p>
+<div class="language-text highlight"><pre><span></span><code>vi ${WORKING_DIR}/gitops-deployments/nginxhello/deployment.yaml
+  # -&gt; changer :
+  #      .spec.replicas : 2 -&gt; 4
+  #      .spec.template.spec.containers[0].image : nbrown/nginxhello:1.19.0 -&gt; nbrown/nginxhello:1.24.0
+</code></pre></div>
+<p>Push the changes to GitHub :</p>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops-deployments
+git add .
+git commit -m &#39;evol: changed replicas number and app version.&#39;
+git push
+</code></pre></div>
+<p>Let's observe FluxCD's reconciliation :</p>
+<div class="language-text highlight"><pre><span></span><code># Watch the pods during the operation :
+kubectl get po -w
+
+# Check the _&#39;nginxhello&#39;_ GitRepository status : it should show the SHA1 of the commit (cf. _&#39;git logs&#39;_) :
+kubectl get GitRepositories
+
+# Check you #gitops Discord channel : you should have received 2 new alerts.
+
+# Connect to the _&#39;nginxhello&#39;_ app :
+kubectl port-forward service/nginxhello 8080:80 
+-&gt; open a browser and access the following URL: http://localhost:8080 -&gt; the app version should be 1.24.0
+</code></pre></div>
+<h2 id="handling-application-updates-with-image-automation">Handling application updates with image automation</h2>
+<h3 id="create-an-imagerepository">Create an ImageRepository</h3>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}
+flux create image repository nginxhello \
+  --image=nbrown/nginxhello \
+  --interval=5m \
+  --namespace=default \
+  --export &gt; sources/nginxhello-imagerepository.yaml
+
+cat sources/nginxhello-imagerepository.yaml
+# ---
+# apiVersion: image.toolkit.fluxcd.io/v1beta2
+# kind: ImageRepository
+# metadata:
+#   name: nginxhello
+#   namespace: default
+# spec:
+#   image: nbrown/nginxhello
+#   interval: 5m0s
+</code></pre></div>
+<p>Push the changes to GitHub :</p>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops
+git add .
+git commit -m &#39;feat: added nginxhello image repository manifest.&#39; 
+git push
+
+kubectl get imagerepositories
+</code></pre></div>
+<h3 id="modify-the-discord-alert-to-manage-image-policies">Modify the Discord alert to manage image policies</h3>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}
+vi notifications/alerts/discord-gitops-alert.yaml
+
+# ---
+# apiVersion: notification.toolkit.fluxcd.io/v1beta3
+# kind: Alert
+# metadata:
+#   name: discord-gitops-alert
+#   namespace: default
+# spec:
+#   eventSeverity: info
+#   eventSources:
+#   - kind: GitRepository
+#     name: &#39;*&#39;
+#   - kind: Kustomization
+#     name: &#39;*&#39;
+#   - kind: ImagePolicy
+#     name: &#39;*&#39;
+#   providerRef:
+#     name: discord-gitops
+</code></pre></div>
+<h3 id="create-an-image-policy">Create an image policy</h3>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}
+mkdir imagepolicies
+flux create image policy nginxhello \
+  --image-ref=nginxhello \
+  --select-semver=&#39;&gt;=1.20.x&#39; \
+  --namespace=default \
+  --export &gt; imagepolicies/nginxhello-image-policy.yaml
+
+cat imagepolicies/nginxhello-image-policy.yaml
+
+# ---
+# apiVersion: image.toolkit.fluxcd.io/v1beta2
+# kind: ImagePolicy
+# metadata:
+#   name: nginxhello
+#   namespace: default
+# spec:
+#   imageRepositoryRef:
+#     name: nginxhello
+#   policy:
+#     semver:
+#       range: &#39;&gt;=1.20.x&#39;
+</code></pre></div>
+<p>Push the changes to GitHub :</p>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops
+git add .
+git commit -m &quot;feat: added a new image policy&quot;
+git push
+
+kubectl get imagepolicies
+
+  # NAME         LATESTIMAGE
+  # nginxhello
+
+kubectl describe imagerepository nginxhello
+
+  # Name:         nginxhello
+  # Namespace:    default
+  # Labels:       kustomize.toolkit.fluxcd.io/name=flux-system
+  #               kustomize.toolkit.fluxcd.io/namespace=flux-system
+  # Annotations:  &lt;none&gt;
+  # API Version:  image.toolkit.fluxcd.io/v1beta2
+  # Kind:         ImageRepository
+  # Metadata:
+  #   Creation Timestamp:  2023-12-29T17:27:59Z
+  #   Finalizers:
+  #     finalizers.fluxcd.io
+  #   Generation:        2
+  #   Resource Version:  47347
+  #   UID:               0eaf8380-5fad-4458-aca0-826f02d74abc
+  # Spec:
+  #   Exclusion List:
+  #     ^.*\.sig$
+  #   Image:     docker.io/nbrown/nginxhello
+  #   Interval:  5m0s
+  #   Provider:  generic
+  # Status:
+  #   Canonical Image Name:  index.docker.io/nbrown/nginxhello
+  #   Conditions:
+  #     Last Transition Time:  2023-12-29T18:16:39Z
+  #     Message:               successful scan: found 45 tags
+  #     Observed Generation:   2
+  #     Reason:                Succeeded
+  #     Status:                True
+  #     Type:                  Ready
+  #   Last Scan Result:
+  #     Latest Tags:
+  #       stable
+  #       mainline
+  #       latest
+  #       e6c463e6
+  #       aad042cb
+  #       1.25.2
+  #       1.25
+  #       1.24.0
+  #       1.24
+  #       1.23.3
+  #     Scan Time:  2023-12-29T18:16:39Z
+  #     Tag Count:  45
+  #   Observed Exclusion List:
+  #     ^.*\.sig$
+  #   Observed Generation:  2
+  # Events:
+  # (...)
+</code></pre></div>
+<p>You should have received an alert on the <em>'#gitops'</em> Discord channel : </p>
+<div class="language-text highlight"><pre><span></span><code>imagepolicy/nginxhello.default
+Latest image tag for &#39;docker.io/nbrown/nginxhello&#39; resolved to 1.25.2
+</code></pre></div>
+<p>Some additiona checks can be done :</p>
+<div class="language-text highlight"><pre><span></span><code>kubectl get imagepolicies
+
+  # NAME         LATESTIMAGE
+  # nginxhello   docker.io/nbrown/nginxhello:1.25.2
+
+
+kubectl get deployment nginxhello -o yaml | yq &#39;.spec.template.spec.containers[].image&#39;
+
+  # nbrown/nginxhello:1.20.1    # the deployed version isn&#39;t the latest one.
+</code></pre></div>
+<h3 id="updating-our-application-version-with-the-image-automation">Updating our application version with the image automation</h3>
+<h4 id="adding-a-marker-to-the-deployment">Adding a marker to the deployment</h4>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops-deployments
+vi ${WORKING_DIR}/gitops-deployments/nginxhello/deployment.yaml
+
+  # ---
+  # apiVersion: apps/v1
+  # kind: Deployment
+  # metadata:
+  #   labels:
+  #     app: nginxhello
+  #   name: nginxhello
+  #   annotations:
+  #     fluxcd.io/ignore: &quot;true&quot;
+  #     fluxcd.io/automated: &quot;false&quot;
+  # spec:
+  #   replicas: 4
+  #   selector:
+  #     matchLabels:
+  #       app: nginxhello
+  #   template:
+  #     metadata:
+  #       labels:
+  #         app: nginxhello
+  #     spec:
+  #       containers:
+  #       - image: docker.io/nbrown/nginxhello:1.25.2 # {&quot;$imagepolicy&quot;: &quot;default:nginxhello&quot;}
+  #         name: nginxhello
+  #         ports:
+  #         - containerPort: 80
+  #         env:
+  #         - name: NODE_NAME
+  #           valueFrom:
+  #             fieldRef:
+  #               fieldPath: spec.nodeName
+  #         livenessProbe:
+  #           initialDelaySeconds: 2
+  #           periodSeconds: 2
+  #           httpGet:
+  #             port: 80
+  #             path: /healthz/live
+  #         readinessProbe:
+  #           initialDelaySeconds: 2
+  #           periodSeconds: 2
+  #           httpGet:
+  #             port: 80
+  #             path: /healthz/ready
+
+git add .
+git commit -m &quot;feat: added a version marker to the _&#39;nginxhello&#39;_ deployment manifest.&quot;
+git push
+</code></pre></div>
+<p>Let's check the SHA1 of our commit :</p>
+<div class="language-text highlight"><pre><span></span><code>git log
+
+  # commit ed03554ba51d9f1e29f38711d667efebd3c9e33c (HEAD -&gt; main, origin/main)
+  # Author: Franck Levesque &lt;franck.levesque@gmail.com&gt;
+  # Date:   Sat Dec 30 13:29:46 2023 +0100
+  #
+  # feat: added a version marker to the _&#39;nginxhello&#39;_ deployment manifest.
+</code></pre></div>
+<p>We should see the same SHA1 commit in the gitRepository now :</p>
+<div class="language-text highlight"><pre><span></span><code>kubectl get gitrepository nginxhello
+
+  # NAME         URL                                               AGE     READY   STATUS
+  # nginxhello   ssh://github.com/${GITHUB_USERNAME}/gitops-deployments   2d18h   True    stored artifact for revision &#39;main@sha1:ed03554ba51d9f1e29f38711d667efebd3c9e33c&#39;
+</code></pre></div>
+<p>It should also appear in a Discord alert :</p>
+<div class="language-text highlight"><pre><span></span><code>FluxCD BOT
+ — Aujourd’hui à 13:31
+gitrepository/nginxhello.default
+stored artifact for commit &#39;evol: added maker to the deployment manifest&#39;
+revision
+main@sha1:ed03554ba51d9f1e29f38711d667efebd3c9e33c
+</code></pre></div>
+<h4 id="image-update-automation">Image update automation</h4>
+<p>Write a template in order to format the commits created by FluxCD :</p>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}
+mkdir imageupdateautomations
+vi imageupdateautomations/msg_template
+
+  # Flux automated image update
+  # 
+  # Automation name: {{ .AutomationObject }}
+  # 
+  # Files:
+  # {{ range $filename, $_ := .Updated.Files -}}
+  # - {{ $filename }}
+  # {{ end -}}
+  # 
+  # Objects:
+  # {{ range $resource, $_ := .Updated.Objects -}}
+  # - {{ $resource.Kind }} {{ $resource.Name }}
+  # {{ end -}}
+  # 
+  # Images:
+  # {{ range .Updated.Images -}}
+  # - {{.}}
+  # {{ end -}}
+</code></pre></div>
+<p>Create the imageUpdateAutomation manufest :</p>
+<div class="language-text highlight"><pre><span></span><code>  flux create image update nginxhello \
+    --git-repo-ref=nginxhello \
+    --git-repo-path=./nginxhello \
+    --checkout-branch=main \
+    --push-branch=main \
+    --author-name=FluxCD \
+    --author-email=gitops@users.noreply.github.com \
+    --commit-template=&quot;$( cat ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}/imageupdateautomations/msg_template )&quot; \
+    --namespace=default \
+    --export &gt; ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}/imageupdateautomations/nginxhello.yaml
+</code></pre></div>
+<p>cat ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}/imageupdateautomations/nginxhello.yaml</p>
+<div class="language-text highlight"><pre><span></span><code>  # ---
+  # apiVersion: image.toolkit.fluxcd.io/v1beta1
+  # kind: ImageUpdateAutomation
+  # metadata:
+  #   name: nginxhello
+  #   namespace: default
+  # spec:
+  #   git:
+  #     checkout:
+  #       ref:
+  #         branch: main
+  #     commit:
+  #       author:
+  #         email: gitops@users.noreply.github.com
+  #         name: FluxCD
+  #       messageTemplate: |-
+  #         Flux automated image update
+  # 
+  #         Automation name: {{ .AutomationObject }}
+  # 
+  #         Files:
+  #         {{ range $filename, $_ := .Updated.Files -}}
+  #         - {{ $filename }}
+  #         {{ end -}}
+  # 
+  #         Objects:
+  #         {{ range $resource, $_ := .Updated.Objects -}}
+  #         - {{ $resource.Kind }} {{ $resource.Name }}
+  #         {{ end -}}
+  # 
+  #         Images:
+  #         {{ range .Updated.Images -}}
+  #         - {{.}}
+  #         {{ end -}}
+  #     push:
+  #       branch: main
+  #   interval: 1m0s
+  #   sourceRef:
+  #     kind: GitRepository
+  #     name: gitops-deployments
+  #   update:
+  #     path: ./nginxhello
+  #     strategy: Setters
+</code></pre></div>
+<p>Push the changes to GitHub :</p>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops
+git add .
+git commit -m &quot;feat: created an image update automation manifest for nginxhello.&quot;
+git push
+</code></pre></div>
+<p>Check the changes :</p>
+<div class="language-text highlight"><pre><span></span><code>kubectl get pods -w
+kubectl get imageupdateautomations
+k get deployment nginxhello -o yaml | yq &#39;.spec.template.spec.containers[].image&#39;
+
+  # nbrown/nginxhello:1.20.1
+  # This is not the latest version.
+
+cd ${WORKING_DIR}/gitops-deployments
+git fetch      # our branch is not up-to-date (1 commit missing).
+git pull
+git log -1     # the commit message looks like our commit template.
+
+cat ${WORKING_DIR}/gitops-deployments/nginxhello/deployment.yaml| grep &#39;image:&#39;
+
+  # - image: docker.io/nbrown/nginxhello:1.25.2 # {&quot;$imagepolicy&quot;: &quot;default:nginxhello&quot;}
+  # -&gt; latest version : 1.25.2
+
+kubectl describe imageupdateautomations nginxhello
+
+  # Flux automated image update
+  # 
+  # Automation name: default/nginxhello
+  # 
+  # Files:
+  # - deployment.yaml
+  # Objects:
+  # - Deployment nginxhello
+  # 
+  # 
+  # Images:
+  # - docker.io/nbrown/nginxhello:1.25.2
+</code></pre></div>
+<h2 id="automating-packages-releases-with-the-helm-controller">Automating packages releases with the Helm controller</h2>
+<h3 id="cleaning">Cleaning</h3>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}
+mkdir _backup
+tar cvzf _backup/imagepolicies.tgz imagepolicies
+tar cvzf _backup/imageupdateautomations.tgz imageupdateautomations
+tar cvzf _backup/kustomizations.tgz kustomizations 
+tar cvzf _backup/sources_nginxhello-imagerepository.yaml.tgz sources/nginxhello-imagerepository.yaml
+rm -rf image* kustomizations sources/nginxhello-imagerepository.yaml
+
+tree
+
+  # .
+  # ├── _backup
+  # │   ├── imagepolicies.tgz
+  # │   ├── imageupdateautomations.tgz
+  # │   ├── kustomizations.tgz
+  # │   └── sources_nginxhello-imagerepository.yaml.tgz
+  # ├── flux-system
+  # │   ├── gotk-components.yaml
+  # │   ├── gotk-sync.yaml
+  # │   └── kustomization.yaml
+  # ├── notifications
+  # │   ├── alerts
+  # │   │   └── discord-gitops-alert.yaml
+  # │   └── providers
+  # │       └── discord-gitops-provider.yaml
+  # └── sources
+  #     └── nginxhello-source.yaml
+
+cd ${WORKING_DIR}/gitops
+git add .
+git commit -m &#39;feat: cleaning before using Helm charts.&#39;
+git push
+</code></pre></div>
+<p>You should receive an alert in the <em>'#gitops'</em> Discord channel :</p>
+<div class="language-text highlight"><pre><span></span><code>FluxCD BOT
+ — Aujourd’hui à 16:04
+kustomization/nginxhello.default
+Deployment/default/nginxhello deleted
+Service/default/nginxhello deleted
+revision
+main@sha1:5855cb796a4e1b7cd07d3c9da8351debb0dff3f5
+</code></pre></div>
+<p>Normally, you shouldn't see any pods again :</p>
+<div class="language-text highlight"><pre><span></span><code>kubectl get pods -n default
+
+  # No resources found in default namespace.
+</code></pre></div>
+<h3 id="configuring-a-helm-repository">Configuring a Helm Repository</h3>
+<h4 id="discord-alerting">Discord alerting</h4>
+<p>First, let's modify the Discord alerts to manage the helmRepositories into account :</p>
+<div class="language-text highlight"><pre><span></span><code>vi notifications/alerts/discord-gitops-alert.yaml
+
+# ---
+# apiVersion: notification.toolkit.fluxcd.io/v1beta3
+# kind: Alert
+# metadata:
+#   name: discord-gitops-alert
+#   namespace: default
+# spec:
+#   eventSeverity: info
+#   eventSources:
+#   - kind: GitRepository
+#     name: &#39;*&#39;
+#   - kind: Kustomization
+#     name: &#39;*&#39;
+#   - kind: ImagePolicy
+#     name: &#39;*&#39;
+#   - kind: HelmRepository
+#     name: &#39;*&#39;
+#   providerRef:
+#     name: discord-gitops
+</code></pre></div>
+<h4 id="the-podinfo-helm-chart">The <em>'podinfo'</em> Helm Chart</h4>
+<p>We will use the <em>'podinfo'</em> Helm chart as an example.</p>
+<div class="language-text highlight"><pre><span></span><code>helm show chart oci://ghcr.io/stefanprodan/charts/podinfo
+
+  # Pulled: ghcr.io/stefanprodan/charts/podinfo:6.5.4
+  # Digest: sha256:a961643aa644f24d66ad05af2cdc8dcf2e349947921c3791fc3b7883f6b1777f
+  # apiVersion: v1
+  # appVersion: 6.5.4
+  # description: Podinfo Helm chart for Kubernetes
+  # home: https://github.com/stefanprodan/podinfo
+  # kubeVersion: &#39;&gt;=1.23.0-0&#39;
+  # maintainers:
+  # - email: stefanprodan@users.noreply.github.com
+  #   name: stefanprodan
+  # name: podinfo
+  # sources:
+  # - https://github.com/stefanprodan/podinfo
+  # version: 6.5.4
+</code></pre></div>
+<h4 id="creating-the-podinfo-helmrepository">Creating the <em>'podinfo'</em> helmRepository</h4>
+<h5 id="authenticating-to-the-helm-repository">Authenticating to the Helm repository</h5>
+<p>Let's create a new <em>'Docker registry'</em> type secret allowinf us to retrieve the Helm chart.
+(ghcr.io belongs to GitHub; they both use the same identity management)</p>
+<p><strong>NOTE</strong> : this repository is a public one; in our case there will be no need to specify credentials in the helmRepository.</p>
+<div class="language-text highlight"><pre><span></span><code>export GITHUB_USER=${GITHUB_USERNAME}
+export GITHUB_TOKEN=$(GITHUB_PAT)
+
+kubectl create secret docker-registry ghcr-charts-auth \
+  --docker-server=ghcr.io \
+  --docker-username=${GITHUB_USER} \
+  --docker-password=-{GITHUB_TOKEN}
+</code></pre></div>
+<h5 id="creating-the-helmrepository-manifest">Creating the helmRepository manifest</h5>
+<div class="language-text highlight"><pre><span></span><code>flux create source helm podinfo \
+  --url=https://stefanprodan.github.io/podinfo \
+  --namespace=default \
+  --interval=1m \
+  --export &gt; ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}/sources/podinfo.yaml
+
+
+cat ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}/sources/podinfo.yaml
+
+  # ---
+  # apiVersion: source.toolkit.fluxcd.io/v1beta2
+  # kind: HelmRepository
+  # metadata:
+  #   name: podinfo
+  #   namespace: default
+  # spec:
+  #   interval: 1m0s
+  #   url: https://stefanprodan.github.io/podinfo
+</code></pre></div>
+<h4 id="pushing-the-changes-to-github">Pushing the changes to GitHub</h4>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops
+git add .
+git commit -m &quot;feat: Defining a &#39;podinfo&#39; Helm repository.&quot;
+git push
+
+
+kubectl get helmrepo
+
+# NAME      URL                                      AGE    READY   STATUS
+# podinfo   https://stefanprodan.github.io/podinfo   116s   True    stored artifact: revision &#39;sha256:faeeeb1a7a887b5fe4d440164d29f58ba6f186d46fdf069fd227c39e9fc6ae09&#39;
+</code></pre></div>
+<h3 id="the-podinfo-helmrelease">The <em>'podinfo'</em> helmRelease</h3>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}/
+mkdir helmreleases
+
+tree
+
+  # .
+  # ├── _backup
+  # │   ├── imagepolicies.tgz
+  # │   ├── imageupdateautomations.tgz
+  # │   ├── kustomizations.tgz
+  # │   └── sources_nginxhello-imagerepository.yaml.tgz
+  # ├── flux-system
+  # │   ├── gotk-components.yaml
+  # │   ├── gotk-sync.yaml
+  # │   └── kustomization.yaml
+  # ├── helmreleases
+  # ├── notifications
+  # │   ├── alerts
+  # │   │   └── discord-gitops-alert.yaml
+  # │   └── providers
+  # │       └── discord-gitops-provider.yaml
+  # └── sources
+  #     ├── nginxhello-source.yaml
+  #     └── podinfo.yaml
+</code></pre></div>
+<p>If you need to customize the configuration of your Helm release, you can find all the parameters for the Values file here :</p>
+<div class="language-text highlight"><pre><span></span><code>https://artifacthub.io/packages/helm/podinfo/podinfo
+</code></pre></div>
+<p>In our case, we will only want to add a simple "Hello" message in the UI :</p>
+<div class="language-text highlight"><pre><span></span><code>echo &#39;ui.message: Hello&#39; &gt; ${WORKING_DIR}/gitops/clusters/podinfo.values.yaml
+</code></pre></div>
+<p>Now, let's create the helmRelease object :</p>
+<div class="language-text highlight"><pre><span></span><code>flux create helmrelease podinfo \
+  --source=HelmRepository/podinfo \
+  --chart=podinfo \
+  --values=${WORKING_DIR}/gitops/clusters/podinfo.values.yaml \
+  --namespace=default \
+  --export &gt; ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}/helmreleases/podinfo.yaml
+
+
+cat ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}/helmreleases/podinfo.yaml
+
+# apiVersion: helm.toolkit.fluxcd.io/v2beta2
+# kind: HelmRelease
+# metadata:
+#   name: podinfo
+#   namespace: default
+# spec:
+#   chart:
+#     spec:
+#       chart: podinfo
+#       reconcileStrategy: ChartVersion
+#       sourceRef:
+#         kind: HelmRepository
+#         name: podinfo
+#   interval: 1m0s
+#   values:
+#     ui.message: Hello
+</code></pre></div>
+<p>Push the changes to GitHub :</p>
+<div class="language-text highlight"><pre><span></span><code>cd ${WORKING_DIR}/gitops
+git add .
+git commit -m &quot;feat: Defining a &#39;podinfo&#39; Helm release.&quot;
+git push
+</code></pre></div>
+<p>Let's check the good deployment of the <em>'podinfo'</em> Helm release :</p>
+<div class="language-text highlight"><pre><span></span><code>kubectl get helmreleases
+
+# NAME      AGE   READY   STATUS
+# podinfo   78m   True    Helm install succeeded for release default/podinfo.v1 with chart podinfo@6.5.4
+
+
+# Is the pod running ?
+kubectl get po
+
+# NAME                      READY   STATUS    RESTARTS   AGE
+# podinfo-8c4b88bf8-2j8sd   1/1     Running   0          16m
+
+
+# Let&#39;s access the _&#39;podinfo&#39;_ web page : 
+kubectl port-forward service/podinfo 8080:9898
+
+# Forwarding from 127.0.0.1:8080 -&gt; 9898
+# Forwarding from [::1]:8080 -&gt; 9898
+# Handling connection for 8080
+-&gt; open a browser : http://localhost:8080/
+</code></pre></div>
+<h5 id="remediation">remediation</h5>
+<p>Read the proper documentation for more details.
+Remediation allows to rollback for instance afer 2 unsuccessful update tries :</p>
+<p>In the example below, we will add to the HelmRelease manifest :</p>
+<div class="language-text highlight"><pre><span></span><code>.spec.upgrade.remedation.retries: 2
+</code></pre></div>
+<p>Let's edit the manifest :</p>
+<div class="language-text highlight"><pre><span></span><code>vi ${WORKING_DIR}/gitops/clusters/${KIND_CLUSTER_NAME}/helmreleases/podinfo.yaml
+
+  # ---
+  # apiVersion: helm.toolkit.fluxcd.io/v2beta2
+  # kind: HelmRelease
+  # metadata:
+  #   name: podinfo
+  #   namespace: default
+  # spec:
+  #   chart:
+  #     spec:
+  #       chart: podinfo
+  #       reconcileStrategy: ChartVersion
+  #       sourceRef:
+  #         kind: HelmRepository
+  #         name: podinfo
+  #   interval: 1m0s
+  #   values:
+  #     ui.message: Hello
+  #   upgrade:
+  #     remediation:
+  #       retries: 2
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.ad660dcc.min.js"></script>
+      
+    
+  </body>
+</html>
