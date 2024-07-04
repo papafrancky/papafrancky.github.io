@@ -298,6 +298,10 @@ Pour consommer les services GCP, il faut activer leurs APIs.
 
 Vault utilisera un service-account GCP (en fournissant ses credentials) qui disposera des droits d'accès à une clé hébergée chez GCP (via Key Management Service KMS). Paramétré en mode auto-unseal, Vault se servira de cette clé comme "root key" qui protège l'"encryption key".
 
+!!! info
+    https://developer.hashicorp.com/vault/tutorials/auto-unseal/autounseal-gcp-kms
+
+
 
 ##### Service-account
 
@@ -393,18 +397,6 @@ Il nous reste à autoriser notre service account ***'k8s-kind-vault@vault-415918
 |Role|Cloud KMS CryptoKey Encrypter/Decrypter|
 
 Nous en avons fini avec les préparatifs côté GCP ^^
-
-
---- reprendre ici ---
-
-Nous allons maintenant créer un service-account dans GCP et lui donner accès à une clé KMS que Vault utilisera pour son auto-unsealing.
-
-!!! info
-    https://developer.hashicorp.com/vault/tutorials/auto-unseal/autounseal-gcp-kms
-
-
-
-
 
 
 
@@ -518,7 +510,7 @@ serverTelemetry:
 
 #### Installation de la Release
 
-Nous pouvons désormais définir notre 'helm release' pour que FluxCD puiss egérer le déploiement de Vault :
+Nous pouvons désormais définir notre 'helm release' pour que FluxCD puisse gérer le déploiement de Vault :
 
 === "code"
     ```sh
@@ -689,7 +681,7 @@ Vault doit être initialisé !
 
 #### Initialisation de Vault
 
-L'initialisation de Vault passe par une commande à passer directement sur les pods (dans notre cas, nous n'en avons qu'un) :
+L'initialisation de Vault nécessite d'exécuter une commande directement sur les pods de Vault (dans notre cas, nous n'en avons qu'un) :
 
 === "code"
     ```sh
@@ -758,7 +750,8 @@ Vault est bien initialisé. Assurons-nous malgré tout que le pod est désormais
     vault-0   1/1     Running   0          25m
     ```
 
-Tout est comme attendu ! :fontawesome-regular-face-laugh-wink:
+!!! Success
+    Tout fonctionne comme attendu ! :fontawesome-regular-face-laugh-wink:
 
 
 
@@ -766,11 +759,19 @@ Tout est comme attendu ! :fontawesome-regular-face-laugh-wink:
 
 Vault est installé en *'statefulset'*, sa configuration est pérenne, aussi allons-nous le désinstaller et attendre que FluxCD le réinstalle pour nous assurer que Vault sera réinstallé dans un état initialisé et *'unsealed'*.
 
-helm -n vault list
+Assurons-nous d'abord du nom de notre *Helm release* :
+=== "code"
+    ```sh
+    helm -n vault list
+    ```
 
-NAME 	NAMESPACE	REVISION	UPDATED                                	STATUS  	CHART       	APP VERSION
-vault	vault    	1       	2024-06-01 16:13:04.681229835 +0000 UTC	deployed	vault-0.28.0	1.16.1
+=== "output"
+    ```sh
+    NAME 	NAMESPACE	REVISION	UPDATED                                	STATUS  	CHART       	APP VERSION
+    vault	vault    	1       	2024-06-01 16:13:04.681229835 +0000 UTC	deployed	vault-0.28.0	1.16.1
+    ```
 
+Maintenant, désinstallons Vault :
 
 === "code"
     ```sh
@@ -783,7 +784,7 @@ vault	vault    	1       	2024-06-01 16:13:04.681229835 +0000 UTC	deployed	vault-
     No resources found in vault namespace.
     ```
 
-Discord nous prévient que FluxCD a redéployé la Helm release :
+Dans les minutes qui suivent notre désinstallation, Discord nous prévient que FluxCD a redéployé la *Helm release* :
 
 ![Vault Helm release re-deployment](./images/vault_helm_release.png)
 
@@ -818,7 +819,7 @@ Regardons sur le pod nouvellement re-déployé l'état de Vault :
     ```
 
 !!! Success
-    Nous venons de valider le bon fonctionnement de l'**'auto-unsealing'** de Vault.
+    Nous venons de valider le bon fonctionnement de l'**'auto-unsealing'** de Vault. :fontawesome-regular-face-laugh-wink:
 
 
 
@@ -826,6 +827,13 @@ Regardons sur le pod nouvellement re-déployé l'état de Vault :
 
 !!! Info
     https://external-secrets.io/latest/introduction/overview/
+
+Cet opérateur fera l'intermédiaire entre Vault et Kubernetes.
+
+Son rôle est de synchroniser les objets Kubernetes de type *'Secret'* ou *'ConfigMap'* avec les *'secrets'* stockés et protégés dans Vault.
+
+Nous installerons cet opérateur via Helm.
+
 
 
 ### Helm repository
@@ -859,9 +867,7 @@ Commençons par définir le Helm repository :
 
 #### Helm release
 
-Nous avions déjà défini le **Helm repository** [dans la première partie](http://lpapafrancky.github.io/Vault/kind_helm_vault_auto-unseal_ESO/kind_vault_auto-unsealed_eso_fluxcd/#helm-repositories)  de ce howto. 
-
-Il nous reste à définir la **Helm release** asociée :
+Maintenant que le *Helm repository* est défini sur notre cluster, nous pouvons déployer l'opérateur :
 
 === "code"
     ```sh
@@ -953,11 +959,11 @@ Même si la dernière commande ne retourne aucun objet, au moins nous sommes sû
 
 ## Intégration de Vault et External-Secrets à la Helm Release 'kube-prometheus-stack'
 
-La stack de monitoring définit un mot de passe par défaut pour le compte admin de Grafana. Et c'est moche.
+La stack de monitoring définit un mot de passe par défaut pour le compte d'administration de Grafana. Et c'est moche.
 
 Pour corriger cela, nous nous proposons de définir un nouveau mot de passe pour ce compte et de le protéger dans Vault.
 
-Nous utiliserons l'opérateur External Secrets synchroniser le mot de passe hébergé dans Vault avec une ConfigMap qui sera utilisée par Flux pour définir les *'custom values'* de la Helm Release 'kube-prometheus-stack'.
+Nous utiliserons l'opérateur External Secrets pour synchroniser le mot de passe hébergé dans Vault avec une ConfigMap qui sera utilisée par Flux pour définir les *'custom values'* de la Helm Release 'kube-prometheus-stack'.
 
 Tout un programme. ^^
 
@@ -983,32 +989,33 @@ vault kv put -mount kv monitoring/grafana/admin-account login=admin password=sec
 # Vérification
 vault kv get -mount=kv monitoring/grafana/admin-account
 
-============== Secret Path ==============
-kv/data/monitoring/grafana/admin-account
+  # ============== Secret Path ==============
+  # kv/data/monitoring/grafana/admin-account
+  # 
+  # ======= Metadata =======
+  # Key                Value
+  # ---                -----
+  # created_time       2024-06-04T14:45:27.639679075Z
+  # custom_metadata    <nil>
+  # deletion_time      n/a
+  # destroyed          false
+  # version            2
+  # 
+  # ====== Data ======
+  # Key         Value
+  # ---         -----
+  # login       admin
+  # password    secretpassword
 
-======= Metadata =======
-Key                Value
----                -----
-created_time       2024-06-04T14:45:27.639679075Z
-custom_metadata    <nil>
-deletion_time      n/a
-destroyed          false
-version            2
-
-====== Data ======
-Key         Value
----         -----
-login       admin
-password    secretpassword
 
 # Deconnexion du pod 
 exit
 ```
 
 
-### Définition d'une *'policy'* permettant d'accéder en lecture aux secrets dédiés à Grafana
+### Définition d'une *'Vault policy'* permettant d'accéder en lecture aux secrets dédiés à Grafana
 
-NMaintenant, écrivons une *'policy'* nous permettant de récupérer notre mot de passe :
+Maintenant, écrivons une *'policy'* nous permettant de récupérer notre mot de passe :
 
 ```sh
 # Accès au pod du micro-service 'vault'
@@ -1055,8 +1062,7 @@ L'application Grafana doit pouvoir récupérer le mot de passe hébergé dans Va
 
 * nous allons activer sur Vault l'**authentification Kubernetes**;
 * nous attacherons au *service-account* avec lequel le pod Grafana sera exécuté  *'ClusterRole'* **auth-delegator**;
-* enfin, il nous restera à définit au niveau de Vault un rôle visant à rattacher la *policy* créée précédemment à notre *service-account Kubernetes*.
-
+* enfin, il nous restera à définir au niveau de Vault un rôle visant à rattacher la *policy* que nous venons de créer à notre *service-account Kubernetes*.
 
 !!! Info
     https://developer.hashicorp.com/vault/docs/auth/kubernetes#kubernetes-auth-method
@@ -1097,10 +1103,15 @@ exit
 
 Notre Helm Release *'kube-prometheus-monitoring'* créé plusieurs service-accounts Kubernetes, dont un spécifiquement pour Grafana : **'kube-prometheus-stack-grafana'**. Nous allons donner à ce compte le droit de déléguer son authentification en le rattachant au ClusterRole **'system:auth-delegator'**.
 
+!!! Info
+    https://kubernetes.io/docs/reference/access-authn-authz/rbac/#other-component-roles
+
+    "**system:auth-delegator** allows delegated authentication and authorization checks. This is commonly used by add-on API servers for unified authentication and authorization."
+
 
 #### ClusterRoleBinding
 
-Vault nécessite certaines autorisations Kubernetes supplémentaires pour effectuer ses opérations. Par conséquent, il est nécessaire d'attribuer un ClusterRole (avec les autorisations appropriées) à son ServiceAccount via un ClusterRoleBinding.
+Vault nécessite certaines autorisations Kubernetes supplémentaires pour effectuer ses opérations. Par conséquent, il est nécessaire d'attribuer un **ClusterRole** (avec les autorisations appropriées) à son *service-account* **'kube-prometheus-stack-grafana'** via un ClusterRoleBinding.
 
 
 === "code"
@@ -1183,9 +1194,9 @@ Voici ce que nous cherchons à vérifier :
 
 1. Le pod est exécuté avec un service-account Kubernetes auquel est rattaché le ClusterRole 'system:auth-delegator';
 2. L'application exécutée dans le pod s'authentifie à Vault (authentification Kubernetes) en utilisant le token de son *service-account Kubernetes* et rattaché le rôle Vault **'monitoring-grafana--ro'** ;
-3. Ce rôle Vault autorise précisément ce service-account Kubernetes d'utiliser la policy Vault qui donne accès en lecture aux login et mot de passe du compte d'administration de Grafana;
-4. Vault valide le token du service-account Kubernetes auprès de Kubernetes et renvoie à l'application du pod un token d'authentification à Vault, auquel est rattaché la policy d'accès aux credentials d'admin de Grafana;
-5. L'application peut désormais de loguer à Vault avec le token ainsi récupéré et accéder ensuite au compte d'administration de Grafana.
+3. Ce rôle Vault autorise précisément ce service-account Kubernetes à utiliser la policy Vault qui donne accès en lecture aux login et mot de passe du compte d'administration de Grafana;
+4. Vault valide le token du service-account Kubernetes auprès de Kubernetes et renvoie à l'application du pod un token d'authentification à Vault, auquel est rattachée la policy d'accès aux credentials d'admin de Grafana;
+5. L'application peut désormais se loguer à Vault avec le token ainsi récupéré et accéder ensuite au compte d'administration de Grafana.
 
 
 
@@ -1208,10 +1219,10 @@ CLIENT_TOKEN=$( curl --silent --request POST --data '{"jwt": "'"${SA_JWT_TOKEN}"
 # Récupération du mot de passe du compte admin de Grafana
 curl --silent --header "X-Vault-Token:${CLIENT_TOKEN}"  http://vault.vault:8200/v1/kv/data/monitoring/grafana/admin-account | jq .data.data
 
-# {
-#   "login": "admin",
-#   "password": "secretpassword"
-# }
+  # {
+  #   "login": "admin",
+  #   "password": "secretpassword"
+  # }
 ```
 
 
@@ -1238,57 +1249,57 @@ VAULT_TOKEN=$( vault write auth/kubernetes/login role=monitoring-grafana--ro jwt
 
 vault login ${VAULT_TOKEN}
 
-# Success! You are now authenticated. The token information displayed below
-# is already stored in the token helper. You do NOT need to run "vault login"
-# again. Future Vault requests will automatically use this token.
-# 
-# Key                                       Value
-# ---                                       -----
-# token                                     hvs.CAESIIuNElbt2UPdepDg4VV0R_N_9EDIB5xlZO6MddPHe6UZGh4KHGh2cy55SGVoZE5nVndoTUZwZWNYVXNzN2p5WmQ
-# token_accessor                            P3V1p0lTFoEh5eVRxqISChuq
-# token_duration                            50m7s
-# token_renewable                           true
-# token_policies                            ["default" "monitoring-grafana--ro"]
-# identity_policies                         []
-# policies                                  ["default" "monitoring-grafana--ro"]
-# token_meta_service_account_namespace      monitoring
-# token_meta_service_account_secret_name    n/a
-# token_meta_service_account_uid            50f4a2f7-2b95-4c4b-a7c3-a362b87eecff
-# token_meta_role                           monitoring-grafana--ro
-# token_meta_service_account_name           kube-prometheus-stack-grafana
+  # Success! You are now authenticated. The token information displayed below
+  # is already stored in the token helper. You do NOT need to run "vault login"
+  # again. Future Vault requests will automatically use this token.
+  # 
+  # Key                                       Value
+  # ---                                       -----
+  # token                                     hvs.CAESIIuNElbt2UPdepDg4VV0R_N_9EDIB5xlZO6MddPHe6UZGh4KHGh2cy55SGVoZE5nVndoTUZwZWNYVXNzN2p5WmQ
+  # token_accessor                            P3V1p0lTFoEh5eVRxqISChuq
+  # token_duration                            50m7s
+  # token_renewable                           true
+  # token_policies                            ["default" "monitoring-grafana--ro"]
+  # identity_policies                         []
+  # policies                                  ["default" "monitoring-grafana--ro"]
+  # token_meta_service_account_namespace      monitoring
+  # token_meta_service_account_secret_name    n/a
+  # token_meta_service_account_uid            50f4a2f7-2b95-4c4b-a7c3-a362b87eecff
+  # token_meta_role                           monitoring-grafana--ro
+  # token_meta_service_account_name           kube-prometheus-stack-grafana
 
 
 vault kv list -mount=kv monitoring/grafana
 
-# Keys
-# ----
-# admin-account
+  # Keys
+  # ----
+  # admin-account
 
 
 vault kv get -mount=kv monitoring/grafana/admin-account
 
-# ============== Secret Path ==============
-# kv/data/monitoring/grafana/admin-account
-# 
-# ======= Metadata =======
-# Key                Value
-# ---                -----
-# created_time       2024-06-08T15:52:46.958211047Z
-# custom_metadata    <nil>
-# deletion_time      n/a
-# destroyed          false
-# version            1
-# 
-# ====== Data ======
-# Key         Value
-# ---         -----
-# login       admin
-# password    secretpassword
+  # ============== Secret Path ==============
+  # kv/data/monitoring/grafana/admin-account
+  # 
+  # ======= Metadata =======
+  # Key                Value
+  # ---                -----
+  # created_time       2024-06-08T15:52:46.958211047Z
+  # custom_metadata    <nil>
+  # deletion_time      n/a
+  # destroyed          false
+  # version            1
+  # 
+  # ====== Data ======
+  # Key         Value
+  # ---         -----
+  # login       admin
+  # password    secretpassword
 
 
 vault kv get -mount=kv -field=password monitoring/grafana/admin-account
 
-# secretpassword
+  # secretpassword
 ```
 
 !!! success
