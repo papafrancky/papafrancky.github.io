@@ -44,7 +44,7 @@ which kubectx kubens
 ## fluxctl
 
 ```sh
-brew install fluxctl
+brew install fluxcd/tap/flux
 ```
 
 
