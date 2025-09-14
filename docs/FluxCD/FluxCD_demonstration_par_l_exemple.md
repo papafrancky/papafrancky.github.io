@@ -10,11 +10,11 @@ Sur un cluster Kind fraîchement installé, nous installerons FluxCD (ie. *'boot
 graph TD
 
 A(users)
-B(("ingress\n'foobar'"))
-C{service\n'foo'}
-D{service\n'bar'}
-E[deployment\n'foo']
-F[deployment\n'bar']
+B(("ingress 'foobar'"))
+C{service 'foo'}
+D{service 'bar'}
+E[deployment 'foo']
+F[deployment 'bar']
 
 A -.-> B
 B --> C & D
@@ -29,7 +29,7 @@ end
 ```
 
 
-En réalité, ces deux applications sont strictement les mêmes, puisqu'elles consistent chacune en 1 pod faisant usage de la même image *'e2e-test-images/agnhost'*, mais nous considérerons qu'il s'agit bel et bien de 2 applications distinctes différentes.
+En réalité, nous déploierons deux fois la même application (elles utiliseront la même image Docker *'e2e-test-images/agnhost'*) dans deux namespaces distincts et les nommerons différemment ('foo' et 'bar') sur notre cluster. Ce qui importe ici est de montrer comment organiser notre code pour que FluxCD puisse gérer plusieurs applications en concurrence.
 
 
 
@@ -80,17 +80,17 @@ git clone git@github.com:papafrancky/k8s-kind-apps.git
 ----------------------------------------------------------------------------------------------------
 ## Bootstrap de FluxCD
 
-Le projet Flux est composé d'un outil en ligne de commande (le FLux CLI) et d'une série de contrôleurs Kubernetes.
+Le projet Flux est composé d'un outil en ligne de commande (le Flux CLI) et d'une série de contrôleurs Kubernetes.
 
-Pour installer Flux, vous devez d'abord télécharger le CLI de Flux. Ensuite, à l'aide de la CLI, vous pouvez déployer les contrôleurs Flux sur vos clusters et configurer votre premier pipeline de livraison GitOps.
+Pour installer FluxCD, vous devez d'abord télécharger le CLI de Flux. Ensuite, à l'aide de la CLI, vous pouvez déployer les contrôleurs Flux sur vos clusters et configurer votre premier pipeline de livraison GitOps.
 
 La commande *'flux bootstrap github'* déploie les contrôleurs Flux sur un cluster Kubernetes et configure ces derniers pour synchroniser l'état du cluster à partir d'un dépôt GitHub. En plus d'installer les contrôleurs, la commande bootstrap pousse les manifestes de Flux vers le dépôt GitHub et configure Flux pour qu'il se mette à jour à partir de Git.
 
 |Doc|Link|
 |---|---|
-|Install the Flux controllers|https://fluxcd.io/flux/installation/#install-the-flux-controllers|
-|Flux bootstrap for GitHub|https://fluxcd.io/flux/installation/bootstrap/github/|
-|GitHub default environment variables|https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables|
+|Install the Flux controllers|[https://fluxcd.io/flux/installation/#install-the-flux-controllers](https://fluxcd.io/flux/installation/#install-the-flux-controllers)|
+|Flux bootstrap for GitHub|[https://fluxcd.io/flux/installation/bootstrap/github/](https://fluxcd.io/flux/installation/bootstrap/github/)|
+|GitHub default environment variables|[https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables](https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables)|
 
 
 
@@ -203,6 +203,47 @@ Vérifions dans les événements de FluxCD :
     22s (x15 over 14m)      Normal  GitOperationSucceeded   GitRepository/flux-system       no changes since last reconcilation: observed revision 'main@sha1:1258fc09abf6cd1bd639cd18ce4a2e9e4c1a7a9b'
     ```
 
+Notre dépôt GitHub doit également avoir évolué. Mettons notre copie locale à jour pour nous en assurer :
+
+=== "code"
+
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    git pull
+    ```
+
+=== "output"
+
+    ```sh
+    Mise à jour 87eb427..cc78efa
+    Fast-forward
+    flux-system/gotk-components.yaml | 14975 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    flux-system/gotk-sync.yaml       |    27 +
+    flux-system/kustomization.yaml   |     5 +
+    3 files changed, 15007 insertions(+)
+    create mode 100644 flux-system/gotk-components.yaml
+    create mode 100644 flux-system/gotk-sync.yaml
+    create mode 100644 flux-system/kustomization.yaml
+    ```
+
+Vérifions dans les événements de FluxCD :
+
+=== "code"
+
+    ```sh
+    flux events
+    ```
+
+=== "output"
+
+    ```sh
+    LAST SEEN          TYPE    REASON                  OBJECT                          MESSAGE
+    15m                     Normal  NewArtifact             GitRepository/flux-system       stored artifact for commit 'Add Flux sync manifests'
+    15m                     Normal  ReconciliationSucceeded Kustomization/flux-system       Reconciliation finished in 2.536346081s, next run in 10m0s
+    15m                     Normal  Progressing             Kustomization/flux-system       CustomResourceDefinition/alerts.notification.toolkit.fluxcd.io configured
+    ```
 
 Cherchons les objets créés dans le namespace de FluxCD :
 
@@ -257,22 +298,22 @@ Les objets de FluxCD sont un peu comme des poupées Russes, il est important de 
 ``` mermaid
 graph RL
 
-ImagePolicy("Image\nPolicy")
-ImageRepository("Image\nRepository")
-ImageRegistry("Docker\nimage\nregistry")
+ImagePolicy("Image Policy")
+ImageRepository("Image Repository")
+ImageRegistry("Docker image registry")
 Deployment("Deployment")
-ImageUpdateAutomation("Image\nUpdate\nAutomation")
-GithubRepository("GitHub\nRepository")
+ImageUpdateAutomation("Image Update Automation")
+GithubRepository("GitHub Repository")
 Kustomization("Kustomization")
-GitRepository("Git\nRepository")
-DeployKeys("(secret)\ndeploy\nkeys")
-HelmRelease("Helm\nRelease")
-HelmRepository("Helm\nRepository")
-HelmRegistry("Helm\nRegistry")
+GitRepository("Git Repository")
+DeployKeys("(secret) deploy keys")
+HelmRelease("Helm Release")
+HelmRepository("Helm Repository")
+HelmRegistry("Helm Registry")
 Alert("Alert")
 Provider("Provider")
-InstantMessaging("Discord\nInstant\nMessaging")
-Webhook("(secret)\nDiscord\nWebhook")
+InstantMessaging("Discord Instant Messaging")
+Webhook("(secret) Discord Webhook")
 
 classDef FluxCDObject fill:olivedrab,stroke:darkolivegreen,stroke-width:3px;
 class ImagePolicy,ImageRepository,ImageUpdateAutomation,Kustomization,GitRepository,HelmRelease,HelmRepository,Alert,Provider FluxCDObject
@@ -302,15 +343,13 @@ Chaque application sera hébergée dans son propre namespace.
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
     
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-    mkdir foo bar
+    mkdir apps/foo apps/bar
         
-    kubectl create namespace foo --dry-run=client -o yaml > foo/namespace.yaml
-    kubectl create namespace bar --dry-run=client -o yaml > bar/namespace.yaml
-    kubectl apply -f foo/namespace.yaml
-    kubectl apply -f bar/namespace.yml
+    kubectl create namespace foo --dry-run=client -o yaml > apps/foo/namespace.yaml
+    kubectl create namespace bar --dry-run=client -o yaml > apps/bar/namespace.yaml
 
     git add .
-    git commit -m "created namespace 'k8s-kind-apps'."
+    git commit -m 'Namespaces for foo and bar applications.'
     git push
     ```
 
@@ -329,12 +368,30 @@ Chaque application sera hébergée dans son propre namespace.
       name: bar
     ```
 
+Surveillons la création des namespaces par FluxCD :
+
+=== "code"
+    ```sh
+    kubectl get ns -w
+    ```
+
+=== "output"
+    ```sh
+    NAME              STATUS   AGE
+    default           Active   25m
+    flux-system       Active   24m
+    kube-node-lease   Active   25m
+    kube-public       Active   25m
+    kube-system       Active   25m
+    bar               Active   0s
+    foo               Active   0s
+    ```
 
 ### Dépôt GitHub dédié aux applications
 
 Les applications seront récupérées directement depuis un dépôt Git. Si elles avaient été packagées sous la forme d'une Helm Chart, FluxCD les aurait récupéré directement depuis un dépôt Helm.
 
-Nous avons préalablement créé sur GitHub un dépôt dédié à l'hébergement de toutes les applications que FluxCD va gérer pour notre cluster : github.com/${GITHUB_USERNAME}/__k8s-kind-apps__.
+Nous avons préalablement créé sur GitHub un dépôt dédié à l'hébergement de toutes les applications que FluxCD va gérer pour notre cluster : `github.com/${GITHUB_USERNAME}/k8s-kind-apps`.
 
 Nous allons créer dans la copie locale (git clone) de ce dépôt sur notre poste de travail un sous-répertoire qui contiendra son application : 
 
@@ -357,6 +414,7 @@ Les applications 'foo' et 'bar' sont très simples, et sont composées d'un pod 
       labels:
         app: foo
       name: foo
+      namespace: foo
     spec:
       replicas: 1
       selector:
@@ -386,13 +444,14 @@ Les applications 'foo' et 'bar' sont très simples, et sont composées d'un pod 
     apiVersion: v1
     metadata:
       name: foo
+      namespace: foo
     spec:
       selector:
         app: foo
       ports:
       # Default port used by the image
       - port: 8080
-        EOF
+    EOF
     ```
 
 === "deployment: bar"
@@ -404,6 +463,7 @@ Les applications 'foo' et 'bar' sont très simples, et sont composées d'un pod 
       labels:
         app: bar
       name: bar
+      namespace: bar
     spec:
       replicas: 1
       selector:
@@ -428,18 +488,19 @@ Les applications 'foo' et 'bar' sont très simples, et sont composées d'un pod 
 === "service: bar"
     ```sh
     cat << EOF >> bar/service.yaml
-     ---
+    ---
     kind: Service
     apiVersion: v1
     metadata:
       name: bar
+      namespace: bar
     spec:
       selector:
         app: bar
       ports:
       # Default port used by the image
       - port: 8080
-        EOF
+    EOF
     ```
 
 
@@ -457,11 +518,9 @@ Nous avons décrit nos applications sous la forme de manifests YAML sur notre co
     ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
     ├── bar
     │   ├── deployment.yaml
-    │   ├── namespace.yaml
     │   └── service.yaml
     └── foo
         ├── deployment.yaml
-        ├── namespace.yaml
         └── service.yaml
     ```
 
@@ -472,7 +531,7 @@ export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
 
 git add .
-git commit -m 'feat: added foobar app.'
+git commit -m 'feat: added foo and bar applications.'
 git push
 ```
 
@@ -488,7 +547,9 @@ Nous allons pouvoir définir ces dépôts au niveau de FluxCd pour que ce dernie
 
 ### Définition des GitRepository de chacune de nos applications
 
-Nous allons définir au niveau de FluxCD le dépôt GitHub de chacune des applications et lui permettre de s'y connecter avec les droits d'écriture. Dans notre cas, nous utilisons un même dépôt GitHub pour toutes nos applications. Nous pourrions nous contenter de ne définir qu'un seul GitRepository mais avons fait le choix de réduire tant que possible des adhéences éventuelles entre applications. En définissant un GitRepository par application, nous permettons ainsi la suppression de tous les objets Kubernetes liées à une application sans dépendances avec les autres objets des applications restantes. Il n'y a pas de bon ou de mauvais choix, c'est simplement le nôtre.
+Nous allons définir au niveau de FluxCD le dépôt GitHub de chacune des applications et lui permettre de s'y connecter avec les droits d'écriture. Dans notre cas, nous utilisons un même dépôt GitHub pour toutes nos applications : `k8s-kind-fluxcd`.
+
+Puisque nos applications 'foo' et 'bar' sont en réalité 2 instances de la même application, nous pourrions dans ce cas précis nous contenter de ne définir qu'un seul [*GitRepository*](https://fluxcd.io/flux/components/source/gitrepositories/) qui serait utilisé par 'foo' et 'bar', mais avons fait le choix de réduire tant que possible les adhéences éventuelles entre applications. En définissant un GitRepository par application, nous permettons ainsi la suppression de tous les objets Kubernetes liées à une application sans dépendances avec les autres objets des applications restantes. Il n'y a pas de bon ou de mauvais choix, c'est simplement le nôtre.
 
 
 #### Deploy Keys
@@ -498,7 +559,7 @@ Pour permettre à FluxCD de se connecter aux dépôts GitHub des applications qu
 #### Création des *'Deploy Keys'*
 
 Nous devons créer une paire de clés SSH pour permettre à FluxCD de se connecter avec les droits d'écriture au dépôt dédié à FluxCD. Nous en aurons besoin pour définir le *'GitRepository'*.
-S'agissant de 'secrets', nous ne conserverons pas le manifest YAML dans le dépôt.
+S'agissant de 'secrets', nous ne conserverons pas le manifest YAML un le dépôt GitHub.
 
 ```sh
 export GITHUB_USERNAME=papafrancky
@@ -613,7 +674,6 @@ Voici les informations qu'il faudra donner pour définir un 'GitRepository' :
    export GITHUB_USERNAME=papafrancky
 
    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-   mkdir -p apps/foo apps/bar
 ```
 
 === "code"
@@ -670,6 +730,10 @@ Voici les informations qu'il faudra donner pour définir un 'GitRepository' :
 
 #### Définition des *'Kustomizations'* pour chacun des GitRepositories
 
+!!! doc
+    https://fluxcd.io/flux/cmd/flux_create_kustomization/
+    https://fluxcd.io/flux/components/kustomize/kustomizations/
+
 !!! tip
     Nommer le manifest 'kustomize.yml' pose des problèmes, le nom doit être réservé pour les besoins internes de Flux. Nous le nommerons 'sync.yaml'.
 
@@ -677,17 +741,17 @@ Voici les informations qu'il faudra donner pour définir un 'GitRepository' :
     ```sh
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-    
+
     flux create kustomization foo \
         --source=GitRepository/k8s-kind-apps.foo \
-        --path="./foo" \
+        --path=./foo \
         --prune=true \
-        --namespace=foo \
-        --export > apps/foo/sync.yaml
+        --namespace=foo
+        --export  > apps/foo/sync.yaml
 
     flux create kustomization bar \
         --source=GitRepository/k8s-kind-apps.bar \
-        --path="./bar" \
+        --path=./bar \
         --prune=true \
         --namespace=bar \
         --export > apps/bar/sync.yaml
@@ -696,25 +760,25 @@ Voici les informations qu'il faudra donner pour définir un 'GitRepository' :
 === "'foo' kustomization"
     ```sh
     ---
-    apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+    apiVersion: kustomize.toolkit.fluxcd.io/v1
     kind: Kustomization
     metadata:
-      name: foo
-      namespace: foo
+    name: foo
+    namespace: foo
     spec:
-      interval: 1m0s
-      path: ./foo
-      prune: true
-      sourceRef:
-        kind: GitRepository
-        name: k8s-kind-apps
-        namespace: foo
+    interval: 1m0s
+    path: "./foo"
+    prune: true
+    sourceRef:
+      kind: GitRepository
+      name: k8s-kind-apps
+      namespace: foo
     ```
 
 === "'bar' kustomization"
     ```sh
     ---
-    apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+    apiVersion: kustomize.toolkit.fluxcd.io/v1
     kind: Kustomization
     metadata:
       name: bar
@@ -782,34 +846,35 @@ Surtout, nous devrions voir nos applications 'foo' et 'bar' déployées sur le c
 
 === "code"
     ```sh
-    kubectl -n foo get services,deployments,pods
-    kubectl -n bar get services,deployments,pods
+    kubectl -n foo get deployments,services,pods
+    kubectl -n bar get deployments,services,pods
     ```
 
 === "foo output"
     ```sh
-    NAME          TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
-    service/foo   ClusterIP   10.96.81.216   <none>        8080/TCP   3m30s
-    
     NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
     deployment.apps/foo   1/1     1            1           3m30s
     
+    NAME          TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+    service/foo   ClusterIP   10.96.81.216   <none>        8080/TCP   3m30s
+
     NAME                       READY   STATUS    RESTARTS   AGE
     pod/foo-6f6cb79d96-bdjpq   1/1     Running   0          3m30s
     ```
 
 === "bar output"
-    ```sh
-    NAME          TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)    AGE
-    service/bar   ClusterIP   10.96.43.89   <none>        8080/TCP   4m53s
-    
+    ```sh    
     NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
     deployment.apps/bar   1/1     1            1           4m53s
-    
+
+    NAME          TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)    AGE
+    service/bar   ClusterIP   10.96.43.89   <none>        8080/TCP   4m53s
+
     NAME                       READY   STATUS    RESTARTS   AGE
     pod/bar-764bd8d889-8wqq2   1/1     Running   0          4m53s
     ```
 
+XXXXX
 
 ### ImageRepository
 

@@ -36,11 +36,19 @@
 
 ## Flux CLI install
 
+=== "bash"
+    ```sh
     curl -s https://fluxcd.io/install.sh | sudo bash
+    ```
+=== "homebrew"
+    ```sh
+    brew install fluxcd/tap/flux
+    ```
 
 
 ## GitHub repositories :
 2 GitHub repos must be created to meet our needs :
+
 |USAGE|URL|
 |---|---|
 |One for FluxCD itself|https://github.com/${GITHUB_USERNAME}/gitops|
