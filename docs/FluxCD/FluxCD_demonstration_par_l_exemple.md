@@ -309,7 +309,7 @@ GitRepository("Git Repository")
 DeployKeys("(secret) deploy keys")
 HelmRelease("Helm Release")
 HelmRepository("Helm Repository")
-HelmRegistry("Helm Registry")
+helmrepository("Helm Registry")
 Alert("Alert")
 Provider("Provider")
 InstantMessaging("Discord Instant Messaging")
@@ -327,7 +327,7 @@ DeployKeys --> GitRepository
 GitRepository --> Kustomization
 
 HelmRepository --> HelmRelease
-HelmRegistry ----> HelmRepository
+helmrepository ----> HelmRepository
 
 InstantMessaging & Webhook ----> Provider
 Provider --> Alert
@@ -874,9 +874,11 @@ Surtout, nous devrions voir nos applications 'foo' et 'bar' déployées sur le c
     pod/bar-764bd8d889-8wqq2   1/1     Running   0          4m53s
     ```
 
-XXXXX
 
 ### ImageRepository
+
+!!! info
+    [https://pkg.go.dev/k8s.io/kubernetes/test/images/agnhost#section-readme](https://pkg.go.dev/k8s.io/kubernetes/test/images/agnhost#section-readme)
 
 Nos deux applications _*'foo'*_ et _*'bar'*_ utilisent une même image Docker ("__e2e-test-images/agnhost__") et nous aimerions qu'elle soit mise à jour automatiquement si une nouvelle version venait à être publiée.
 La mise en place d'un tel process d'automatisation nécessite la définition préalable d'un __'ImageRepository'__ auquel nous associerons une __'ImagePolicy'__.
@@ -1057,7 +1059,7 @@ Nous pouvons d'ores et déjà constater que nous n'utilisons pas la version la p
     registry.k8s.io/e2e-test-images/agnhost:2.39
     ```
 
-* la version la plus récente est la __2.51__ :
+* la version la plus récente est la __2.57__ :
 
 === "code"
     ```sh
@@ -1066,27 +1068,29 @@ Nous pouvons d'ores et déjà constater que nous n'utilisons pas la version la p
 
 === "output"
     ```sh
-    [
-      "2.9",
-      "2.51",
-      "2.50",
-      "2.48",
-      "2.47",
-      "2.45",
-      "2.44",
-      "2.43",
-      "2.41",
-      "2.40"
-    ]
+       [
+          "2.9",
+          "2.57",
+          "2.56",
+          "2.55",
+          "2.54",
+          "2.53",
+          "2.52",
+          "2.51",
+          "2.50",
+          "2.48"
+       ]
     ```
 
-Imaginons que nous souhaitions disposer de l'image 2.4.x la plus récente. Nous pouvons demander à FluxCD de gérer ces mises à jour automatiquement en définissant une __*'ImagePolicy'*__ distincte pour les __*'ImageRepository'*__ *'agnhost'* de nos applications *'foo'* et *'bar'*.
+Nous souhaitons disposer de l'image la plus récente de l'application (dans notre cas, ce serait la version 2.57). Nous pouvons demander à FluxCD de gérer ces mises à jour automatiquement en définissant une __*'ImagePolicy'*__ qui précisera le ou nos critères de sélection (dans notre cas, l'image la plus récente).
 
-!!! note
-    https://github.com/Masterminds/semver#checking-version-constraints
+!!! doc
+    [https://fluxcd.io/flux/components/image/imagepolicies/#policy](https://fluxcd.io/flux/components/image/imagepolicies/#policy)
+
+    [https://github.com/Masterminds/semver#checking-version-constraints](https://github.com/Masterminds/semver#checking-version-constraints)
 
 !!! warning
-    Les images dans le dépôt ne sont suivent pas le versionnement 'SemVer'. Nous devons ici jouer avec une expression régulière et un tri croissant pour arriver à nos fins.
+    Les images dans le dépôt ne sont suivent pas le versionnement 'SemVer'. Nous devons ici choisir une *policy* de type *numerical* (autres choix possibles: semver et alphabetical) et trier les tags de l'image *agnhost* par ordre croissant pour arriver à nos fins.
 
 === "code"
     ```
@@ -1098,15 +1102,17 @@ Imaginons que nous souhaitions disposer de l'image 2.4.x la plus récente. Nous 
     flux create image policy agnhost \
       --image-ref=agnhost \
       --namespace=foo \
-      --select-numeric asc \
-      --filter-regex='\d\.\d' \
+      --select-numeric=asc \
+      --filter-regex='2\.\d\d' \        
       --export > apps/foo/agnhost.imagepolicy.yaml
-    
+
+flux create image policy agnhost --image-ref=agnhost --namespace=foo --select-numeric=asc  --filter-regex='2\.\d\d' --export > apps/foo/agnhost.imagepolicy.yaml    
+
     flux create image policy agnhost \
     --image-ref=agnhost \
     --namespace=bar \
-    --select-numeric asc \
-    --filter-regex='\d\.\d' \
+    --select-numeric=asc \
+    --filter-regex='\d\.\d\d' \
     --export > apps/bar/agnhost.imagepolicy.yaml
 
     git add .
@@ -1164,15 +1170,15 @@ Vérifions la bonne création des Image Policies :
 === "output"
     ```sh
     NAMESPACE   NAME      LATESTIMAGE
-    bar         agnhost   registry.k8s.io/e2e-test-images/agnhost:2.51
-    foo         agnhost   registry.k8s.io/e2e-test-images/agnhost:2.51
+    bar         agnhost   registry.k8s.io/e2e-test-images/agnhost:2.57
+    foo         agnhost   registry.k8s.io/e2e-test-images/agnhost:2.57
     ```
 
 
-### Marquage des manifests de déploiement de de 'foo' et 'bar'
+### Marquage des manifests de déploiement des applications 'foo' et 'bar'
 
-Nous devons maintenant indiquer à FluxCD où mettre la version de l'image à jour dans les manifests de l'application 'foobar'.
-En effet, si FluxCD est capable de détecter une nouvelle version de l'image conforme à notre politique de mise à jour (dans notre cas, toutes les versions 2.x), il doit aussi mettre le code de déploiement de l'application.
+Nous devons maintenant indiquer à FluxCD où mettre le tag de l'image à jour dans les manifests de les applications 'foo' et 'bar'.
+En effet, si FluxCD est capable de détecter une nouvelle version de l'image conforme à notre politique de mise à jour (dans notre cas, toutes les versions 2.xy), il doit aussi mettre le code de déploiement de l'application.
 
 Dans le cas de nos applications, l'image Docker et sa version sont définis dans les manifests qui décrivent les *'deployments'* : 
 
@@ -1200,7 +1206,7 @@ Ajoutons un marqueur pour permettre à FluxCD de mettre la version de l'image à
     ```   
 
 !!! info "Configure image update for custom resources"
-    https://fluxcd.io/flux/guides/image-update/#configure-image-update-for-custom-resources
+    [https://fluxcd.io/flux/guides/image-update/#configure-image-update-for-custom-resources](https://fluxcd.io/flux/guides/image-update/#configure-image-update-for-custom-resources)
 
 
 Le format du marqueur de l'image policy est le suivant :
@@ -1232,7 +1238,7 @@ Le format du marqueur de l'image policy est le suivant :
         spec:
           containers:
           - name: agnhost
-            image: registry.k8s.io/e2e-test-images/agnhost:2.39 # {"$imagepolicy": "foobar:foobar"}
+            image: registry.k8s.io/e2e-test-images/agnhost:2.39 # {"$imagepolicy": "foo:agnhost"}
             command:
             - /agnhost
             - netexec
@@ -1261,7 +1267,7 @@ Le format du marqueur de l'image policy est le suivant :
         spec:
           containers:
           - name: agnhost
-            image: registry.k8s.io/e2e-test-images/agnhost:2.39 # {"$imagepolicy": "foobar:foobar"}
+            image: registry.k8s.io/e2e-test-images/agnhost:2.39 # {"$imagepolicy": "bar:agnhost"}
             command:
             - /agnhost
             - netexec
@@ -1284,6 +1290,7 @@ Il ne nous reste plus qu'à tout mettre en musique en créant une 'ImageUpdateAu
 === "code"
     ```sh
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    export AUTHOR_EMAIL="19983231-papafrancky@users.noreply.github.com"
 
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
@@ -1293,9 +1300,9 @@ Il ne nous reste plus qu'à tout mettre en musique en créant une 'ImageUpdateAu
         --git-repo-path="./foo" \
         --checkout-branch=main \
         --author-name=FluxCD \
-        --author-email=19983231-papafrancky@users.noreply.github.com \
+        --author-email=${AUTHOR_EMAIL} \
         --commit-template="{{range .Updated.Images}}{{println .}}{{end}}" \
-        --export > apps/foo/imageupdateautomation.yaml
+        --export > apps/foo/agnhost.imageupdateautomation.yaml
     
     flux create image update agnhost \
         --namespace=bar \
@@ -1303,9 +1310,9 @@ Il ne nous reste plus qu'à tout mettre en musique en créant une 'ImageUpdateAu
         --git-repo-path="./bar" \
         --checkout-branch=main \
         --author-name=FluxCD \
-        --author-email=19983231-papafrancky@users.noreply.github.com \
+        --author-email=${AUTHOR_EMAIL} \
         --commit-template="{{range .Updated.Images}}{{println .}}{{end}}" \
-        --export > apps/bar/imageupdateautomation.yaml
+        --export > apps/bar/agnhost.imageupdateautomation.yaml
     
     git add .
     git commit -m "feat: added ImageUpdateAutomations to foo and bar applications respectively."
@@ -1370,7 +1377,7 @@ Il ne nous reste plus qu'à tout mettre en musique en créant une 'ImageUpdateAu
 
 
 !!! note "Définir son adresse email de commit"
-    https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address#about-commit-email-addresses
+    [https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address#about-commit-email-addresses](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address#about-commit-email-addresses)
 
 !!! note "Comment récupérer l'ID de son compte GitHub"
     https://api.github.com/users/${GITHUB_USERNAME}
@@ -1400,7 +1407,7 @@ Vérifions la version des images utilisées :
 
 === "après"
     ```
-    registry.k8s.io/e2e-test-images/agnhost:2.51 registry.k8s.io/e2e-test-images/agnhost:2.51%
+    registry.k8s.io/e2e-test-images/agnhost:2.51 registry.k8s.io/e2e-test-images/agnhost:2.57%
     ```
 
 Enfin, assurons-nous que FluxCD ait bien pu modifier le _*deployment*_ des applications pour prendre la version de l'image la plus récente en compte :
@@ -1415,8 +1422,6 @@ Enfin, assurons-nous que FluxCD ait bien pu modifier le _*deployment*_ des appli
        cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
        git fetch
        git pull
-
-       cat */deployment.yaml | grep image
     ```
 
 === "output"
@@ -1438,93 +1443,635 @@ Vérifions la mise à jour de la version des images :
 
 === "output"
     ```sh
-    image: registry.k8s.io/e2e-test-images/agnhost:2.51 # {"$imagepolicy": "bar:agnhost"}
-    image: registry.k8s.io/e2e-test-images/agnhost:2.51 # {"$imagepolicy": "foo:agnhost"}
+    image: registry.k8s.io/e2e-test-images/agnhost:2.57 # {"$imagepolicy": "bar:agnhost"}
+    image: registry.k8s.io/e2e-test-images/agnhost:2.57 # {"$imagepolicy": "foo:agnhost"}
     ```
 
-Les images sont passées de la version initiale (2.39) à la version la plus récente conforme à l'ImagePolicy (2.51).
+Les images sont passées de la version initiale (2.39) à la version la plus récente conforme à l'ImagePolicy (2.57).
 
 Tout fonctionne comme attendu ! :fontawesome-regular-face-laugh-wink:
 
 
 
+## Gestion automatique des déploiements d'applications packagées avec Helm
 
-----------------------------------------------------------------------------------------------------
-### Exposition des applications
+Nous venons de couvrir la mise en place du déploiement géré par FluxCD d'applications dont les manifests YAML sont hébergés dans un dépôt Git.
+Pour être complet, FluxCD gère également le déploiement d'applications packagées avec Helm et c'est ce sur quoi nous allons nous concentrer à présent.
 
-L'exposition des applications hébergées sur le cluster doit être gérée en dehors des applications. Nous allons définir les règles de routage de notre Ingress controller Nginx dans le dépôt GitHub dédié à FluxCD :
+Pour illustrer le déploiement d'applications Helm, nous déploierons l'application *'podinfo'* utilisée par le projet CNCF FluxCD pour faire des tests end-to-end et des workshops.
 
-!!! note
-    Bien que le contrôleur Ingress puisse être déployé dans n'importe quel namespace, il est généralement déployé dans un namespace distinct de vos services d'application (par exemple, ingress ou kube-system). Il peut voir les règles Ingress dans tous les autres espaces de noms et les récupérer. Cependant, chaque règle Ingress doit résider dans l'espace de noms où réside l'application qu'elle configure.
+!!! info
+    [https://github.com/stefanprodan/podinfo](https://github.com/stefanprodan/podinfo)
+
+
+### Namespace dédié à l'application *'podinfo'*
+
+=== "code"
+    ```sh
+       export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+       
+       cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+       mkdir apps/podinfo
+
+       kubectl create namespace podinfo --dry-run=client -o yaml > ./apps/podinfo/namespace.yaml
+       kubectl apply -f ./apps/podinfo/namespace.yaml
+    ```
+
+=== "podinfo namespace"
+    ```sh
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      creationTimestamp: null
+      name: foo
+    spec: {}
+     status: {}
+    ```
+
+### Le Helm Chart *'podinfo'*
+
+Le dépôt GitHub de l'application *'podinfo'* propose un Helm Chart :
+![Depot GitHub de l'application podinfo](./images/podinfo_github_repo.png)
+
+Nous y trouverons l'adresse où le récupérer : `oci://ghcr.io/stefanprodan/charts/podinfo`
+
+![Depot GitHub de l'application podinfo](./images/podinfo_github_repo_2.png)
+
+
+Nous devons commencer par nous authentifier auprès de la '*GitHub Container Registry*' :
+
+!!! doc
+    [Authenticating to the GitHub container registry with a personal access token](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-with-a-personal-access-token-classic)
+
+=== "code"
+    ```sh    
+    export GITHUB_USER=papaFrancky
+    export GITHUB_TOKEN=<my_github_personal_access_token>
+
+    echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin
+    ```
+
+=== "output"
+    ```sh
+    Login Succeeded
+    ```
+
+Nous sommes désormais en mesure de l'interroger :
+
+=== "code"
+    ```sh
+    helm show chart oci://ghcr.io/stefanprodan/charts/podinfo
+    ```
+
+=== "output"
+    ```sh
+    Pulled: ghcr.io/stefanprodan/charts/podinfo:6.9.2
+    Digest: sha256:971fef0d04d5b3d03d035701dad59411ea0f60e28d16190f02469ddfe5587588
+    apiVersion: v1
+    appVersion: 6.9.2
+    description: Podinfo Helm chart for Kubernetes
+    home: https://github.com/stefanprodan/podinfo
+    kubeVersion: '>=1.23.0-0'
+    maintainers:
+    - email: stefanprodan@users.noreply.github.com
+      name: stefanprodan
+    name: podinfo
+    sources:
+    - https://github.com/stefanprodan/podinfo
+    version: 6.9.2    
+    ```
+
+L'adresse du Helm Chart est vérifiée et exploitable, nous pouvons continuer.
+
+
+### Définition du HelmRepository '*podinfo*'
+
+#### Authentification à la Container Registry
+
+Nous devons créer un '*secret*' de type '*Docker registry*' pour nous y authentifier, comme nous venons de le faire pour récupérer des informations à propos du Helm Chart. S'agissant d'un '*secret*', nous ne le placerons pas dans notre dépôt GitHub.
+
+=== "code"
+    ```sh
+    export GITHUB_USER=papafrancky
+    export GITHUB_TOKEN=<my_github_personal_access_token>
+
+    kubectl create secret docker-registry github \
+      --namespace=podinfo \
+      --docker-server=ghcr.io \
+      --docker-username=${GITHUB_USER} \
+      --docker-password=${GITHUB_TOKEN}
+    ```
+
+
+#### Définition du HelmRepository
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+       
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    flux create source helm podinfo \
+    --namespace=podinfo \
+    --url=https://stefanprodan.github.io/podinfo \
+    --secret-ref=github \
+    --interval=10m \
+    --export > ./apps/podinfo/podinfo.helmrepository.yaml
+
+    git add .
+    git commit -m 'Created namespace and helmrepository for podinfo application.'
+    git push
+    ```
+
+=== "podinfo HelmRepository"
+    ```sh
+    ---
+    apiVersion: source.toolkit.fluxcd.io/v1
+    kind: HelmRepository
+    metadata:
+      name: podinfo
+      namespace: podinfo
+    spec:
+      interval: 10m0s
+      secretRef:
+        name: github
+      url: https://stefanprodan.github.io/podinfo
+    ```
+
+#### Kustomization liée au dépôt GitHub de l'application '*podinfo*'
+
+Dans la ségrégation des rôles Dev|Ops, la définition de la HelmRelease incombera à l'équipe de Dev en charge de l'application.
+C'est elle qui personnalisera son application en surchargeant les valeurs par défaut de la Helm Chart utilisée.
+Ces objets seront donc définis dans des manifests YAML dans le dépôt GitHub dédié aux applications : `https://github.com/${GITHUB_USER}/k8s-kind-apps`.
+
+Nous devons indiquer à FluxCD qu'il doit gérer les manifests qu'il y trouvera dans le sous-répertoire dédié à '*podinfo*' : `./podinfo`
+
+
+
+=== "code"
+    ```sh
+    export GITHUB_USERNAME=papafrancky
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    # Définition du 'secret' permettant de s'authentifier à GitHub
+    flux create secret git k8s-kind-apps \
+      --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-apps \
+      --namespace=podinfo
+
+    # Extraction de la clé publique (Deploy Key) pour l'ajouter sur le dépôt GitHub des applications :
+    kubectl -n podinfo get secret k8s-kind-apps -o jsonpath='{.data.identity\.pub}' | base64 -d
+
+    # Définition du GitRepository où FluxCD trouvera la définition de la HelmRelease et les 'custom values' :
+    flux create source git k8s-kind-apps \
+      --url=ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-apps.git \
+      --branch=main \
+      --secret-ref=k8s-kind-apps \
+      --namespace=podinfo \
+      --export > apps/podinfo/k8s-kind-apps.gitrepository.yaml
+
+    # Définition de la 'kustomization' pour le 'GitRepository' nouvellement défini :
+    flux create kustomization podinfo \
+      --source=GitRepository/k8s-kind-apps.foo \
+      --path=./podinfo \
+      --prune=true \
+      --namespace=podinfo \
+      --export  > apps/podinfo/sync.yaml
+    ```
+
+=== "k8s-kind-apps secret"
+    ```sh
+    apiVersion: v1
+    data:
+      identity: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JRzJBZ0VBTUJBR0J5cUdTTTQ5QWdFR0JTdUJCQUFpQklHZU1JR2JBZ0VCQkRCTWdHRFcrS05JdWJwRTlIQ0gKcnJDNWZ4YWNiWGJWZmxFZ0dSZHJLL2RRaXdlRGZOYzY3WW8rcjlXdkNrNWRLeHloWkFOaUFBUW1uS3Y1TGZ4RQp0Q1VWeWhtUk5tV1lNSVdoUHZTUnp3TnVnM0kvK09KOFFsVkVacEZhQVpYTS9PQU5TY09FV3UwcEwxeURzNE14Cm5MWDJJWVVkbnR4Zy96bTVmNDd0Z0VqcUp3MUdYaGQvWGN3MHZDK0dDZ3haMjdCdkNHTzU4ZVk9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
+      identity.pub: ZWNkc2Etc2hhMi1uaXN0cDM4NCBBQUFBRTJWalpITmhMWE5vWVRJdGJtbHpkSEF6T0RRQUFBQUlibWx6ZEhBek9EUUFBQUJoQkNhY3Eva3QvRVMwSlJYS0daRTJaWmd3aGFFKzlKSFBBMjZEY2ovNDRueENWVVJta1ZvQmxjejg0QTFKdzRSYTdTa3ZYSU96Z3pHY3RmWWhoUjJlM0dEL09ibC9qdTJBU09vbkRVWmVGMzlkekRTOEw0WUtERm5ic0c4SVk3bng1Zz09Cg==
+      known_hosts: Z2l0aHViLmNvbSBlY2RzYS1zaGEyLW5pc3RwMjU2IEFBQUFFMlZqWkhOaExYTm9ZVEl0Ym1semRIQXlOVFlBQUFBSWJtbHpkSEF5TlRZQUFBQkJCRW1LU0VOalFFZXpPbXhrWk15N29wS2d3RkI5bmt0NVlScllNak51RzVOODd1UmdnNkNMcmJvNXdBZFQveTZ2MG1LVjBVMncwV1oyWUIvKytUcG9ja2c9
+    kind: Secret
+    metadata:
+      creationTimestamp: "2025-09-21T13:54:48Z"
+      name: k8s-kind-apps
+      namespace: podinfo
+      resourceVersion: "173460"
+      uid: 9884d3bd-c888-4fd5-955c-10806e954052
+    type: Opaque
+    ```
+
+=== "podinfo Deploy Key"
+    ```sh
+    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBCacq/kt/ES0JRXKGZE2ZZgwhaE+9JHPA26Dcj/44nxCVURmkVoBlcz84A1Jw4Ra7SkvXIOzgzGctfYhhR2e3GD/Obl/ju2ASOonDUZeF39dzDS8L4YKDFnbsG8IY7nx5g==
+    ```
+
+=== "k8s-kind-apps GitRepository"
+    ```sh
+    ---
+    apiVersion: source.toolkit.fluxcd.io/v1
+    kind: GitRepository
+    metadata:
+      name: k8s-kind-apps
+      namespace: podinfo
+    spec:
+      interval: 1m0s
+      ref:
+        branch: main
+      secretRef:
+        name: k8s-kind-apps
+      url: ssh://git@github.com/papafrancky/k8s-kind-apps.git
+    ```
+
+=== "podinfo Kustomization"
+    ```sh
+    ---
+    apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    metadata:
+      name: podinfo
+      namespace: podinfo
+    spec:
+      interval: 1m0s
+      path: ./podinfo
+      prune: true
+      sourceRef:
+        kind: GitRepository
+        name: k8s-kind-apps
+        namespace: foo
+    ```
+
+!!! Warning
+    Ne pas oublier d'ajouter la 'Deploy Key' pour podinfo sur le dépôt GitHub des applications, [comme nous l'avons fait précédemment](https://papafrancky.github.io/FluxCD/FluxCD_demonstration_par_l_exemple/#deploy-keys) pour les applications 'foo' et 'bar'
+
+
+Poussons les nouveaux manifests YAML dans notre dépôt GitHub :
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    git add .
+    git commit -m 'Added GitRepository, HelmRepository and Kustomization for podinfo app.'
+    git push
+
+    flux reconcile kustomization flux-system --with-source
+    ```
+
+
+#### Personnalisation de la Helm Release '*podinfo*'
+
+L'application '*podinfo*' est paramétrée avec des valeurs par défaut définies dans ce qu'on appelle les '*values*' de la Helm Chart.
+
+Pour connaître les valeurs par défaut de l'application : 
+
+=== "code"
+    ```sh
+    export GITHUB_USER=papafrancky
+    export GITHUB_TOKEN=<my_github_personal_access_token>
+
+
+    echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin
+
+    helm show values oci://ghcr.io/stefanprodan/charts/podinfo
+    ```
+
+=== "podinfo default values"
+    ```sh
+    # Default values for podinfo.
+
+    replicaCount: 1
+    logLevel: info
+    host: #0.0.0.0
+    backend: #http://backend-podinfo:9898/echo
+    backends: []
+
+    image:
+      repository: ghcr.io/stefanprodan/podinfo
+      tag: 6.9.2
+      pullPolicy: IfNotPresent
+
+    ui:
+      color: "#34577c"
+      message: ""
+      logo: ""
+
+    # failure conditions
+    faults:
+      delay: false
+      error: false
+      unhealthy: false
+      unready: false
+      testFail: false
+      testTimeout: false
+
+    # Kubernetes Service settings
+    service:
+      enabled: true
+      annotations: {}
+      type: ClusterIP
+      metricsPort: 9797
+      httpPort: 9898
+      externalPort: 9898
+      grpcPort: 9999
+      grpcService: podinfo
+      nodePort: 31198
+      # the port used to bind the http port to the host
+      # NOTE: requires privileged container with NET_BIND_SERVICE capability -- this is useful for testing
+      # in local clusters such as kind without port forwarding
+      hostPort:
+
+    # enable h2c protocol (non-TLS version of HTTP/2)
+    h2c:
+      enabled: false
+
+    # config file settings
+    config:
+      # config file path
+      path: ""
+      # config file name
+      name: ""
+
+    # Additional command line arguments to pass to podinfo container
+    extraArgs: []
+
+    # enable tls on the podinfo service
+    tls:
+      enabled: false
+      # the name of the secret used to mount the certificate key pair
+      secretName:
+      # the path where the certificate key pair will be mounted
+      certPath: /data/cert
+      # the port used to host the tls endpoint on the service
+      port: 9899
+      # the port used to bind the tls port to the host
+      # NOTE: requires privileged container with NET_BIND_SERVICE capability -- this is useful for testing
+      # in local clusters such as kind without port forwarding
+      hostPort:
+
+    # create a certificate manager certificate (cert-manager required)
+    certificate:
+      create: false
+      # the issuer used to issue the certificate
+      issuerRef:
+        kind: ClusterIssuer
+        name: self-signed
+      # the hostname / subject alternative names for the certificate
+      dnsNames:
+        - podinfo
+
+    # metrics-server add-on required
+    hpa:
+      enabled: false
+      maxReplicas: 10
+      # average total CPU usage per pod (1-100)
+      cpu:
+      # average memory usage per pod (100Mi-1Gi)
+      memory:
+      # average http requests per second per pod (k8s-prometheus-adapter)
+      requests:
+
+    # Redis address in the format tcp://<host>:<port>
+    cache: ""
+    # Redis deployment
+    redis:
+    enabled: false
+    repository: redis
+    tag: 7.0.7
+
+    serviceAccount:
+      # Specifies whether a service account should be created
+      enabled: false
+      # The name of the service account to use.
+      # If not set and create is true, a name is generated using the fullname template
+      name:
+      # List of image pull secrets if pulling from private registries
+      imagePullSecrets: []
+
+    # set container security context
+    securityContext: {}
+
+    # set pod security context
+    podSecurityContext: {}
+
+    ingress:
+      enabled: false
+      className: ""
+      additionalLabels: {}
+      annotations: {}
+        # kubernetes.io/ingress.class: nginx
+        # kubernetes.io/tls-acme: "true"
+      hosts:
+        - host: podinfo.local
+          paths:
+            - path: /
+              pathType: ImplementationSpecific
+      tls: []
+      #  - secretName: chart-example-tls
+      #    hosts:
+      #      - chart-example.local
+
+    linkerd:
+      profile:
+        enabled: false
+
+    # create Prometheus Operator monitor
+    serviceMonitor:
+      enabled: false
+      interval: 15s
+      additionalLabels: {}
+
+    resources:
+      limits:
+      requests:
+        cpu: 1m
+        memory: 16Mi
+
+    # Extra environment variables for the podinfo container
+    extraEnvs: []
+    # Example on how to configure extraEnvs
+    #  - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+    #    value: "http://otel:4317"
+    #  - name: MULTIPLE_VALUES
+    #    value: TEST
+
+    nodeSelector: {}
+
+    tolerations: []
+
+    affinity: {}
+
+    podAnnotations: {}
+
+    # https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
+    topologySpreadConstraints: []
+
+    # Disruption budget will be configured only when the replicaCount is greater than 1
+    podDisruptionBudget: {}
+    #  maxUnavailable: 1
+
+    # https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+    probes:
+      readiness:
+        initialDelaySeconds: 1
+        timeoutSeconds: 5
+        failureThreshold: 3
+        successThreshold: 1
+        periodSeconds: 10
+      liveness:
+        initialDelaySeconds: 1
+        timeoutSeconds: 5
+        failureThreshold: 3
+        successThreshold: 1
+        periodSeconds: 10
+      startup:
+        enable: false
+        initialDelaySeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 20
+        successThreshold: 1
+        periodSeconds: 10
+    ```
+
+!!! Tip
+    Il est également possible de consulter les '*default values*' directement sur le site __artifacthub.io__ :
+
+    [https://artifacthub.io/packages/helm/podinfo/podinfo?modal=values](https://artifacthub.io/packages/helm/podinfo/podinfo?modal=values)
+
+
+Par exemple, si nous souhaitons afficher __'Hello'__ comme message d'accueil, nous devrons surcharger le paramètre 'ui.message' comme suit :
+
+!!! Note
+    Nous écrirons les '*values*' que nous souhaitons surcharger aux '*default values*' dans une *ConfigMap* Kubernetes.
+
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+
+    # Création d'un fichier temporaire 'values.yaml' contenant les paramètres à surcharger :
+    cat << EOF > values.yaml
+    ui:
+      message: "Hello"
+    EOF
+
+    # Création de la ConfigMap à partir du fichier 'values.yaml' :
+    kubectl create configmap podinfo-values \
+      --namespace=podinfo \
+      --from-file=values.yaml \
+      --dry-run=client -o yaml > podinfo/podinfo.values.yaml
+
+
+    # Suppression du fichier 'values.yaml' :
+    /bin/rm values.yaml
+    ```
+
+=== "ConfigMap 'podinfo-values'"
+    ```sh
+    apiVersion: v1
+    data:
+      values.yaml: |
+        ui:
+          message: "Hello"
+    kind: ConfigMap
+    metadata:
+      creationTimestamp: null
+      name: podinfo-values
+      namespace: podinfo
+    ```
+
+Définissons maintenant la HelmRelease :
+
+!!! Doc
+    [https://fluxcd.io/flux/cmd/flux_create_helmrelease/](https://fluxcd.io/flux/cmd/flux_create_helmrelease/)
+
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+
+    flux create helmrelease podinfo \
+      --namespace=podinfo \
+      --source=HelmRepository/podinfo.podinfo \
+      --chart=podinfo \
+      --values-from=ConfigMap/podinfo-values \
+      --interval=1m0s \
+      --export > podinfo/podinfo.helmrelease.yaml
+
+    git add .
+    git commit -m 'Added podinfo helm release.'
+    git push
+
+    flux reconcile kustomization flux-system --with-source
+    ```
+
+=== "podinfo HelmRelease"
+    ```sh
+    ---
+    apiVersion: helm.toolkit.fluxcd.io/v2
+    kind: HelmRelease
+    metadata:
+      name: podinfo
+      namespace: podinfo
+    spec:
+      chart:
+        spec:
+          chart: podinfo
+          reconcileStrategy: ChartVersion
+          sourceRef:
+            kind: HelmRepository
+            name: podinfo
+            namespace: podinfo
+      interval: 1m0s
+      valuesFrom:
+      - kind: ConfigMap
+        name: podinfo-values
+    ```
+
+Poussons nos modifications sur notre dépôt GitHub et forçons la réconciliation Flux :
 
 ```sh
-export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-    
-cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-
-cat << EOF >> apps/foo/ingress.yaml
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: foo
-  namespace: foo
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-spec:
-  rules:
-  - http:
-      paths:
-      - pathType: Prefix
-        path: /foo(/|$)(.*)
-        backend:
-          service:
-            name: foo
-            port:
-              number: 8080
-EOF
-
-cat << EOF >> apps/bar/ingress.yaml
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: bar
-  namespace: bar
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-spec:
-  rules:
-  - http:
-      paths:
-      - pathType: Prefix
-        path: /bar(/|$)(.*)
-        backend:
-          service:
-            name: bar
-            port:
-              number: 8080
-EOF
-
 git add .
-git commit -m "feat: setting up Ingress routes for foo and bar."
+git commit -m 'Defined podinfo HelmRelease with custom values as a ConfigMap.'
 git push
 
 flux reconcile kustomization flux-system --with-source
 ```
 
-Testons le bon fonctionnement de nos routes :
 
-```sh
-curl http://localhost/foo           # -> NOW: 2024-04-27 18:14:24.152568822 +0000 UTC m=+5403.294573418%
-curl http://localhost/foo/hostname  # -> foo-9d658c7db-x6v84%
+Et la magie opère !
 
-curl http://localhost/bar           # -> NOW: 2024-04-27 18:14:26.677481395 +0000 UTC m=+5108.710059928%
-curl http://localhost/bar/hostname  # -> bar-5c7c6495ff-954bh%
-```
+=== "code"
+    ```sh
+    kubectl -n podinfo get all
+    ```
 
-Le routage fonctionne comme attendu ! :fontawesome-regular-face-laugh-wink:
+=== "output"
+    ```sh
+    NAME                           READY   STATUS    RESTARTS   AGE
+    pod/podinfo-579dbf8dbf-q5lpn   1/1     Running   0          19m
 
+    NAME              TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)             AGE
+    service/podinfo   ClusterIP   10.43.161.26   <none>        9898/TCP,9999/TCP   19m
+
+    NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+    deployment.apps/podinfo   1/1     1            1           19m
+
+    NAME                                 DESIRED   CURRENT   READY   AGE
+    replicaset.apps/podinfo-579dbf8dbf   1         1         1       19m
+    ```
+
+Utilisons la redirection de ports pour accéder à l'application avec un navigateur :
+
+=== "code"
+    ```sh
+    kubectl -n podinfo port-forward service/podinfo 9898:9898
+    ```
+
+![podinfo](./images/podinfo.png)
+Nous voyons bien notre message d'accueil personnalisé : 'Hello'.
 
 
 
@@ -1532,11 +2079,9 @@ Le routage fonctionne comme attendu ! :fontawesome-regular-face-laugh-wink:
 
 ## Notifications Discord
 
-Nous avons configuré FluxCD pour gérer automatiquement la mise à jour des images de nos applications _*'foo'*_ et _*'bar'*_ et avons exposé ces dernières via notre Ingress controller Nginx.
+Nous avons configuré FluxCD pour gérer automatiquement la mise à jour nos applications _*'foo'*_ et _*'bar'*_ dont les manifests sont hébergés dans un dépôt GitHub, ainsi que la mise à joàur de l'application packagée '*podinfo*' hébergée sur un dépôt Helm externe.
 
-Nous aimerions maintenant être informés lorsqu'un changement est opéré sur nos applications et allons nous y atteler dans cette partie.
-
-Nous avons retenu la plateforme de messagere instantanée **'Discord'** car elle permet de configurer des _*'webhooks'*_ sur des _*'channels'*_ sans pour autant devoir payer un abonnement, comme c'est le cas par exemple avec **Slack**.
+Nous aimerions maintenant être alertés lorsqu'un changement affecte nos applications. Plutôt qu'une messagerie mail classique, nous privilégions une messagerie instantanée. Notre choix s'est porté sur la plateforme **'Discord'** car elle permet de configurer des _*'webhooks'*_ sur des _*'rooms'*_ sans pour autant devoir payer un abonnement, comme ce serait le cas avec **Slack**.
 
 
 ### Installation du client _*'Discord'*_
@@ -1603,26 +2148,29 @@ Un nom lui est donné de manière aléatoire (ex: 'Spidey Bot'). Pour changer le
 
 Les URLs des webhooks des salons sont les suivants :
 
-|Salon privé|URL|
+|Room|Webhook URL|
 |:---:|---|
 |**foo**|https://discord.com/api/webhooks/1234167966258561045/z-vEpmh08xnLZHypqKsjzUQd4FwdCDvFWhKAHaJKg7k6YbuU1VfkxqLROXme7ihb8jKP|
 |**bar**|https://discord.com/api/webhooks/1234169188231413912/ppnMSjYpE-efPic1AVIGlpZW0m5p_nzj8qiaqldJgd_u_O97Rhm5FJbQLlUg9z5DBC_0|
+|**podinfo**|https://discord.com/api/webhooks/1419360284967043092/u6U51ngQCambT6oz8eFk4kSgcWP3l4gtbd2uEO35OQwOD_hwHPg0S0tv2ma-AcVISD5F|
 
 
 ### Enregistrement des webhook des salons Discord
 
-Ces informations sont considérées comme sensibles dasn la mesure où quiconque en disposerait pourrait publier des informations dans nos salons privés. Nous les enregistrerons dans Kubernetes comme des *'secrets'*.
+Ces informations sont considérées comme sensibles dans la mesure où quiconque en disposerait pourrait publier des informations dans nos salons privés. Nous les enregistrerons dans Kubernetes comme des *'secrets'*.
 
 === "code"
     ```sh
     export WEBHOOK_FOO="https://discord.com/api/webhooks/1234167966258561045/z-vEpmh08xnLZHypqKsjzUQd4FwdCDvFWhKAHaJKg7k6YbuU1VfkxqLROXme7ihb8jKP"
     export WEBHOOK_BAR="https://discord.com/api/webhooks/1234169188231413912/ppnMSjYpE-efPic1AVIGlpZW0m5p_nzj8qiaqldJgd_u_O97Rhm5FJbQLlUg9z5DBC_0"
+    export WEBHOOK_PODINFO="https://discord.com/api/webhooks/1419360284967043092/u6U51ngQCambT6oz8eFk4kSgcWP3l4gtbd2uEO35OQwOD_hwHPg0S0tv2ma-AcVISD5F"
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
-    kubectl -n foo create secret generic discord-webhook --from-literal=address=${WEBHOOK_FOO} --dry-run=client -o yaml > apps/foo/discord-webhook.secret.yaml
-    kubectl -n bar create secret generic discord-webhook --from-literal=address=${WEBHOOK_BAR} --dry-run=client -o yaml > apps/bar/discord-webhook.secret.yaml
+    kubectl -n foo     create secret generic discord-webhook --from-literal=address=${WEBHOOK_FOO}     --dry-run=client -o yaml > apps/foo/discord-webhook.secret.yaml
+    kubectl -n bar     create secret generic discord-webhook --from-literal=address=${WEBHOOK_BAR}     --dry-run=client -o yaml > apps/bar/discord-webhook.secret.yaml
+    kubectl -n podinfo create secret generic discord-webhook --from-literal=address=${WEBHOOK_PODINFO} --dry-run=client -o yaml > apps/podinfo/discord-webhook.secret.yaml
     ```
 
 === "'foo' webhook"
@@ -1649,10 +2197,22 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
       namespace: bar
     ```
 
+=== "'podinfo' webhook"
+    ```sh
+    apiVersion: v1
+    data:
+      address: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTQxOTM2MDI4NDk2NzA0MzA5Mi91NlU1MW5nUUNhbWJUNm96OGVGazRrU2djV1AzbDRndGJkMnVFTzM1T1F3T0RfaHdIUGcwUzB0djJtYS1BY1ZJU0Q1Rg==
+    kind: Secret
+    metadata:
+      creationTimestamp: null
+      name: discord-webhook
+      namespace: podinfo
+    ```
+
 ### Création des _*'notification providers'*_
 
-!!! info
-    https://fluxcd.io/flux/components/notification/providers/#discord
+!!! Doc
+    [https://fluxcd.io/flux/components/notification/providers/#discord](https://fluxcd.io/flux/components/notification/providers/#discord)
 
 
 === "code"
@@ -1667,7 +2227,7 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
       --channel=foo \
       --username=FluxCD \
       --namespace=foo \
-      --export > apps/foo/notification-provider.yaml
+      --export > ./apps/foo/notification-provider.yaml
 
     flux create alert-provider discord \
       --type=discord \
@@ -1675,7 +2235,15 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
       --channel=bar \
       --username=FluxCD \
       --namespace=bar \
-      --export > apps/bar/notification-provider.yaml
+      --export > ./apps/bar/notification-provider.yaml
+
+    flux create alert-provider discord \
+      --type=discord \
+      --secret-ref=discord-webhook \
+      --channel=podinfo \
+      --username=FluxCD \
+      --namespace=podinfo \
+      --export > ./apps/podinfo/notification-provider.yaml
     ```
 
 === "'foo' notification provider"
@@ -1710,6 +2278,22 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
       username: FluxCD
     ```
 
+=== "'podinfo' notification provider"
+    ```sh
+    ---
+    apiVersion: notification.toolkit.fluxcd.io/v1beta3
+    kind: Provider
+    metadata:
+      name: discord
+      namespace: podinfo
+    spec:
+      channel: podinfo
+      secretRef:
+        name: discord-webhook
+      type: discord
+      username: FluxCD
+    ```
+
 ### Configuration des alertes Discord
 
 === "code"
@@ -1731,6 +2315,13 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
       --provider-ref=discord \
       --namespace=bar \
       --export > apps/bar/notification-alert.yaml
+
+    flux create alert discord \
+      --event-severity=info \
+      --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*,HelmRelease/*' \
+      --provider-ref=discord \
+      --namespace=podinfo \
+      --export > apps/podinfo/notification-alert.yaml
     ```
 
 === "'foo' alert"
@@ -1787,11 +2378,35 @@ Ces informations sont considérées comme sensibles dasn la mesure où quiconque
         name: discord
     ```
 
+=== "'podinfo' alert"
+    ```sh
+    ---
+    apiVersion: notification.toolkit.fluxcd.io/v1beta3
+    kind: Alert
+    metadata:
+      name: discord
+      namespace: podinfo
+    spec:
+      eventSeverity: info
+      eventSources:
+      - kind: GitRepository
+        name: '*'
+      - kind: Kustomization
+        name: '*'
+      - kind: ImageRepository
+        name: '*'
+      - kind: ImagePolicy
+        name: '*'
+      - kind: HelmRepository
+        name: '*'
+      - kind: HelmRelease
+        name: '*'
+      providerRef:
+        name: discord
+    ```
+
 
 ### Activation des alertes et notifications
-
-
-#### Mise en place
 
 Poussons nos modifications dans notre dépôt GitHub :
 
@@ -1801,14 +2416,12 @@ export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
 git add .
-git commit -m "feat: setting up Discord alerting."
+git commit -m "'Setting up Discord alerting for foo, bar and podinfo applications."
 git push
 
 flux reconcile kustomization flux-system --with-source
 ```
 
-
-### Tests
 
 Vérifions la bonne création des alertes et notification providers :
 
@@ -1819,16 +2432,18 @@ Vérifions la bonne création des alertes et notification providers :
 
 === "output"
     ```sh
-    NAMESPACE   NAME                                              AGE     READY   STATUS
-    bar         provider.notification.toolkit.fluxcd.io/discord   3m16s   True    Initialized
-    foo         provider.notification.toolkit.fluxcd.io/discord   3m16s   True    Initialized
+    NAMESPACE   NAME                                              AGE
+    bar         provider.notification.toolkit.fluxcd.io/discord   2m5s
+    foo         provider.notification.toolkit.fluxcd.io/discord   2m5s
+    podinfo     provider.notification.toolkit.fluxcd.io/discord   2m5s
 
-    NAMESPACE   NAME                                           AGE     READY   STATUS
-    bar         alert.notification.toolkit.fluxcd.io/discord   3m16s   True    Initialized
-    foo         alert.notification.toolkit.fluxcd.io/discord   3m16s   True    Initialized
+    NAMESPACE   NAME                                           AGE
+    bar         alert.notification.toolkit.fluxcd.io/discord   2m5s
+    foo         alert.notification.toolkit.fluxcd.io/discord   2m5s
+    podinfo     alert.notification.toolkit.fluxcd.io/discord   2m5s
     ```
 
-Testons leur bon fonctionnement : nous allons désactiver les _*'Image Policies'*_ de sorte qu'elles installent la version la plus ancienne des images.
+Testons leur bon fonctionnement : nous allons désacmodifier l'_*'Image Policy'*_ de l'application '*foo*' de sorte qu'elle installent la version la plus ancienne des images et non plus la plus récente :
 
 === "code"
     ```sh
@@ -1837,10 +2452,9 @@ Testons leur bon fonctionnement : nous allons désactiver les _*'Image Policies'
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
     gsed -i 's/order: asc/order: desc/' apps/foo/agnhost.imagepolicy.yaml
-    gsed -i 's/order: asc/order: desc/' apps/bar/agnhost.imagepolicy.yaml
 
     git add .
-    git commit -m "test: changing image policies to test Discord alerting."
+    git commit -m "Modifying 'foo' image policy for testing purpose."
     git push
 
     flux reconcile kustomization flux-system --with-source
@@ -1854,50 +2468,57 @@ Testons leur bon fonctionnement : nous allons désactiver les _*'Image Policies'
       name: agnhost
       namespace: foo
     spec:
+      filterTags:
+        extract: ""
+        pattern: 2\.\d\d
       imageRepositoryRef:
         name: agnhost
-      filterTags:
-        pattern: '\d\.\d\d'
-        extract: ""
       policy:
         numerical:
           order: desc
     ```
 
-=== "'foo' image policy"
-    ---
-    apiVersion: image.toolkit.fluxcd.io/v1beta2
-    kind: ImagePolicy
-    metadata:
-      name: agnhost
-      namespace: bar
-    spec:
-      imageRepositoryRef:
-        name: agnhost
-      filterTags:
-        pattern: '\d\.\d\d'
-        extract: ""
-      policy:
-        numerical:
-          order: desc
 
-Nous recevons les notifications suivantes dans les salons '#foo' et '#bar' :
+Nous recevons les notifications suivantes dans la *room* '#foo' :
 
 ![Discord alerting for 'foo' app](images/discord_alerting_foo.png)
 
-![Discord alerting for 'bar' app](images/discord_alerting_bar.png)
 
 === "code"
     ```sh
-    printf "foo - ";kubectl -n foo get pods -o json | jq -r '.items[].spec.containers[].image'
-    printf "bar - ";kubectl -n bar get pods -o json | jq -r '.items[].spec.containers[].image'
+    kubectl -n foo get deployment foo -o jsonpath='{.spec.template.spec.containers[].image}'
     ```
 
 === "output"
     ```sh
-    foo - registry.k8s.io/e2e-test-images/agnhost:2.10
-    bar - registry.k8s.io/e2e-test-images/agnhost:2.10
+    registry.k8s.io/e2e-test-images/agnhost:2.10
     ```
+
+FluxCD a réécrit le manifest définissant le '*deployment*' de l'application '*foo*' pour passer le tag de l'image utilisée de 2.57 à 2.10.
+
+Pour constater ce changement sur notre copie locale, nous devons la mettre à jour depuis le dépôt GitHub :
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+    git pull
+    cat foo/deployment.yaml | grep image
+    ```
+
+=== "output"
+    ```sh
+            image: registry.k8s.io/e2e-test-images/agnhost:2.10 # {"$imagepolicy": "foo:agnhost"}
+    ```
+
+L'image utilisée est désormais passée à la version 2.10.
+
+
+
+XXXXX
+
+
 
 
 ### Rollback
@@ -2006,4 +2627,86 @@ Effectivement, nous voyons bien la version 2.52 apparaître désormais :fontawes
 TODO
 
 * Faire le schéma en mermaid avec les imageupdateautomations, imagepolicies, imagerepositories, gitrepositories etc
+
+
+
+
+
+----------------------------------------------------------------------------------------------------
+### Exposition des applications
+
+L'exposition des applications hébergées sur le cluster doit être gérée en dehors des applications. Nous allons définir les règles de routage de notre Ingress controller Nginx dans le dépôt GitHub dédié à FluxCD :
+
+!!! note
+    Bien que le contrôleur Ingress puisse être déployé dans n'importe quel namespace, il est généralement déployé dans un namespace distinct de vos services d'application (par exemple, ingress ou kube-system). Il peut voir les règles Ingress dans tous les autres espaces de noms et les récupérer. Cependant, chaque règle Ingress doit résider dans l'espace de noms où réside l'application qu'elle configure.
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+cat << EOF >> apps/foo/ingress.yaml
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: foo
+  namespace: foo
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+  - http:
+      paths:
+      - pathType: Prefix
+        path: /foo(/|$)(.*)
+        backend:
+          service:
+            name: foo
+            port:
+              number: 8080
+EOF
+
+cat << EOF >> apps/bar/ingress.yaml
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bar
+  namespace: bar
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+  - http:
+      paths:
+      - pathType: Prefix
+        path: /bar(/|$)(.*)
+        backend:
+          service:
+            name: bar
+            port:
+              number: 8080
+EOF
+
+git add .
+git commit -m "feat: setting up Ingress routes for foo and bar."
+git push
+
+flux reconcile kustomization flux-system --with-source
+```
+
+Testons le bon fonctionnement de nos routes :
+
+```sh
+curl http://localhost/foo           # -> NOW: 2024-04-27 18:14:24.152568822 +0000 UTC m=+5403.294573418%
+curl http://localhost/foo/hostname  # -> foo-9d658c7db-x6v84%
+
+curl http://localhost/bar           # -> NOW: 2024-04-27 18:14:26.677481395 +0000 UTC m=+5108.710059928%
+curl http://localhost/bar/hostname  # -> bar-5c7c6495ff-954bh%
+```
+
+Le routage fonctionne comme attendu ! :fontawesome-regular-face-laugh-wink:
+
+
 
