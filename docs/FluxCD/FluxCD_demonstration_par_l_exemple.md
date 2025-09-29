@@ -1937,11 +1937,13 @@ Pour connaître les valeurs par défaut de l'application :
     [https://artifacthub.io/packages/helm/podinfo/podinfo?modal=values](https://artifacthub.io/packages/helm/podinfo/podinfo?modal=values)
 
 
-Par exemple, si nous souhaitons afficher __'Hello'__ comme message d'accueil, nous devrons surcharger le paramètre 'ui.message' comme suit :
+Par exemple, souhaitons apporter un peu plus de résilience à l'application en exécutant 2 ReplicaSets plutôt qu'un. Nous souhaitons également gérer finement les ressources de l'application, et changer le message d'accueil de la UI.
 
 !!! Note
     Nous écrirons les '*values*' que nous souhaitons surcharger aux '*default values*' dans une *ConfigMap* Kubernetes.
 
+!!! Doc
+    [https://github.com/stefanprodan/podinfo?tab=readme-ov-file#continuous-delivery](https://github.com/stefanprodan/podinfo?tab=readme-ov-file#continuous-delivery)
 
 === "code"
     ```sh
@@ -1951,8 +1953,15 @@ Par exemple, si nous souhaitons afficher __'Hello'__ comme message d'accueil, no
 
     # Création d'un fichier temporaire 'values.yaml' contenant les paramètres à surcharger :
     cat << EOF > values.yaml
+    replicaCount: 2
+    resources:
+      limits:
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
     ui:
-      message: "Hello"
+      message: "Hello from PodInfo ! ^^"  
     EOF
 
     # Création de la ConfigMap à partir du fichier 'values.yaml' :
@@ -1966,18 +1975,20 @@ Par exemple, si nous souhaitons afficher __'Hello'__ comme message d'accueil, no
     /bin/rm values.yaml
     ```
 
-=== "ConfigMap 'podinfo-values'"
+=== "podinfo-values.yaml"
     ```sh
     apiVersion: v1
     data:
-      values.yaml: |
+      values.yaml: |+
+        replicaCount: 2
+        resources:
+          limits:
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
         ui:
-          message: "Hello"
-    kind: ConfigMap
-    metadata:
-      creationTimestamp: null
-      name: podinfo-values
-      namespace: podinfo
+          message: "Hello from PodInfo ! ^^"
     ```
 
 Définissons maintenant la HelmRelease :
@@ -1997,7 +2008,7 @@ Définissons maintenant la HelmRelease :
       --source=HelmRepository/podinfo.podinfo \
       --chart=podinfo \
       --values-from=ConfigMap/podinfo-values \
-      --interval=1m0s \
+      --interval=10m \
       --export > podinfo/podinfo.helmrelease.yaml
 
     git add .
@@ -2024,7 +2035,7 @@ Définissons maintenant la HelmRelease :
             kind: HelmRepository
             name: podinfo
             namespace: podinfo
-      interval: 1m0s
+      interval: 10m
       valuesFrom:
       - kind: ConfigMap
         name: podinfo-values
@@ -2071,7 +2082,7 @@ Utilisons la redirection de ports pour accéder à l'application avec un navigat
     ```
 
 ![podinfo](./images/podinfo.png)
-Nous voyons bien notre message d'accueil personnalisé : 'Hello'.
+Nous voyons bien notre message d'accueil personnalisé : '**Hello PodInfo! ^^**'.
 
 
 
@@ -2079,7 +2090,7 @@ Nous voyons bien notre message d'accueil personnalisé : 'Hello'.
 
 ## Notifications Discord
 
-Nous avons configuré FluxCD pour gérer automatiquement la mise à jour nos applications _*'foo'*_ et _*'bar'*_ dont les manifests sont hébergés dans un dépôt GitHub, ainsi que la mise à joàur de l'application packagée '*podinfo*' hébergée sur un dépôt Helm externe.
+Nous avons configuré FluxCD pour gérer automatiquement la mise à jour de nos applications _*'foo'*_ et _*'bar'*_ dont les manifests sont hébergés dans un dépôt GitHub, ainsi que la mise à jour de l'application packagée '*podinfo*' hébergée sur un dépôt Helm externe.
 
 Nous aimerions maintenant être alertés lorsqu'un changement affecte nos applications. Plutôt qu'une messagerie mail classique, nous privilégions une messagerie instantanée. Notre choix s'est porté sur la plateforme **'Discord'** car elle permet de configurer des _*'webhooks'*_ sur des _*'rooms'*_ sans pour autant devoir payer un abonnement, comme ce serait le cas avec **Slack**.
 
@@ -2093,14 +2104,14 @@ https://discord.com/api/download?platform=osx
 ```
 
 
-### Création d'un _*'serveur'*_ et d'un _*'channel'*_ pour chaque application
+### Création d'un _*'serveur'*_ et d'une _*'room'*_ pour chaque application
 
 
 #### Création d'un serveur Discord
 
-Discord permet la création de _*'serveurs'*_ que nous pouvons restreindre pour notre usage personnel et qui hébergeront les _*'salons'*_ que nous dédierons à l'envoi de notifications de FluxCD concernant nos applications.
+Discord permet la création de _*'serveurs'*_ que nous pouvons restreindre pour notre usage personnel et qui hébergeront les _*'salons'*_ (ou '*rooms*') que nous dédierons à l'envoi de notifications de FluxCD concernant nos applications.
 
-Une fois le client Discord démarré, cliquons sur le **'+'** situé dasn la colonne de gauche. Nous répondrons ensuite aux différentes questions et donnerons à notre serveur le nom de notre cluster Kubernetes : **k8s-kind**.
+Une fois le client Discord démarré, cliquons sur le **'+'** situé dans la colonne de gauche. Nous répondrons ensuite aux différentes questions et donnerons à notre serveur le nom de notre cluster Kubernetes : **k8s-kind**.
 
 ![Add a Discord server #1](./images/discord_add_server_1.png)
 
@@ -2112,7 +2123,7 @@ Une fois le client Discord démarré, cliquons sur le **'+'** situé dasn la col
 
 #### Création d'un salon dans notre serveur Discord
 
-Nous souhaitons créer un salon pour chacune de nos applications. La procédure étant la même pour tous les salons, nous montrerons la création du salon pour l'application _*'foo'*_. Vous devrez faire la même chose pour l'application _*'bar'*_.
+Nous souhaitons créer un salon pour chacune de nos applications. La procédure étant la même pour tous les salons, nous montrerons la création du salon pour l'application _*'foo'*_. Vous devrez faire la même chose pour les autres applications.
 
 Sélectionnez le serveur _*'k8s-kind'*_ dans la colonne de gauche, puis dans la partie 'salons textuels', cliquez sur le __'+'__ :
 
@@ -2515,9 +2526,76 @@ Pour constater ce changement sur notre copie locale, nous devons la mettre à jo
 L'image utilisée est désormais passée à la version 2.10.
 
 
+Testons également les notifications pour une application packagée avec Helm : '*podinfo*'. Commençons par récupérer la version du Helm Chart déployé par la Helm Release :
+
+=== "code"
+    ```sh
+    kubectl get helmrelease podinfo -o jsonpath='{.status.history[].chartVersion}'
+    ```
+
+=== "output"
+    ```sh
+    6.9.2
+    ```
+Nous allons modifier la définition de notre HelmRelease pour qu'elle soit déployée à partir d'un Helm Chart d'une version majeure inférieure à 6 :
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+
+    flux create helmrelease podinfo \
+      --namespace=podinfo \
+      --source=HelmRepository/podinfo.podinfo \
+      --chart=podinfo \
+      --chart-version="<6.0.0" \
+      --values-from=ConfigMap/podinfo-values \
+      --interval=10m \
+      --export > podinfo/podinfo.helmrelease.yaml
+
+    git add .
+    git commit -m 'Modified podinfo HelmRelease to use a Chart version < 6.'
+    git push
+
+    flux reconcile kustomization flux-system --with-source
+    ```
+
+=== "podinfo HelmRelease"
+    ```sh
+    ---
+    apiVersion: helm.toolkit.fluxcd.io/v2
+    kind: HelmRelease
+    metadata:
+      name: podinfo
+      namespace: podinfo
+    spec:
+      chart:
+        spec:
+          chart: podinfo
+          reconcileStrategy: ChartVersion
+          sourceRef:
+            kind: HelmRepository
+            name: podinfo
+            namespace: podinfo
+      interval: 1m0s
+      valuesFrom:
+      - kind: ConfigMap
+        name: podinfo-values
+    ```
+
+Poussons nos modifications sur notre dépôt GitHub et forçons la réconciliation Flux :
+
+```sh
+git add .
+git commit -m 'Defined podinfo HelmRelease with custom values as a ConfigMap.'
+git push
+
+flux reconcile kustomization flux-system --with-source
+```
+
 
 XXXXX
-
 
 
 
