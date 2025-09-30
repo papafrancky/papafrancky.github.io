@@ -47,16 +47,22 @@ Nous aurons déjà suivi les howtos suivant pour préparer notre environnement d
 
 ### Création des dépôts GitHub
 
-Commençons par nous identifier sur GitHub et créons deux nouveaux dépôts privés :
+Commençons par nous authentifier sur GitHub et créons deux nouveaux dépôts privés :
 
 |Dépôt|Usage|
 |---|---|
 |k8s-kind-fluxcd|dépôt GitHub dédié à FluxCD sur notre cluster|
 |k8s-kind-apps|dépôt GitHub dédié à l'hébergement des applications à déployer via FluxCD|
 
+!!! note
+    Nos dépôts ont pour préfixe '*k8s-kind-*' parce que nous utilisions préalablement pour nos travaux pratiques un cluster local '*KinD*' (ie. '[*Kubernetes in Docker*](https://kind.sigs.k8s.io/)'). Nous avons depuis opté pour '*[Rancher Desktop](https://rancherdesktop.io/)*'.
+
+Création du dépôt GitHub dédié à FluxCD :
 ![Nouveau dépôt GitHub dédié à FluxCD](./images/new_github_repository_dedicated_to_fluxcd.png)
 
+Création du dépôt GitHub dédié aux applications :
 ![Nouveau dépôt GitHub dédié aux applications](./images/new_github_repository_dedicated_to_apps.png)
+
 
 
 ### Clonage des dépôts en local
@@ -204,49 +210,28 @@ Vérifions dans les événements de FluxCD :
 Notre dépôt GitHub doit également avoir évolué. Mettons notre copie locale à jour pour nous en assurer :
 
 === "code"
-
     ```sh
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
     git pull
+    tree
     ```
 
 === "output"
-
     ```sh
-    Mise à jour 87eb427..cc78efa
-    Fast-forward
-    flux-system/gotk-components.yaml | 14975 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    flux-system/gotk-sync.yaml       |    27 +
-    flux-system/kustomization.yaml   |     5 +
-    3 files changed, 15007 insertions(+)
-    create mode 100644 flux-system/gotk-components.yaml
-    create mode 100644 flux-system/gotk-sync.yaml
-    create mode 100644 flux-system/kustomization.yaml
+    .
+    └── flux-system
+        ├── gotk-components.yaml
+        ├── gotk-sync.yaml
+        └── kustomization.yaml
+
+    2 directories, 3 files
     ```
 
-Vérifions dans les événements de FluxCD :
+Listons les objets crées sur notre cluster (dans le namespace *flux-system*) :
 
 === "code"
-
-    ```sh
-    flux events
-    ```
-
-=== "output"
-
-    ```sh
-    LAST SEEN          TYPE    REASON                  OBJECT                          MESSAGE
-    15m                     Normal  NewArtifact             GitRepository/flux-system       stored artifact for commit 'Add Flux sync manifests'
-    15m                     Normal  ReconciliationSucceeded Kustomization/flux-system       Reconciliation finished in 2.536346081s, next run in 10m0s
-    15m                     Normal  Progressing             Kustomization/flux-system       CustomResourceDefinition/alerts.notification.toolkit.fluxcd.io configured
-    ```
-
-Cherchons les objets créés dans le namespace de FluxCD :
-
-=== "code"
-
     ```sh
     kubectl -n flux-system get all
     ```
@@ -286,9 +271,9 @@ Cherchons les objets créés dans le namespace de FluxCD :
 
 
 ----------------------------------------------------------------------------------------------------
-## Gestion automatique des déploiements d'applications par FluxCD
+## Intégration continue avec FluxCD 
 
-FluxCD peut gérer l'automatisation du déploiement d'applications packagées avec Helm ou bien directement depuis un dépôt Git. Nous allons d'abord nous concentrer sur le déploiement d'applications depuis un dépôt Git (GitHub dans notre cas).
+FluxCD peut gérer l'automatisation des déploiements d'applications packagées avec Helm ou bien directement depuis un dépôt Git. Nous allons d'abord nous concentrer sur le déploiement d'applications depuis un dépôt Git (GitHub dans notre cas).
 
 Les objets de FluxCD sont un peu comme des poupées Russes, il est important de garder en tête leurs interdépendances pour comprendre l'ordre dans lequel nous devrons les créer.
 
@@ -331,219 +316,123 @@ InstantMessaging & Webhook ----> Provider
 Provider --> Alert
 ```
 
+### Gestion des applications depuis un dépôt Git
 
-### Namespaces dédiés à l'application
 
-Chaque application sera hébergée dans son propre namespace.
+#### Namespaces dédiés à l'application
+
+Pour illustrer l'intégration continue d'une application dont le code source est hébergé dans un dépôt Git, nous prendrons une application simple : '*agnhost*'.
+
+!!! Info
+    [Informations sur l'application '*agnhost*'](https://pkg.go.dev/k8s.io/kubernetes/test/images/agnhost#section-readme)
+
+L'application sera exécutée dans un namespace éponyme dédié que nous devons créer. Le manifest YAML de création du namespace sera placé dans le dépôt GitHub dédié à FluxCD :
 
 === "code"
     ```sh
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
     
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-    mkdir apps/foo apps/bar
+    mkdir -p apps/agnhost
         
-    kubectl create namespace foo --dry-run=client -o yaml > apps/foo/namespace.yaml
-    kubectl create namespace bar --dry-run=client -o yaml > apps/bar/namespace.yaml
-
-    git add .
-    git commit -m 'Namespaces for foo and bar applications.'
-    git push
+    kubectl create namespace foo --dry-run=client -o yaml > apps/agnhost/agnhost.namespace.yaml
     ```
 
-=== "foo namespace"
+=== "namespace 'agnhost'"
     ```sh
     apiVersion: v1
     kind: Namespace
     metadata:
+      creationTimestamp: null
       name: foo
-    ```
-=== "bar namespace"
-    ```sh
-    apiVersion: v1
-    kind: Namespace
-    metadata:
-      name: bar
-    ```
-
-Surveillons la création des namespaces par FluxCD :
-
-=== "code"
-    ```sh
-    kubectl get ns -w
-    ```
-
-=== "output"
-    ```sh
-    NAME              STATUS   AGE
-    default           Active   25m
-    flux-system       Active   24m
-    kube-node-lease   Active   25m
-    kube-public       Active   25m
-    kube-system       Active   25m
-    bar               Active   0s
-    foo               Active   0s
-    ```
-
-### Dépôt GitHub dédié aux applications
-
-Les applications seront récupérées directement depuis un dépôt Git. Si elles avaient été packagées sous la forme d'une Helm Chart, FluxCD les aurait récupéré directement depuis un dépôt Helm.
-
-Nous avons préalablement créé sur GitHub un dépôt dédié à l'hébergement de toutes les applications que FluxCD va gérer pour notre cluster : `github.com/${GITHUB_USERNAME}/k8s-kind-apps`.
-
-Nous allons créer dans la copie locale (git clone) de ce dépôt sur notre poste de travail un sous-répertoire qui contiendra son application : 
-
-```sh
-export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-
-cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
-mkdir foo bar
-```
-
-Les applications 'foo' et 'bar' sont très simples, et sont composées d'un pod et d'un service en frontal :
-
-
-=== "deployment: foo" 
-    ```sh
-    cat << EOF >> foo/deployment.yaml
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      labels:
-        app: foo
-      name: foo
-      namespace: foo
-    spec:
-      replicas: 1
-      selector:
-        matchLabels:
-          app: foo
-      template:
-        metadata:
-          labels:
-            app: foo
-        spec:
-          containers:
-          - name: agnhost
-            image: registry.k8s.io/e2e-test-images/agnhost:2.39
-            command:
-            - /agnhost
-            - netexec
-            - --http-port
-            - "8080"
-    EOF
-    ```
-
-=== "service: foo"
-    ```sh
-    cat << EOF >> foo/service.yaml
-    ---
-    kind: Service
-    apiVersion: v1
-    metadata:
-      name: foo
-      namespace: foo
-    spec:
-      selector:
-        app: foo
-      ports:
-      # Default port used by the image
-      - port: 8080
-    EOF
-    ```
-
-=== "deployment: bar"
-    ```sh
-    cat << EOF >> bar/deployment.yaml
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      labels:
-        app: bar
-      name: bar
-      namespace: bar
-    spec:
-      replicas: 1
-      selector:
-        matchLabels:
-          app: bar
-      template:
-        metadata:
-          labels:
-            app: bar
-        spec:
-          containers:
-          - name: agnhost
-            image: registry.k8s.io/e2e-test-images/agnhost:2.39
-            command:
-            - /agnhost
-            - netexec
-            - --http-port
-            - "8080"
-    EOF
-    ```
-
-=== "service: bar"
-    ```sh
-    cat << EOF >> bar/service.yaml
-    ---
-    kind: Service
-    apiVersion: v1
-    metadata:
-      name: bar
-      namespace: bar
-    spec:
-      selector:
-        app: bar
-      ports:
-      # Default port used by the image
-      - port: 8080
-    EOF
+    spec: {}
+    status: {}
     ```
 
 
-Nous avons décrit nos applications sous la forme de manifests YAML sur notre copie locale du dépôt dédié aux applications :
+
+#### Dépôt GitHub dédié aux applications
+
+Nous décidons ici d'héberger toutes nos applications dans un seul dépôt GitHub (mais nous aurions très bien pu décider que chaque application disposait d'un dépôt GitHub qui serait dédié) : `github.com/${GITHUB_USERNAME}/k8s-kind-apps`.
+
+
+
+#### Le micro-service '*agnhost*'
+
+Plus haut, nous avons montré comment le définir sur la plate-forme GitHub, puis comment créer une copie de ce dernier en local avec la commande `git clone`.
+
+Dans cette copie locale, nous allons définir le micro-service '*agnhost*' composé d'un '*deployment*' et d'un '*service*' :
 
 === "code"
     ```sh
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 
-    tree ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+    mkdir agnhost
+
+    # deployment :
+    cat << EOF >> agnhost/agnhost.deployment.yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: agnhost
+      name: agnhost
+      namespace: agnhost
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: agnhost
+      template:
+        metadata:
+          labels:
+            app: agnhost
+        spec:
+          containers:
+          - name: agnhost
+            image: registry.k8s.io/e2e-test-images/agnhost:2.39
+            command:
+            - /agnhost
+            - netexec
+            - --http-port
+            - "8080"
+    EOF
+
+    # service : 
+    cat << EOF >> agnhost/agnhost.service.yaml
+    ---
+    kind: Service
+    apiVersion: v1
+    metadata:
+      name: agnhost
+      namespace: agnhost
+    spec:
+      selector:
+        app: agnhost
+      ports:
+      # Default port used by the image
+      - port: 8080
+    EOF
+
+    # Arborescence des fichiers générés :
+    tree
     ```
 
 === "output"
     ```sh
-    ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
-    ├── bar
-    │   ├── deployment.yaml
-    │   └── service.yaml
-    └── foo
-        ├── deployment.yaml
-        └── service.yaml
+    .
+    └── agnhost
+        ├── agnhost.deployment.yaml
+        └── agnhost.service.yaml
+
+    2 directories, 2 files
     ```
 
-Il ne nous reste plus qu'à pousser les modifications sur notre dépôt GitHub :
 
-```sh
-export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+#### Définition du GitRepository
 
-git add .
-git commit -m 'feat: added foo and bar applications.'
-git push
-```
-
-Les applications se trouvent désormais bien dans le dépôt GitHub dédié aux applications :
-
-![foobar application is uploaded in the Github repository dedicated to apps](./images/foo_bar_apps_in_github_repo.png)
-
-Nous allons pouvoir définir ces dépôts au niveau de FluxCd pour que ce dernier puisse les gérer.
-
-
-
----
-
-### Définition des GitRepository de chacune de nos applications
+XXXXX
 
 Nous allons définir au niveau de FluxCD le dépôt GitHub de chacune des applications et lui permettre de s'y connecter avec les droits d'écriture. Dans notre cas, nous utilisons un même dépôt GitHub pour toutes nos applications : `k8s-kind-fluxcd`.
 
@@ -2592,8 +2481,6 @@ git push
 flux reconcile kustomization flux-system --with-source
 ```
 
-
-XXXXX
 
 
 
