@@ -3,34 +3,32 @@
 ----------------------------------------------------------------------------------------------------
 ## Abstract
 
-Sur un cluster Kind fraîchement installé, nous installerons FluxCD (ie. *'bootstrap'*) pour gérer le déploiement et la mise à jour de 2 applications très simples, que nous exposerons par la suite avec le contrôleur Nginx du cluster. Nous mettrons également en place des notifications pour nous alerter via la messagerie instantanée Discord des évolutions apportées à nos applications.
+Sur un cluster *Rancher Desktop* fraîchement déployé, nous installerons FluxCD (ie. *'bootstrap'*) pour gérer le déploiement et la mise à jour de 2 applications très simples. La première voit son code source hébergé dans un dépôt Git tandis que la seconde est packagée et mise à disposition dans un dépôt Helm. Nous couvrirons donc ces deux types de déploiement.
+
+Nous mettrons également en place des notifications pour nous alerter via une messagerie instantanée (*Discord*) des évolutions éventuelles de nos applications.
 
 ``` mermaid
 
 graph TD
 
-A(users)
-B(("ingress 'foobar'"))
-C{service 'foo'}
-D{service 'bar'}
-E[deployment 'foo']
-F[deployment 'bar']
+A(utilisateurs)
+B((ingress controler))
+C{service 'agnhost'}
+D{service 'podinfor'}
+E[deployment 'agnhost']
+F[deployment 'podinfo']
 
 A -.-> B
 B --> C & D
 
-subgraph application 'foo'
+subgraph application 'agnhost'
 C --> E
 end
 
-subgraph application 'bar'
+subgraph application 'podinfo'
 D --> F
 end
 ```
-
-
-En réalité, nous déploierons deux fois la même application (elles utiliseront la même image Docker *'e2e-test-images/agnhost'*) dans deux namespaces distincts et les nommerons différemment ('foo' et 'bar') sur notre cluster. Ce qui importe ici est de montrer comment organiser notre code pour que FluxCD puisse gérer plusieurs applications en concurrence.
-
 
 
 ----------------------------------------------------------------------------------------------------
@@ -39,7 +37,7 @@ En réalité, nous déploierons deux fois la même application (elles utiliseron
 
 ### Préparation de notre environnement de travail en local
 
-Nous avons déjà suivi les howtos suivant pour préparer notre environnement de travail sur notre laptop avec les CLIs et un cluster Kins opérationnel :
+Nous aurons déjà suivi les howtos suivant pour préparer notre environnement de travail sur notre laptop avec les CLIs et un cluster Kins opérationnel :
 
 |howto|Link|
 |-----|---|
