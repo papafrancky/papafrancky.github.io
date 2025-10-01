@@ -335,7 +335,7 @@ L'application sera exécutée dans un namespace éponyme dédié que nous devons
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
     mkdir -p apps/agnhost
         
-    kubectl create namespace foo --dry-run=client -o yaml > apps/agnhost/agnhost.namespace.yaml
+    kubectl create namespace agnhost --dry-run=client -o yaml > apps/agnhost/agnhost.namespace.yaml
     ```
 
 === "namespace 'agnhost'"
@@ -344,11 +344,10 @@ L'application sera exécutée dans un namespace éponyme dédié que nous devons
     kind: Namespace
     metadata:
       creationTimestamp: null
-      name: foo
+      name: agnhost
     spec: {}
     status: {}
     ```
-
 
 
 #### Dépôt GitHub dédié aux applications
@@ -432,95 +431,87 @@ Dans cette copie locale, nous allons définir le micro-service '*agnhost*' compo
 
 #### Définition du GitRepository
 
-XXXXX
+!!! Doc
+    [https://fluxcd.io/flux/components/source/gitrepositories/](https://fluxcd.io/flux/components/source/gitrepositories/)
 
-Nous allons définir au niveau de FluxCD le dépôt GitHub de chacune des applications et lui permettre de s'y connecter avec les droits d'écriture. Dans notre cas, nous utilisons un même dépôt GitHub pour toutes nos applications : `k8s-kind-fluxcd`.
-
-Puisque nos applications 'foo' et 'bar' sont en réalité 2 instances de la même application, nous pourrions dans ce cas précis nous contenter de ne définir qu'un seul [*GitRepository*](https://fluxcd.io/flux/components/source/gitrepositories/) qui serait utilisé par 'foo' et 'bar', mais avons fait le choix de réduire tant que possible les adhéences éventuelles entre applications. En définissant un GitRepository par application, nous permettons ainsi la suppression de tous les objets Kubernetes liées à une application sans dépendances avec les autres objets des applications restantes. Il n'y a pas de bon ou de mauvais choix, c'est simplement le nôtre.
+Nous allons définir au niveau de FluxCD le dépôt GitHub qui hébergera nos applications et lui permettre de s'y connecter avec des droits d'écriture : `k8s-kind-apps`.
 
 
-#### Deploy Keys
+##### Deploy Keys
 
-Pour permettre à FluxCD de se connecter aux dépôts GitHub des applications qu'il doit gérer, nous devons créer une paire de clés SSH et déployer la clé publique sur les dépôts concernés.
+Pour permettre à FluxCD de se connecter au dépôt GitHub des applications dont il doit gérer l'intégration continue, nous devons créer une paire de clés SSH et déployer la clé publique sur les dépôts concernés.
 
-#### Création des *'Deploy Keys'*
+Nous avons besoin de définir les '*deploy keys*' avant de pouvoir définir un '*GitRepository*'.
 
-Nous devons créer une paire de clés SSH pour permettre à FluxCD de se connecter avec les droits d'écriture au dépôt dédié à FluxCD. Nous en aurons besoin pour définir le *'GitRepository'*.
-S'agissant de 'secrets', nous ne conserverons pas le manifest YAML un le dépôt GitHub.
+S'agissant de '*secrets*', nous ne conserverons pas le manifest YAML un le dépôt GitHub. La solution idéale serait d'utiliser un coffre (ou '*vault*') pour gérer les '*secrets*' en toute sécurité, sujet que nous couvrirons dans un autre HOWTO.
+
+
+###### Création des *'Deploy Keys'*
 
 ```sh
 export GITHUB_USERNAME=papafrancky
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 
-flux create secret git k8s-kind-apps \
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+flux create secret git k8s-kind-apps-gitrepository-deploykeys \
   --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-apps \
-  --namespace=foo
-flux create secret git k8s-kind-apps \
-  --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-apps \
-  --namespace=bar
+  --namespace=agnhost \
+  --export > apps/agnhost/k8s-kind-apps.gitrepository.deploykeys.yaml
 ```
 
-Vérifions la bonne création du secret :
+Nous devons pousser notre code sur notre dépôt GitHub et attendre que FluxCD créé le namespace de notre application et surtout, les '*deploy keys*' que nous devrons renseigner sur le dépôt de nos applications ('*k8s-kind-apps*') pour permettre à FluxCD d'y accéder (et avec des droits de modification) :
 
 === "code"
     ```sh
-    kubectl -n foo get secret k8s-kind-apps -o yaml
-    kubectl -n bar get secret k8s-kind-apps -o yaml
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    git add .
+    git commit -m 'agnhost : namespace and GitRepository definitions.'
+    git push
+
+    flux reconcile kustomization flux-system --with-source
     ```
 
-=== "foo secret"
-    ```sh
-    apiVersion: v1
-    data:
-      identity:     LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JRzJBZ0VBTUJBR0J5cUdTTTQ5QWdFR0JTdUJCQUFpQklHZU1JR2JBZ0VCQkRCWk1HVXAwNTJLT1BmbE85UU4KTlZBbzBzY3Y1bzlMTElUVzFieUorZTFaVlRNQWl1cXd0YkhHdDc3TlVzUUZ0T2FoWkFOaUFBU0JyWXhNOUxUcwp0Wmp1d2hkL0J5bVI3Sks4cy9zQk5zSEkwdGprMFQyRGg    1dlFOTkNaK1lEb2pEb0FBZk82bWN3NytOalV3cGd1CnlOTTNGb081Q3piSTJ0aEwzdHNmMjV2aWZ3blpobERNZDRiSGdCMUNKekJrWHBROUlRTnBQNmM9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
-      identity.pub:     ZWNkc2Etc2hhMi1uaXN0cDM4NCBBQUFBRTJWalpITmhMWE5vWVRJdGJtbHpkSEF6T0RRQUFBQUlibWx6ZEhBek9EUUFBQUJoQklHdGpFejB0T3kxbU83Q0YzOEhLWkhza3J5eit3RTJ3Y2pTMk9UUlBZT0htOUEwMEpuNWdPaU1PZ0FCODdxWnpEdjQyTlRDbUM3STB6Y1dnN2tMTnNqYTJFdmUyeC9ibStKL0NkbUdVTXgzaHNlQUhVSW5NR1J    lbEQwaEEyay9wdz09Cg==
-      known_hosts: Z2l0aHViLmNvbSBlY2RzYS1zaGEyLW5pc3RwMjU2IEFBQUFFMlZqWkhOaExYTm9ZVEl0Ym1semRIQXlOVFlBQUFBSWJtbHpkSEF5TlRZQUFBQkJCRW1LU0VOalFFZXpPbXhrWk15N29wS2d3RkI5bmt0NVlScllNak51RzVOODd1UmdnNkNMcmJvNXdBZFQveTZ2MG1LVjBVMncwV1oyWUIvKytUcG9ja2c9
-    kind: Secret
-    metadata:
-      creationTimestamp: "2024-04-27T08:49:36Z"
-      name: k8s-kind-apps
-      namespace: foo
-      resourceVersion: "1295276"
-      uid: a319b96b-80a0-457a-aa33-0fc23ab7def6
-    type: Opaque
-    ```
-
-=== "bar secret"
-    ```sh
-    apiVersion: v1
-    data:
-      identity:     LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JRzJBZ0VBTUJBR0J5cUdTTTQ5QWdFR0JTdUJCQUFpQklHZU1JR2JBZ0VCQkRDcVRkUlpaK1BuWjRYYWRCelMKb2hoQjdjMVBVNEh5OVYzeXp6dTFJdU9HMlFVd09vMUtBN0I3M0dweGJaUUI2K2VoWkFOaUFBUnA5UmFwaFMzTgpPaVRsTzZ2TEdQSG0va2NHR2YzYzk0eHpRR041Q0ltV1V    WS0xlQi9NajdGK1d0RzEyVmZ3QVRGaTFoclhkVUg4CkxWQ29JUjJoeUp3Y251R2dZaEYrc3pTanBuSDA1dVpuVm5ibXhUZmlleWkxNUNibGpOOGVrQnM9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
-      identity.pub:     ZWNkc2Etc2hhMi1uaXN0cDM4NCBBQUFBRTJWalpITmhMWE5vWVRJdGJtbHpkSEF6T0RRQUFBQUlibWx6ZEhBek9EUUFBQUJoQkduMUZxbUZMYzA2Sk9VN3E4c1k4ZWIrUndZWi9kejNqSE5BWTNrSWlaWlJVb3Q0SDh5UHNYNWEwYlhaVi9BQk1XTFdHdGQxUWZ3dFVLZ2hIYUhJbkJ5ZTRhQmlFWDZ6TktPbWNmVG01bWRXZHViRk4rSjdLTFh    rSnVXTTN4NlFHdz09Cg==
-      known_hosts: Z2l0aHViLmNvbSBlY2RzYS1zaGEyLW5pc3RwMjU2IEFBQUFFMlZqWkhOaExYTm9ZVEl0Ym1semRIQXlOVFlBQUFBSWJtbHpkSEF5TlRZQUFBQkJCRW1LU0VOalFFZXpPbXhrWk15N29wS2d3RkI5bmt0NVlScllNak51RzVOODd1UmdnNkNMcmJvNXdBZFQveTZ2MG1LVjBVMncwV1oyWUIvKytUcG9ja2c9
-    kind: Secret
-    metadata:
-      creationTimestamp: "2024-04-27T08:50:31Z"
-      name: k8s-kind-apps
-      namespace: bar
-      resourceVersion: "1295422"
-      uid: eaab7311-c1f1-4579-8157-0a2d131f9e2b
-    type: Opaque
-    ```
-
-
-#### Ajout de la clé publique sur le dépôt GitHub
-
-Les clés publiques doivent être extraites des 'secrets' et renseignées dans les paramètres du dépôt GitHub  _*k8s-kind-fluxcd*_.
+Vérifions la bonne création du '*namespace*' :
 
 === "code"
     ```sh
-    kubectl -n foo get secret k8s-kind-apps -o jsonpath='{.data.identity\.pub}' | base64 -d
-    kubectl -n bar get secret k8s-kind-apps -o jsonpath='{.data.identity\.pub}' | base64 -d
+    kubectl get namespace agnhost
     ```
 
-=== "foo public key"
-    '''sh
-    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBIGtjEz0tOy1mO7CF38HKZHskryz+wE2wcjS2OTRPYOHm9A00Jn5gOiMOgAB87qZzDv42NTCmC7I0zcWg7kLNsja2Eve2x/bm+J/CdmGUMx3hseAHUInMGRelD0hA2k/pw==
-    '''
+=== "output"
+    ```sh
+    NAME      STATUS   AGE
+    agnhost   Active   30s
+    ```
 
-=== "bar public key"
-    '''sh
-    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBGn1FqmFLc06JOU7q8sY8eb+RwYZ/dz3jHNAY3kIiZZRUot4H8yPsX5a0bXZV/ABMWLWGtd1QfwtUKghHaHInBye4aBiEX6zNKOmcfTm5mdWdubFN+J7KLXkJuWM3x6QGw==
-    '''
+Vérifions ensuite la bonne création de la '*deploy key*' pour de dépôt des applications :
+
+=== "code"
+    ```sh
+    kubectl -n agnhost get secret k8s-kind-apps-gitrepository-deploykeys
+    ```
+
+=== "output"
+    ```sh
+    NAME                                     TYPE     DATA   AGE
+    k8s-kind-apps-gitrepository-deploykeys   Opaque   3      35s
+    ```
+
+De ce '*secret*' qui contient un jeu de clés privée et publique, nous devons extraire la clé publique pour la renseigner sur notre dépôt GitHub :
+
+=== "code"
+    ```sh
+    kubectl -n agnhost get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity\.pub}' | base64 -D
+    ```
+
+=== "output"
+    ```sh
+    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBN8q8Xb3gUEQkhoLmYDlAnYdom1GBC+mJ//OH1r4OJvYszU0zBhq2+Xa9P3O6CywbRYIaP8yCtO+NBpZGx8ZDPP1WfgPDs5BPjLVE6Q+HNskPsx4sNHkM3SIc/BcFnzMUw==
+    ```
 
 Une fois sur la page de dépôt, cliquer sur le bouton _*Settings*_, puis dans la colonne de gauche sur la page suivante, sur le line _*Deploy Keys*_ dans la partie 'Security' :
 
@@ -531,89 +522,61 @@ Une fois sur la page de dépôt, cliquer sur le bouton _*Settings*_, puis dans l
 ![Ajouter une nouvelle Deploy Key](./images/github_add_deploykey.png)
 
 !!! warning
-    La case __'Allow write access'__ doit être cochée pour permettre à FluxCD d'apporter des modifications dans son dépôt !
+    La case __'Allow write access'__ doit être cochée pour permettre à FluxCD d'apporter des modifications dans le dépôt !
 
-![Déclarer la Deploy Key 'foo'](./images/github_add_foo_public_key.png)
-
-![Déclarer la Deploy Key 'bar'](./images/github_add_bar_public_key.png)
+![Déclarer la Deploy Key 'agnhost'](./images/github_add_agnhost_public_key.png)
 
 ![Liste des 'Deploy Keys'](./images/github_deploy_keys_list.png)
 
 
 
-#### Définition du GitRepository *"k8s-kind-apps"* pour chacune des applications
+##### Définition du GitRepository *"k8s-kind-apps"*
 
-L'API GitRepository définit une source pour produire un artefact pour une révision d'un dépôt Git.
-
-!!! info
-    https://fluxcd.io/flux/components/source/gitrepositories/
+!!! Doc
+    [https://fluxcd.io/flux/components/source/gitrepositories/](https://fluxcd.io/flux/components/source/gitrepositories/)
 
 Voici les informations qu'il faudra donner pour définir un 'GitRepository' :
 
-* Le nom que nous souhaitons lui donner : *k8s-kind-fluxcd*;
-* L'URL du dépôt GitHub : *ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-fluxcd.git*;
+* Le nom que nous souhaitons lui donner : *k8s-kind-apps*;
+* L'URL du dépôt GitHub : *ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-apps.git*;
 * La branche du dépôt d'où récupérer le code : *main*;
-* Le secret d'où extraire la clé privée pour se connecter au dépôt GitHub : *foo* ou *bar* selon l'application concernée.
+* Le secret d'où extraire la clé privée pour se connecter au dépôt GitHub : *k8s-kind-apps-gitrepository-deploykeys*.
 
-
-```sh 
-   export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-   export GITHUB_USERNAME=papafrancky
-
-   cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-```
 
 === "code"
     ```sh
-    flux create source git k8s-kind-apps \
-      --url=ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-apps.git \
-      --branch=main \
-      --secret-ref=k8s-kind-apps \
-      --namespace=foo \
-      --export > apps/foo/gitrepository.yaml
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    export GITHUB_USERNAME=papafrancky
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
     
     flux create source git k8s-kind-apps \
       --url=ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-apps.git \
       --branch=main \
-      --secret-ref=k8s-kind-apps \
-      --namespace=bar \
-      --export > apps/bar/gitrepository.yaml
+      --secret-ref=k8s-kind-apps-gitrepository-deploykeys \
+      --namespace=agnhost \
+      --export > apps/agnhost/k8s-kind-apps.gitrepository.yaml
     ```
    
-=== "'foo' GitRepository"
+=== "'k8s-kind-apps' GitRepository"
     ```sh
     ---
-    apiVersion: source.toolkit.fluxcd.io/v1beta2
+    apiVersion: source.toolkit.fluxcd.io/v1
     kind: GitRepository
     metadata:
       name: k8s-kind-apps
-      namespace: foo
+      namespace: agnhost
     spec:
       interval: 1m0s
       ref:
         branch: main
       secretRef:
-        name: k8s-kind-apps
+        name: k8s-kind-apps-gitrepository-deploykeys
       url: ssh://git@github.com/papafrancky/k8s-kind-apps.git
     ```
 
-=== "'bar' GitRepository"
-    ```
-    ---
-    apiVersion: source.toolkit.fluxcd.io/v1beta2
-    kind: GitRepository
-    metadata:
-      name: k8s-kind-apps
-      namespace: bar
-    spec:
-      interval: 1m0s
-      ref:
-        branch: main
-      secretRef:
-        name: k8s-kind-apps
-      url: ssh://git@github.com/papafrancky/k8s-kind-apps.git
-    ```
 
+XXXXX
 
 #### Définition des *'Kustomizations'* pour chacun des GitRepositories
 
