@@ -470,13 +470,10 @@ Nous avons besoin de définir les '*deploy keys*' avant de pouvoir définir un '
 S'agissant de '*secrets*', nous ne conserverons pas le manifest YAML un le dépôt GitHub. La solution idéale serait d'utiliser un coffre (ou '*vault*') pour gérer les '*secrets*' en toute sécurité, sujet que nous couvrirons dans un autre HOWTO.
 
 
-###### Création des *'Deploy Keys'*
+###### Création de la *'Deploy Key'*
 
 ```sh
 export GITHUB_USERNAME=papafrancky
-export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-
-cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
 flux create secret git k8s-kind-apps-gitrepository-deploykeys \
   --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-apps \
@@ -507,6 +504,8 @@ De ce '*secret*' qui contient un jeu de clés privée et publique, nous devons e
     ```sh
     ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBN8q8Xb3gUEQkhoLmYDlAnYdom1GBC+mJ//OH1r4OJvYszU0zBhq2+Xa9P3O6CywbRYIaP8yCtO+NBpZGx8ZDPP1WfgPDs5BPjLVE6Q+HNskPsx4sNHkM3SIc/BcFnzMUw==
     ```
+
+###### Déploiement de la '*Deploy Key*' sur le dépôt GitHub
 
 Une fois sur la page de dépôt, cliquer sur le bouton _*Settings*_, puis dans la colonne de gauche sur la page suivante, sur le line _*Deploy Keys*_ dans la partie 'Security' :
 
@@ -1025,7 +1024,7 @@ Pour illustrer l'intégration continue d'applications packagées avec Helm, nous
 
 Comme pour la précédente application, nous devons créer le namespace qui hébergera l'application '*podinfo*'.
 
-Si nous ne créons pas le namespace, il nous sera impossible de définir de nouveaux objets Kubernetes qui doivent y être placés.
+Si nous ne créons pas le namespace, il nous sera impossible de définir de nouveaux objets Kubernetes qui y refont référence.
 
 === "code"
     ```sh
@@ -1061,7 +1060,7 @@ Il fait donc office de '*Helm Repository*' :
 
 ##### Adresse du Helm Chart '*podinfo*'
 
-Pour retrouver l'adresse où récupérer le '*Helm Chart*', cliquons sur le lien '*charts/podinfo*' dans la partie '*Packages*' dans la colonne de droite de la UI GitHub : 
+Pour retrouver l'adresse où récupérer le '*Helm Chart*', cliquons sur le lien '*charts/podinfo*' dans la partie '*Packages*' de la colonne de droite de la UI GitHub : 
 
 ![Depot GitHub de l'application podinfo](./images/podinfo_github_repo_2.png)
 
@@ -1070,7 +1069,7 @@ L'URL du *Helm Chart* de '*podinfo*' est donc : `oci://ghcr.io/stefanprodan/char
 
 ##### Authentification auprès du *Helm Repository*
 
-Nous devons commencer par nous authentifier auprès de la '*GitHub Container Registry*' :
+Nous devons commencer par nous authentifier auprès de la '*GitHub Container Registry*' (GHCR) :
 
 !!! doc
     [Authenticating to the GitHub container registry with a personal access token](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-with-a-personal-access-token-classic)
@@ -1321,7 +1320,7 @@ Nous sommes désormais en mesure de l'interroger :
 Nos '*credentials*' ainsi que l'adresse du Helm Chart sont vérifiés et exploitables, nous pouvons continuer.
 
 
-#### Définition du HelmRepository '*podinfo*'
+#### Le HelmRepository '*podinfo*'
 
 ##### Authentification au Helm Repository
 
@@ -1373,13 +1372,13 @@ Nous devons créer un '*secret*' de type '*Docker registry*' pour nous y authent
     flux create source helm podinfo \
     --namespace=podinfo \
     --url=https://stefanprodan.github.io/podinfo \
-    --secret-ref=github \
+    --secret-ref=podinfo-helmrepository \
     --interval=10m \
     --export > ./apps/podinfo/podinfo.helmrepository.yaml
 
-    git add .
-    git commit -m 'Defined helmrepository for podinfo application.'
-    git push
+    #git add .
+    #git commit -m 'Defined helmrepository for podinfo application.'
+    #git push
     ```
 
 === "podinfo HelmRepository"
@@ -1393,64 +1392,91 @@ Nous devons créer un '*secret*' de type '*Docker registry*' pour nous y authent
     spec:
       interval: 10m0s
       secretRef:
-        name: github
+        name: podinfo-helmrepository
       url: https://stefanprodan.github.io/podinfo
     ```
 
-##### Définition de notre HelmRelease
 
-XXXXX
+#### Le GitRepository pour l'application '*podinfo*'
 
-#### Kustomization liée au dépôt GitHub de l'application '*podinfo*'
+Dans la ségrégation des rôles entre Devs et Ops, la définition de la HelmRelease incombera à l'équipe de Dev en charge de l'application.
 
-Dans la ségrégation des rôles Dev|Ops, la définition de la HelmRelease incombera à l'équipe de Dev en charge de l'application.
-
-C'est elle qui personnalisera son application en surchargeant les valeurs par défaut de la Helm Chart utilisée.
+C'est elle qui personnalisera son application en surchargeant les valeurs par défaut de la Helm Chart utilisée (nous couvrirons la définition de la HelmRelease ensuite).
 
 Ces objets seront donc définis dans des manifests YAML dans le dépôt GitHub dédié aux applications : `https://github.com/${GITHUB_USER}/k8s-kind-apps`.
 
-Nous devons indiquer à FluxCD qu'il doit gérer les manifests qu'il y trouvera dans le sous-répertoire dédié à '*podinfo*' : `./podinfo`
 
-C'est le rôle de la '*Kustomization*'.
+##### Deploy Key
+
+Pour permettre à FluxCD de se connecter au dépôt GitHub des applications dont il doit gérer l'intégration continue, nous devons créer une paire de clés SSH et déployer la clé publique sur les dépôts concernés.
+
+Nous avons besoin de définir les '*deploy keys*' avant de pouvoir définir un '*GitRepository*'.
+
+S'agissant de '*secrets*', nous ne conserverons pas le manifest YAML un le dépôt GitHub. La solution idéale serait d'utiliser un coffre (ou '*vault*') pour gérer les '*secrets*' en toute sécurité, sujet que nous couvrirons dans un autre HOWTO.
+
+
+###### Création de la *'Deploy Key'*
+
+```sh
+export GITHUB_USERNAME=papafrancky
+
+flux create secret git k8s-kind-apps-gitrepository-deploykeys \
+  --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-apps \
+  --namespace=podinfo
+```
+
+Vérifions la bonne création de la '*deploy key*' pour de dépôt des applications :
+
+=== "code"
+    ```sh
+    kubectl -n podinfo get secret k8s-kind-apps-gitrepository-deploykeys
+    ```
+
+=== "output"
+    ```sh
+    NAME                                     TYPE     DATA   AGE
+    k8s-kind-apps-gitrepository-deploykeys   Opaque   3      3s
+    ```
+
+De ce '*secret*' qui contient un jeu de clés privée et publique, nous devons extraire la clé publique pour la renseigner sur notre dépôt GitHub :
+
+=== "code"
+    ```sh
+    kubectl -n podinfo get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity\.pub}' | base64 -D
+    ```
+
+=== "output"
+    ```sh
+    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBKbw9yMbN8SPIJQ9P8DZwGU7WJZuwKtrc4KM23aHLFBCQyx8op4/v62/ehtiaZnrH45g9OLGCwhq583Sc/DrgCl/cPJSaWbDVkXGoxfwPYG5uhrS0kejbPXWtlSAUZwOEg==
+    ```
+
+###### Déploiement de la '*Deploy Key*' sur le dépôt GitHub
+
+Nous devons ensuite déployer la clé publique sur le dépôt GitHub [comme nous l'avons fait pour l'application '*agnhost*'](http://127.0.0.1:8000/FluxCD/FluxCD_demonstration_par_l_exemple/#deploiement-de-la-deploy-key-sur-le-depot-github).
+
+![Deploy key podinfo](./images/github_add_podinfo_public_key.png)
+
+
+##### Définition du GitRepository
+
+Maintenant que nous avons défini la '*Deploy Key*', nous pouvons nous atteler à la définition du GitRepository où seront placés la HelmRelease de '*podinfo*' ainsi que ses '**values' customisées :
 
 === "code"
     ```sh
     export GITHUB_USERNAME=papafrancky
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-
+       
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
-    flux create kustomization podinfo \
-      --source=GitRepository/k8s-kind-apps.foo \
-      --path=./podinfo \
-      --prune=true \
+    flux create source git k8s-kind-apps \
+      --url=ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-apps.git \
+      --branch=main \
+      --secret-ref=k8s-kind-apps-gitrepository-deploykeys \
       --namespace=podinfo \
-      --export  > apps/podinfo/podinfo.kustomization.yaml
+      --export > apps/podinfo/k8s-kind-apps.gitrepository.yaml
     ```
 
-=== "k8s-kind-apps secret"
-    ```sh
-    apiVersion: v1
-    data:
-      identity: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JRzJBZ0VBTUJBR0J5cUdTTTQ5QWdFR0JTdUJCQUFpQklHZU1JR2JBZ0VCQkRCTWdHRFcrS05JdWJwRTlIQ0gKcnJDNWZ4YWNiWGJWZmxFZ0dSZHJLL2RRaXdlRGZOYzY3WW8rcjlXdkNrNWRLeHloWkFOaUFBUW1uS3Y1TGZ4RQp0Q1VWeWhtUk5tV1lNSVdoUHZTUnp3TnVnM0kvK09KOFFsVkVacEZhQVpYTS9PQU5TY09FV3UwcEwxeURzNE14Cm5MWDJJWVVkbnR4Zy96bTVmNDd0Z0VqcUp3MUdYaGQvWGN3MHZDK0dDZ3haMjdCdkNHTzU4ZVk9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
-      identity.pub: ZWNkc2Etc2hhMi1uaXN0cDM4NCBBQUFBRTJWalpITmhMWE5vWVRJdGJtbHpkSEF6T0RRQUFBQUlibWx6ZEhBek9EUUFBQUJoQkNhY3Eva3QvRVMwSlJYS0daRTJaWmd3aGFFKzlKSFBBMjZEY2ovNDRueENWVVJta1ZvQmxjejg0QTFKdzRSYTdTa3ZYSU96Z3pHY3RmWWhoUjJlM0dEL09ibC9qdTJBU09vbkRVWmVGMzlkekRTOEw0WUtERm5ic0c4SVk3bng1Zz09Cg==
-      known_hosts: Z2l0aHViLmNvbSBlY2RzYS1zaGEyLW5pc3RwMjU2IEFBQUFFMlZqWkhOaExYTm9ZVEl0Ym1semRIQXlOVFlBQUFBSWJtbHpkSEF5TlRZQUFBQkJCRW1LU0VOalFFZXpPbXhrWk15N29wS2d3RkI5bmt0NVlScllNak51RzVOODd1UmdnNkNMcmJvNXdBZFQveTZ2MG1LVjBVMncwV1oyWUIvKytUcG9ja2c9
-    kind: Secret
-    metadata:
-      creationTimestamp: "2025-09-21T13:54:48Z"
-      name: k8s-kind-apps
-      namespace: podinfo
-      resourceVersion: "173460"
-      uid: 9884d3bd-c888-4fd5-955c-10806e954052
-    type: Opaque
-    ```
-
-=== "podinfo Deploy Key"
-    ```sh
-    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBCacq/kt/ES0JRXKGZE2ZZgwhaE+9JHPA26Dcj/44nxCVURmkVoBlcz84A1Jw4Ra7SkvXIOzgzGctfYhhR2e3GD/Obl/ju2ASOonDUZeF39dzDS8L4YKDFnbsG8IY7nx5g==
-    ```
-
-=== "k8s-kind-apps GitRepository"
+=== "output"
     ```sh
     ---
     apiVersion: source.toolkit.fluxcd.io/v1
@@ -1463,11 +1489,37 @@ C'est le rôle de la '*Kustomization*'.
       ref:
         branch: main
       secretRef:
-        name: k8s-kind-apps
-      url: ssh://git@github.com/papafrancky/k8s-kind-apps.git
+        name: k8s-kind-apps-gitrepository-deploykeys
+      url: ssh://git@github.com//k8s-kind-apps.git
     ```
 
-=== "podinfo Kustomization"
+
+
+#### Kustomization du GitRepository pour l'application '*podinfo*'
+
+Nous devons indiquer à FluxCD qu'il doit gérer les manifests qu'il trouvera dansle GitRepository '*k8s-kind-apps *', dans le sous-répertoire dédié à l'application '*podinfo*' (puisque nous avons pris le parti de partager un même dépôt GitHub pour nos applications) : `./podinfo`
+
+C'est le rôle de la '*Kustomization*'.
+
+!!! Doc
+    [https://fluxcd.io/flux/cmd/flux_create_kustomization/](https://fluxcd.io/flux/cmd/flux_create_kustomization/)
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+       
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    flux create kustomization podinfo \
+      --source=GitRepository/k8s-kind-apps.podinfo \
+      --path="./podinfo" \
+      --prune=true \
+      --interval=1m \
+      --namespace=podinfo \
+      --export  > apps/podinfo/podinfo.kustomization.yaml
+    ```
+
+=== "output"
     ```sh
     ---
     apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -1482,30 +1534,56 @@ C'est le rôle de la '*Kustomization*'.
       sourceRef:
         kind: GitRepository
         name: k8s-kind-apps
-        namespace: foo
+        namespace: podinfo
     ```
-
-!!! Warning
-    Ne pas oublier d'ajouter la 'Deploy Key' pour podinfo sur le dépôt GitHub des applications, [comme nous l'avons fait précédemment](https://papafrancky.github.io/FluxCD/FluxCD_demonstration_par_l_exemple/#deploy-keys) pour les applications 'foo' et 'bar'
-
 
 Poussons les nouveaux manifests YAML dans notre dépôt GitHub :
 
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+git add .
+git commit -m 'Added GitRepository, HelmRepository and Kustomization for podinfo app.'
+git push
+
+flux reconcile kustomization flux-system --with-source
+```
+
+Vérifions la création des nouveaux objets Kubernetes :
+
 === "code"
     ```sh
-    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-
-    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-
-    git add .
-    git commit -m 'Added GitRepository, HelmRepository and Kustomization for podinfo app.'
-    git push
-
-    flux reconcile kustomization flux-system --with-source
+    kubectl -n podinfo get gitrepo,helmrepo,ks
     ```
 
+=== "output"
+    ```sh
+    NAME                                                   URL                                                  AGE   READY   STATUS
+    gitrepository.source.toolkit.fluxcd.io/k8s-kind-apps   ssh://git@github.com/papafrancky/k8s-kind-apps.git   1m   True    stored artifact for revision 'main@sha1:dfa98e76317ed1c3d1901d721e53d55e4f61f96c'
 
-#### Personnalisation de la Helm Release '*podinfo*'
+    NAME                                              URL                                      AGE   READY   STATUS
+    helmrepository.source.toolkit.fluxcd.io/podinfo   https://stefanprodan.github.io/podinfo   1m   True    stored artifact: revision 'sha256:c0d4535103105a4bb59954a178f24bdb7dbac3072758312c8b3f09fb3d85f192'
+
+    NAME                                                AGE   READY   STATUS
+    kustomization.kustomize.toolkit.fluxcd.io/podinfo   1m   False   kustomization path not found: stat /tmp/kustomization-2457791261/podinfo: no such file or directory
+    ```
+
+Nous constatons que la '*kustomization*' ne se trouve pas dans l'état attendu. Et pour cause : nous n'avons pas encore défini aucun objet (*HelmRelease* et *custom values*) dans le dépôt GitHub des applications '*k8s-kind-apps*', qui ne contient en conséquence pas de sous-répertoire '*podinfo*' !
+
+Il est temps de s'en occuper à présent.
+
+
+#### La Helm Release
+
+Une '*Helm Release*' est une instance d'une '*Helm Chart*' déployée sur un cluster Kubernetes.
+
+!!! Doc
+    https://helm.sh/docs/glossary/#release
+
+
+##### Personnalisation de la Helm Release '*podinfo*'
 
 L'application '*podinfo*' est paramétrée avec des valeurs par défaut définies dans ce qu'on appelle les '*values*' de la Helm Chart.
 
@@ -1727,17 +1805,18 @@ Pour connaître les valeurs par défaut de l'application :
 
 Par exemple, souhaitons apporter un peu plus de résilience à l'application en exécutant 2 ReplicaSets plutôt qu'un. Nous souhaitons également gérer finement les ressources de l'application, et changer le message d'accueil de la UI.
 
-!!! Note
-    Nous écrirons les '*values*' que nous souhaitons surcharger aux '*default values*' dans une *ConfigMap* Kubernetes.
-
 !!! Doc
     [https://github.com/stefanprodan/podinfo?tab=readme-ov-file#continuous-delivery](https://github.com/stefanprodan/podinfo?tab=readme-ov-file#continuous-delivery)
+
+!!! Note
+    Nous écrirons les '*values*' que nous souhaitons surcharger aux '*default values*' dans une *ConfigMap* Kubernetes.
 
 === "code"
     ```sh
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
     
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+    mkdir podinfo
 
     # Création d'un fichier temporaire 'values.yaml' contenant les paramètres à surcharger :
     cat << EOF > values.yaml
@@ -1779,6 +1858,9 @@ Par exemple, souhaitons apporter un peu plus de résilience à l'application en 
           message: "Hello from PodInfo ! ^^"
     ```
 
+
+##### Définition de la HelmRelease
+
 Définissons maintenant la HelmRelease :
 
 !!! Doc
@@ -1800,7 +1882,7 @@ Définissons maintenant la HelmRelease :
       --export > podinfo/podinfo.helmrelease.yaml
 
     git add .
-    git commit -m 'Added podinfo helm release.'
+    git commit -m 'Defined podinfo HelmRelease with custom values as a ConfigMap.'
     git push
 
     flux reconcile kustomization flux-system --with-source
@@ -1829,18 +1911,26 @@ Définissons maintenant la HelmRelease :
         name: podinfo-values
     ```
 
-Poussons nos modifications sur notre dépôt GitHub et forçons la réconciliation Flux :
+Regardons si la magie opère :
 
-```sh
-git add .
-git commit -m 'Defined podinfo HelmRelease with custom values as a ConfigMap.'
-git push
+=== "code"
+    ```sh
+    kubectl -n podinfo get kustomization,helmrelease
+    ```
 
-flux reconcile kustomization flux-system --with-source
-```
+=== "output"
+    ```sh
+    NAME                                                AGE   READY   STATUS
+    kustomization.kustomize.toolkit.fluxcd.io/podinfo   29m   True    Applied revision: main@sha1:36cdfa300f5d4ad6787264956be13816ab683800
 
+    NAME                                         AGE   READY   STATUS
+    helmrelease.helm.toolkit.fluxcd.io/podinfo   65s   True    Helm install succeeded for release podinfo/podinfo.v1 with chart podinfo@6.9.2 
+    ```
 
-Et la magie opère !
+Bonne nouvelle : notre '*kustomization*' est désormais dans l'état attendu !
+
+Par ailleurs, notre '*HelmRelease*' nouvellement définie semble elle-aussi déployée avec succès. Vérifions si l'application est bel et bien déployée :
+
 
 === "code"
     ```sh
@@ -1849,17 +1939,18 @@ Et la magie opère !
 
 === "output"
     ```sh
-    NAME                           READY   STATUS    RESTARTS   AGE
-    pod/podinfo-579dbf8dbf-q5lpn   1/1     Running   0          19m
+    NAME                          READY   STATUS    RESTARTS   AGE
+    pod/podinfo-db75857bd-7z9vw   1/1     Running   0          5m43s
+    pod/podinfo-db75857bd-n6mt6   1/1     Running   0          5m43s
 
-    NAME              TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)             AGE
-    service/podinfo   ClusterIP   10.43.161.26   <none>        9898/TCP,9999/TCP   19m
+    NAME              TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)             AGE
+    service/podinfo   ClusterIP   10.43.60.99   <none>        9898/TCP,9999/TCP   5m43s
 
     NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
-    deployment.apps/podinfo   1/1     1            1           19m
+    deployment.apps/podinfo   2/2     2            2           5m43s
 
-    NAME                                 DESIRED   CURRENT   READY   AGE
-    replicaset.apps/podinfo-579dbf8dbf   1         1         1       19m
+    NAME                                DESIRED   CURRENT   READY   AGE
+    replicaset.apps/podinfo-db75857bd   2         2         2       5m43s
     ```
 
 Utilisons la redirection de ports pour accéder à l'application avec un navigateur :
@@ -1873,6 +1964,7 @@ Utilisons la redirection de ports pour accéder à l'application avec un navigat
 Nous voyons bien notre message d'accueil personnalisé : '**Hello PodInfo! ^^**'.
 
 
+XXXXX
 
 ----------------------------------------------------------------------------------------------------
 
