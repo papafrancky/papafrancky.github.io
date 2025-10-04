@@ -1866,6 +1866,9 @@ Définissons maintenant la HelmRelease :
 !!! Doc
     [https://fluxcd.io/flux/cmd/flux_create_helmrelease/](https://fluxcd.io/flux/cmd/flux_create_helmrelease/)
 
+!!! Note
+    Au moment de la rédaction de ce HOWTO, la dernière version de '*podinfo*' était la 6.9.2. Nous choisissons ici de limiter notre '*Helm Release*' à la version 5 (`--chart-version="<6.0.0"`), pour tester ensuite les notifications via un service de messagerie instantanée que nous allons très vite mettre en place.
+
 
 === "code"
     ```sh
@@ -1877,6 +1880,7 @@ Définissons maintenant la HelmRelease :
       --namespace=podinfo \
       --source=HelmRepository/podinfo.podinfo \
       --chart=podinfo \
+      --chart-version="<6.0.0" \
       --values-from=ConfigMap/podinfo-values \
       --interval=10m \
       --export > podinfo/podinfo.helmrelease.yaml
@@ -1924,12 +1928,14 @@ Regardons si la magie opère :
     kustomization.kustomize.toolkit.fluxcd.io/podinfo   29m   True    Applied revision: main@sha1:36cdfa300f5d4ad6787264956be13816ab683800
 
     NAME                                         AGE   READY   STATUS
-    helmrelease.helm.toolkit.fluxcd.io/podinfo   65s   True    Helm install succeeded for release podinfo/podinfo.v1 with chart podinfo@6.9.2 
+    helmrelease.helm.toolkit.fluxcd.io/podinfo   65s   True    Helm install succeeded for release podinfo/podinfo.v1 with chart podinfo@5.2.1 
     ```
 
 Bonne nouvelle : notre '*kustomization*' est désormais dans l'état attendu !
 
-Par ailleurs, notre '*HelmRelease*' nouvellement définie semble elle-aussi déployée avec succès. Vérifions si l'application est bel et bien déployée :
+Par ailleurs, notre '*HelmRelease*' nouvellement définie semble elle-aussi déployée avec succès et à une version inférieure à 6.
+
+Vérifions si l'application est bel et bien déployée :
 
 
 === "code"
@@ -1953,6 +1959,8 @@ Par ailleurs, notre '*HelmRelease*' nouvellement définie semble elle-aussi dép
     replicaset.apps/podinfo-db75857bd   2         2         2       5m43s
     ```
 
+Nous observons 2 *Replicasets* comme nous l'avons demandé dans nos '*custom values*'.
+
 Utilisons la redirection de ports pour accéder à l'application avec un navigateur :
 
 === "code"
@@ -1964,28 +1972,26 @@ Utilisons la redirection de ports pour accéder à l'application avec un navigat
 Nous voyons bien notre message d'accueil personnalisé : '**Hello PodInfo! ^^**'.
 
 
-XXXXX
+
 
 ----------------------------------------------------------------------------------------------------
 
 ## Notifications Discord
 
-Nous avons configuré FluxCD pour gérer automatiquement la mise à jour de nos applications _*'foo'*_ et _*'bar'*_ dont les manifests sont hébergés dans un dépôt GitHub, ainsi que la mise à jour de l'application packagée '*podinfo*' hébergée sur un dépôt Helm externe.
+Nous avons configuré FluxCD pour gérer automatiquement la mise à jour de nos applications _*'agnhost'*_ et _*'podinfo'*_.
 
-Nous aimerions maintenant être alertés lorsqu'un changement affecte nos applications. Plutôt qu'une messagerie mail classique, nous privilégions une messagerie instantanée. Notre choix s'est porté sur la plateforme **'Discord'** car elle permet de configurer des _*'webhooks'*_ sur des _*'rooms'*_ sans pour autant devoir payer un abonnement, comme ce serait le cas avec **Slack**.
+Nous aimerions maintenant être alertés lorsqu'un changement affecte nos applications. Plutôt qu'une messagerie mail classique, nous privilégions une messagerie instantanée. Notre choix s'est porté sur la plateforme **'Discord'** car elle permet de configurer des _*'webhooks'*_ sur des _*'channels'*_ sans pour autant devoir payer un abonnement, comme ce serait le cas avec **Slack**.
 
 
-### Installation du client _*'Discord'*_
+### Installation et configuration du client '*Discord*'
+
+#### Installation du client _*'Discord'*_
 
 Pour l'installer, il faut accéder au site web **discord.com** et télécharger le client :
 
 ```sh
 https://discord.com/api/download?platform=osx
 ```
-
-
-### Création d'un _*'serveur'*_ et d'une _*'room'*_ pour chaque application
-
 
 #### Création d'un serveur Discord
 
@@ -2001,9 +2007,13 @@ Une fois le client Discord démarré, cliquons sur le **'+'** situé dans la col
 
 ![Add a Discord server #4](./images/discord_add_server_4.png)
 
-#### Création d'un salon dans notre serveur Discord
+!!! Note
+    J'ai choisi l'[icône de '*Kubernetes*'](https://www.redhat.com/rhdc/managed-files/ohc/logo_with_border.png) pour mon serveur Discord que j'ai nommé '*k8s*'.
 
-Nous souhaitons créer un salon pour chacune de nos applications. La procédure étant la même pour tous les salons, nous montrerons la création du salon pour l'application _*'foo'*_. Vous devrez faire la même chose pour les autres applications.
+
+#### Création d'un *channel* dans notre serveur *Discord*
+
+Nous souhaitons créer un *channel* pour chacune de nos applications. La procédure étant la même, nous montrerons la création du salon pour l'application _*'agnhost'*_. Vous devrez faire la même chose pour les autres applications.
 
 Sélectionnez le serveur _*'k8s-kind'*_ dans la colonne de gauche, puis dans la partie 'salons textuels', cliquez sur le __'+'__ :
 
@@ -2017,7 +2027,10 @@ Passez l'étape d'ajout de membres :
 
 ![Add a Discord channel 3](./images/discord_add_channel_3.png)
 
-Votre salon est prêt.
+Votre *channel* 'agnhost' est prêt. Il vous reste à créer le *channel* 'podinfo'.
+
+![Add a second Discord channel](./images/discord_add_second_channel.png)
+
 
 #### Création d'un _*'webhook'*_ pour chaque salon
 
@@ -2035,72 +2048,59 @@ Un nom lui est donné de manière aléatoire (ex: 'Spidey Bot'). Pour changer le
 
 ![Configure a webhook #5](./images/discord_configure_webhook_5.png)
 
-**Nous répétons les mêmes opérations pour la création du salon privé _*'bar'*_.**
+**Nous répétons les mêmes opérations pour la création du '*channel*' _'*podinfo*'_.**
 
 Les URLs des webhooks des salons sont les suivants :
 
-|Room|Webhook URL|
+|Channel|Webhook URL|
 |:---:|---|
-|**foo**|https://discord.com/api/webhooks/1234167966258561045/z-vEpmh08xnLZHypqKsjzUQd4FwdCDvFWhKAHaJKg7k6YbuU1VfkxqLROXme7ihb8jKP|
-|**bar**|https://discord.com/api/webhooks/1234169188231413912/ppnMSjYpE-efPic1AVIGlpZW0m5p_nzj8qiaqldJgd_u_O97Rhm5FJbQLlUg9z5DBC_0|
-|**podinfo**|https://discord.com/api/webhooks/1419360284967043092/u6U51ngQCambT6oz8eFk4kSgcWP3l4gtbd2uEO35OQwOD_hwHPg0S0tv2ma-AcVISD5F|
+|**agnhost**|https://discord.com/api/webhooks/1424064102791123036/JDExJGHiqCP9qcJiybnBhe8MTT_mu8lFlLM6QdYBh0RJ-5E4QUa4aGDflMjRATJwQq57|
+|**podinfo**|https://discord.com/api/webhooks/1424065205444415508/xEeNJVhhRpyu_mFOMWyYLJMuNhQjgr3tKPJYzs5eUHYYiNWnYgh_hMuZIABkJw8syPl4|
 
 
-### Enregistrement des webhook des salons Discord
+### Création d'un *secret* pour chaque *webhook*
 
-Ces informations sont considérées comme sensibles dans la mesure où quiconque en disposerait pourrait publier des informations dans nos salons privés. Nous les enregistrerons dans Kubernetes comme des *'secrets'*.
+Ces informations sont considérées comme sensibles dans la mesure où quiconque en disposerait pourrait publier des informations dans nos *channels* privés. Nous les enregistrerons dans Kubernetes comme des *'secrets'*.
 
 === "code"
     ```sh
-    export WEBHOOK_FOO="https://discord.com/api/webhooks/1234167966258561045/z-vEpmh08xnLZHypqKsjzUQd4FwdCDvFWhKAHaJKg7k6YbuU1VfkxqLROXme7ihb8jKP"
-    export WEBHOOK_BAR="https://discord.com/api/webhooks/1234169188231413912/ppnMSjYpE-efPic1AVIGlpZW0m5p_nzj8qiaqldJgd_u_O97Rhm5FJbQLlUg9z5DBC_0"
-    export WEBHOOK_PODINFO="https://discord.com/api/webhooks/1419360284967043092/u6U51ngQCambT6oz8eFk4kSgcWP3l4gtbd2uEO35OQwOD_hwHPg0S0tv2ma-AcVISD5F"
-    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    export WEBHOOK_AGNHOST="https://discord.com/api/webhooks/1424064102791123036/JDExJGHiqCP9qcJiybnBhe8MTT_mu8lFlLM6QdYBh0RJ-5E4QUa4aGDflMjRATJwQq57"
+    export WEBHOOK_PODINFO="https://discord.com/api/webhooks/1424065205444415508/xEeNJVhhRpyu_mFOMWyYLJMuNhQjgr3tKPJYzs5eUHYYiNWnYgh_hMuZIABkJw8syPl4"
 
-    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-
-    kubectl -n foo     create secret generic discord-webhook --from-literal=address=${WEBHOOK_FOO}     --dry-run=client -o yaml > apps/foo/discord-webhook.secret.yaml
-    kubectl -n bar     create secret generic discord-webhook --from-literal=address=${WEBHOOK_BAR}     --dry-run=client -o yaml > apps/bar/discord-webhook.secret.yaml
-    kubectl -n podinfo create secret generic discord-webhook --from-literal=address=${WEBHOOK_PODINFO} --dry-run=client -o yaml > apps/podinfo/discord-webhook.secret.yaml
+    kubectl -n agnhost create secret generic discord-webhook --from-literal=address=${WEBHOOK_AGNHOST}
+    kubectl -n podinfo create secret generic discord-webhook --from-literal=address=${WEBHOOK_PODINFO}
     ```
 
-=== "'foo' webhook"
+=== "webhook 'agnhost'"
     ```sh
     apiVersion: v1
     data:
-      address: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTIzNDE2Nzk2NjI1ODU2MTA0NS96LXZFcG1oMDh4bkxaSHlwcUtzanpVUWQ0RndkQ0R2RldoS0FIYUpLZzdrNllidVUxVmZreHFMUk9YbWU3aWhiOGpLUA==
+      address: ""
     kind: Secret
     metadata:
-      creationTimestamp: null
+      creationTimestamp: "2025-10-04T16:12:57Z"
       name: discord-webhook
-      namespace: foo
+      namespace: agnhost
+      resourceVersion: "392125"
+      uid: 3959e6fd-1d9
     ```
 
-=== "'bar' webhook"
+=== "webhook 'podinfo'"
     ```sh
     apiVersion: v1
     data:
-      address: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTIzNDE2OTE4ODIzMTQxMzkxMi9wcG5NU2pZcEUtZWZQaWMxQVZJR2xwWlcwbTVwX256ajhxaWFxbGRKZ2RfdV9POTdSaG01RkpiUUxsVWc5ejVEQkNfMA==
+      address: ""
     kind: Secret
     metadata:
-      creationTimestamp: null
-      name: discord-webhook
-      namespace: bar
-    ```
-
-=== "'podinfo' webhook"
-    ```sh
-    apiVersion: v1
-    data:
-      address: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTQxOTM2MDI4NDk2NzA0MzA5Mi91NlU1MW5nUUNhbWJUNm96OGVGazRrU2djV1AzbDRndGJkMnVFTzM1T1F3T0RfaHdIUGcwUzB0djJtYS1BY1ZJU0Q1Rg==
-    kind: Secret
-    metadata:
-      creationTimestamp: null
+      creationTimestamp: "2025-10-04T16:13:03Z"
       name: discord-webhook
       namespace: podinfo
+      resourceVersion: "392141"
+      uid: ef9c6856-c629-46ca-9cfd-6bd7ce8865e3
+    ‡type: Opaque
     ```
 
-### Création des _*'notification providers'*_
+### Définition des _'*notification providers*'_
 
 !!! Doc
     [https://fluxcd.io/flux/components/notification/providers/#discord](https://fluxcd.io/flux/components/notification/providers/#discord)
@@ -2115,18 +2115,10 @@ Ces informations sont considérées comme sensibles dans la mesure où quiconque
     flux create alert-provider discord \
       --type=discord \
       --secret-ref=discord-webhook \
-      --channel=foo \
+      --channel=agnhost \
       --username=FluxCD \
-      --namespace=foo \
-      --export > ./apps/foo/notification-provider.yaml
-
-    flux create alert-provider discord \
-      --type=discord \
-      --secret-ref=discord-webhook \
-      --channel=bar \
-      --username=FluxCD \
-      --namespace=bar \
-      --export > ./apps/bar/notification-provider.yaml
+      --namespace=agnhost \
+      --export > ./apps/agnhost/discord.notification-provider.yaml
 
     flux create alert-provider discord \
       --type=discord \
@@ -2134,42 +2126,26 @@ Ces informations sont considérées comme sensibles dans la mesure où quiconque
       --channel=podinfo \
       --username=FluxCD \
       --namespace=podinfo \
-      --export > ./apps/podinfo/notification-provider.yaml
+      --export > ./apps/podinfo/discord.notification-provider.yaml
     ```
 
-=== "'foo' notification provider"
+=== "agnhost"
     ```sh
     ---
-    apiVersion: notification.toolkit.fluxcd.io/v1beta2
+    apiVersion: notification.toolkit.fluxcd.io/v1beta3
     kind: Provider
     metadata:
       name: discord
-      namespace: foo
+      namespace: agnhost
     spec:
-      channel: foo
+      channel: agnhost
       secretRef:
         name: discord-webhook
       type: discord
       username: FluxCD
     ```
 
-=== "'bar' notification provider"
-    ```sh
-    ---
-    apiVersion: notification.toolkit.fluxcd.io/v1beta2
-    kind: Provider
-    metadata:
-      name: discord
-      namespace: bar
-    spec:
-      channel: bar
-      secretRef:
-        name: discord-webhook
-      type: discord
-      username: FluxCD
-    ```
-
-=== "'podinfo' notification provider"
+=== "podinfo"
     ```sh
     ---
     apiVersion: notification.toolkit.fluxcd.io/v1beta3
@@ -2185,7 +2161,9 @@ Ces informations sont considérées comme sensibles dans la mesure où quiconque
       username: FluxCD
     ```
 
-### Configuration des alertes Discord
+    ```
+
+### Configuration des alertes
 
 === "code"
     ```sh
@@ -2197,32 +2175,26 @@ Ces informations sont considérées comme sensibles dans la mesure où quiconque
       --event-severity=info \
       --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*,HelmRelease/*' \
       --provider-ref=discord \
-      --namespace=foo \
-      --export > apps/foo/notification-alert.yaml
+      --namespace=agnhost \
+      --export > apps/agnhost/discord.alert.yaml
 
-    flux create alert discord \
-      --event-severity=info \
-      --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*,HelmRelease/*' \
-      --provider-ref=discord \
-      --namespace=bar \
-      --export > apps/bar/notification-alert.yaml
 
     flux create alert discord \
       --event-severity=info \
       --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*,HelmRelease/*' \
       --provider-ref=discord \
       --namespace=podinfo \
-      --export > apps/podinfo/notification-alert.yaml
+      --export > apps/podinfo/discord.alert.yaml
     ```
 
-=== "'foo' alert"
+=== "agnhost"
     ```sh
     ---
-    apiVersion: notification.toolkit.fluxcd.io/v1beta2
+    apiVersion: notification.toolkit.fluxcd.io/v1beta3
     kind: Alert
     metadata:
       name: discord
-      namespace: foo
+      namespace: agnhost
     spec:
       eventSeverity: info
       eventSources:
@@ -2242,34 +2214,7 @@ Ces informations sont considérées comme sensibles dans la mesure où quiconque
         name: discord
     ```
 
-=== "'bar' alert"
-    ```sh
-    ---
-    apiVersion: notification.toolkit.fluxcd.io/v1beta2
-    kind: Alert
-    metadata:
-      name: discord
-      namespace: bar
-    spec:
-      eventSeverity: info
-      eventSources:
-      - kind: GitRepository
-        name: '*'
-      - kind: Kustomization
-        name: '*'
-      - kind: ImageRepository
-        name: '*'
-      - kind: ImagePolicy
-        name: '*'
-      - kind: HelmRepository
-        name: '*'
-      - kind: HelmRelease
-        name: '*'
-      providerRef:
-        name: discord
-    ```
-
-=== "'podinfo' alert"
+=== "podinfo"
     ```sh
     ---
     apiVersion: notification.toolkit.fluxcd.io/v1beta3
@@ -2307,7 +2252,7 @@ export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
 git add .
-git commit -m "'Setting up Discord alerting for foo, bar and podinfo applications."
+git commit -m "'Setting up Discord alerting for agnhost and podinfo applications."
 git push
 
 flux reconcile kustomization flux-system --with-source
@@ -2324,15 +2269,249 @@ Vérifions la bonne création des alertes et notification providers :
 === "output"
     ```sh
     NAMESPACE   NAME                                              AGE
-    bar         provider.notification.toolkit.fluxcd.io/discord   2m5s
-    foo         provider.notification.toolkit.fluxcd.io/discord   2m5s
-    podinfo     provider.notification.toolkit.fluxcd.io/discord   2m5s
+    agnhost     provider.notification.toolkit.fluxcd.io/discord   27s
+    podinfo     provider.notification.toolkit.fluxcd.io/discord   27s
 
     NAMESPACE   NAME                                           AGE
-    bar         alert.notification.toolkit.fluxcd.io/discord   2m5s
-    foo         alert.notification.toolkit.fluxcd.io/discord   2m5s
-    podinfo     alert.notification.toolkit.fluxcd.io/discord   2m5s
+    agnhost     alert.notification.toolkit.fluxcd.io/discord   27s
+    podinfo     alert.notification.toolkit.fluxcd.io/discord   27s
     ```
+
+### Tests
+
+#### Application '*agnhost*'
+
+
+##### Contexte
+
+Pour rappel, l'application '*agnhost*' est déployée sur notre cluster Kubernetes à la version `2.10` :
+
+=== "code"
+    ```sh
+    kubectl -n agnhost get deployment agnhost -o jsonpath='{.spec.template.spec.containers[].image}'
+    ```
+
+=== "output"
+    ```sh
+    registry.k8s.io/e2e-test-images/agnhost:2.10%
+    ```
+
+L'*ImageRepository* propose pourtant des images beaucoup récentes de l'application :
+
+=== "code"
+    ```sh
+    kubectl -n agnhost get imagerepository agnhost -o jsonpath='{.status.lastScanResult.latestTags}'  | jq -r
+    ```
+
+=== "output"
+    ```sh
+    [
+      "2.9",
+      "2.57",
+      "2.56",
+      "2.55",
+      "2.54",
+      "2.53",
+      "2.52",
+      "2.51",
+      "2.50",
+      "2.48"
+    ]
+    ```
+
+L'*ImagePolicy* que nous avons mise en place nous en donne la raison :
+
+=== "code"
+    ```sh
+    kubectl -n agnhost get imagepolicy -o jsonpath='{.items[].spec.policy}'
+    ```
+
+=== "output"
+    ```sh
+    {"numerical":{"order":"desc"}}%
+    ```
+
+Nous avons expressément demandé à Flux qu'il choisisse le tag (au format 'x.yz') le plus petit ('*order: desc*').
+
+
+##### Test
+
+Modifions notre *ImagePolicy* de sorte qu'il choisisse désormais l'image au tag numériquement le plus élevé (pour ne pas dire l'image la plus récente) et forçons la réconciliation :
+
+
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    gsed -i 's/order: desc/order: asc/' apps/foo/agnhost.imagepolicy.yaml
+
+    git add .
+    git commit -m "Modifying 'agnhost' image policy to get the latest image."
+    git push
+
+    flux reconcile kustomization flux-system --with-source
+    ``` 
+
+Surveillons nos pods pendant la réconciliation :
+
+=== "code"
+    ```sh
+    kubectl -n agnhost get pods -w
+    ```
+
+=== "output"
+    ```sh
+    NAME                       READY   STATUS    RESTARTS   AGE
+    agnhost-7cd476ffd6-l7v4m   1/1     Running   0          12m
+    agnhost-86d684f6bf-qsccn   0/1     Pending   0          0s
+    agnhost-86d684f6bf-qsccn   0/1     Pending   0          0s
+    agnhost-86d684f6bf-qsccn   0/1     ContainerCreating   0          0s
+    agnhost-86d684f6bf-qsccn   1/1     Running             0          1s
+    agnhost-7cd476ffd6-l7v4m   1/1     Terminating         0          14m
+    agnhost-7cd476ffd6-l7v4m   0/1     Completed           0          14m
+    agnhost-7cd476ffd6-l7v4m   0/1     Completed           0          14m
+    agnhost-7cd476ffd6-l7v4m   0/1     Completed           0          14m
+    ```
+
+Nous voyons le pod 'agnhost-7cd476ffd6-l7v4m' se faire remplacer par un nouveau pod 'agnhost-7cd476ffd6-l7v4m'.
+
+Pendant l'opération, le client *Discord* sonne et affiche des alertes :
+
+![Discord alerting for 'agnhost' app](images/discord_alerting_agnhost.png)
+
+
+
+#### Application '*podinfo*'
+
+
+##### Contexte
+
+L'application '*podinfo*' est déployée à la version `5.2.1` :
+
+=== "code"
+    ```sh
+    kubectl -n podinfo get helmrelease podinfo
+    ```
+
+=== "output"
+    ```sh
+    NAME      AGE     READY   STATUS
+    podinfo   6h42m   True    Helm upgrade succeeded for release podinfo/podinfo.v3 with chart podinfo@5.2.1
+    ```
+
+Nous savons qu'il ne s'agit pas de la version la plus récente :
+
+=== "code"
+    ```sh
+    export GITHUB_USER=papaFrancky
+    export GITHUB_TOKEN=<my_github_personal_access_token>
+
+    echo ${GITHUB_TOKEN} | docker login ghcr.io -u ${GITHUB_USER} --password-stdin
+
+    helm show chart oci://ghcr.io/stefanprodan/charts/podinfo
+    ```
+
+=== "output"
+    ```sh
+    Pulled: ghcr.io/stefanprodan/charts/podinfo:6.9.2
+    Digest: sha256:971fef0d04d5b3d03d035701dad59411ea0f60e28d16190f02469ddfe5587588
+    apiVersion: v1
+    appVersion: 6.9.2
+    description: Podinfo Helm chart for Kubernetes
+    home: https://github.com/stefanprodan/podinfo
+    kubeVersion: '>=1.23.0-0'
+    maintainers:
+    - email: stefanprodan@users.noreply.github.com
+      name: stefanprodan
+    name: podinfo
+    sources:
+    - https://github.com/stefanprodan/podinfo
+    version: 6.9.2
+    ```
+
+La version la plus récente de '*podinfo*' est taguée `6.9.2`
+
+Nous avions précisé dans la définition de la *HelmRelease* que nous ne voulions pas de versions >= 6.0.0 :
+
+=== "code"
+    ```sh
+    kubectl -n podinfo get helmrelease -o jsonpath='{.items[].spec.chart.spec.version}'
+    ```
+
+=== "output"
+    ```sh
+    <6.0.0%
+    ```
+
+##### Test
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+
+    gsed -i "s/version: <6.0.0/version: \'\*\'/" podinfo/podinfo.helmrelease.yaml
+
+    git add .
+    git commit -m 'Modified podinfo HelmRelease to get the latest app version.'
+    git push
+
+    flux -n podinfo reconcile kustomization podinfo --with-source
+
+    ```
+
+Surveillons les pods de l'application pendant la réconcliation :
+
+=== "code"
+    ```sh
+    kubectl -n podinfo get po -w
+    ```
+
+=== "output"
+    ```sh
+    NAME                     READY   STATUS    RESTARTS       AGE
+    podinfo-84865fdc-hfdsp   1/1     Running   1 (122m ago)   5h28m
+    podinfo-84865fdc-s9vnq   1/1     Running   1 (122m ago)   5h28m
+    podinfo-db75857bd-vdl6k   0/1     Pending   0              0s
+    podinfo-84865fdc-hfdsp    1/1     Terminating   1 (124m ago)   5h31m
+    podinfo-db75857bd-vdl6k   0/1     Pending       0              0s
+    podinfo-db75857bd-vdl6k   0/1     ContainerCreating   0              0s
+    podinfo-db75857bd-9c6pq   0/1     Pending             0              0s
+    podinfo-db75857bd-9c6pq   0/1     Pending             0              0s
+    podinfo-db75857bd-9c6pq   0/1     ContainerCreating   0              0s
+    podinfo-db75857bd-vdl6k   0/1     Running             0              2s
+    podinfo-db75857bd-9c6pq   0/1     Running             0              3s
+    podinfo-db75857bd-vdl6k   1/1     Running             0              3s
+    podinfo-84865fdc-s9vnq    1/1     Terminating         1 (124m ago)   5h31m
+    podinfo-84865fdc-hfdsp    0/1     Completed           1 (124m ago)   5h31m
+    podinfo-84865fdc-hfdsp    0/1     Completed           1 (124m ago)   5h31m
+    podinfo-84865fdc-hfdsp    0/1     Completed           1 (124m ago)   5h31m
+    podinfo-db75857bd-9c6pq   1/1     Running             0              4s
+    podinfo-84865fdc-s9vnq    0/1     Completed           1 (124m ago)   5h31m
+    podinfo-84865fdc-s9vnq    0/1     Completed           1 (124m ago)   5h31m
+    podinfo-84865fdc-s9vnq    0/1     Completed           1 (124m ago)   5h31m
+    ```
+
+Les pods `podinfo-84865fdc-hfdsp` et `podinfo-84865fdc-s9vnq` sont remplacés par deux nouveaux pods `podinfo-db75857bd-vdl6k` et `podinfo-db75857bd-vdl6k`.
+
+Vérifions la version de notre application maintenant : 
+
+=== "code"
+    ```sh
+    kubectl -n podinfo get helmrelease podinfo
+    ```
+
+=== "output"
+    ```sh
+    NAME      AGE     READY   STATUS
+    podinfo   7h18m   True    Helm upgrade succeeded for release podinfo/podinfo.v4 with chart podinfo@6.9.2
+    ```
+
+Nous sommes désormais bien à la version `6.9.2` de l'application '*podinfo*', soit la plus récente.
+
+XXXXX
+
 
 Testons leur bon fonctionnement : nous allons désacmodifier l'_*'Image Policy'*_ de l'application '*foo*' de sorte qu'elle installent la version la plus ancienne des images et non plus la plus récente :
 
@@ -2342,7 +2521,7 @@ Testons leur bon fonctionnement : nous allons désacmodifier l'_*'Image Policy'*
 
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
-    gsed -i 's/order: asc/order: desc/' apps/foo/agnhost.imagepolicy.yaml
+    gsed -i 's/order: asc/order: desc/' apps/agnhost/agnhost.imagepolicy.yaml
 
     git add .
     git commit -m "Modifying 'foo' image policy for testing purpose."
