@@ -1008,20 +1008,24 @@ Tout fonctionne comme attendu ! :fontawesome-regular-face-laugh-wink:
 
 
 
-XXXXX
+### Gestion des applications depuis un dépôt Helm
 
-## Gestion automatique des déploiements d'applications packagées avec Helm
+Nous venons de couvrir l'intégration continue d'une application dont le code source est hébergé dans un dépôt Git (GitHub dans notre cas).
 
-Nous venons de couvrir la mise en place du déploiement géré par FluxCD d'applications dont les manifests YAML sont hébergés dans un dépôt Git.
-Pour être complet, FluxCD gère également le déploiement d'applications packagées avec Helm et c'est ce sur quoi nous allons nous concentrer à présent.
+FluxCD est également capable de gérer des applications packagées avec **Helm** directement depuis leur dépôt de packages (et non plus de code source).
+C'est ce sur quoi nous allons nous concentrer à présent.
 
-Pour illustrer le déploiement d'applications Helm, nous déploierons l'application *'podinfo'* utilisée par le projet CNCF FluxCD pour faire des tests end-to-end et des workshops.
+Pour illustrer l'intégration continue d'applications packagées avec Helm, nous déploierons l'application *'podinfo'* utilisée par le projet CNCF FluxCD pour faire des tests end-to-end et des workshops.
 
 !!! info
     [https://github.com/stefanprodan/podinfo](https://github.com/stefanprodan/podinfo)
 
 
-### Namespace dédié à l'application *'podinfo'*
+#### Namespace dédié à l'application *'podinfo'*
+
+Comme pour la précédente application, nous devons créer le namespace qui hébergera l'application '*podinfo*'.
+
+Si nous ne créons pas le namespace, il nous sera impossible de définir de nouveaux objets Kubernetes qui doivent y être placés.
 
 === "code"
     ```sh
@@ -1031,37 +1035,52 @@ Pour illustrer le déploiement d'applications Helm, nous déploierons l'applicat
        mkdir apps/podinfo
 
        kubectl create namespace podinfo --dry-run=client -o yaml > ./apps/podinfo/namespace.yaml
-       kubectl apply -f ./apps/podinfo/namespace.yaml
+       kubectl apply -f ./apps/podinfo/podinfo.namespace.yaml
     ```
 
-=== "podinfo namespace"
+=== "namespace 'podinfo'"
     ```sh
     apiVersion: v1
     kind: Namespace
     metadata:
       creationTimestamp: null
-      name: foo
+      name: podinfo
     spec: {}
      status: {}
     ```
 
-### Le Helm Chart *'podinfo'*
 
-Le dépôt GitHub de l'application *'podinfo'* propose un Helm Chart :
+#### Le Helm Chart *'podinfo'*
+
+Le dépôt GitHub de l'application *'podinfo'* propose un Helm Chart.
+
+Il fait donc office de '*Helm Repository*' :
+
 ![Depot GitHub de l'application podinfo](./images/podinfo_github_repo.png)
 
-Nous y trouverons l'adresse où le récupérer : `oci://ghcr.io/stefanprodan/charts/podinfo`
+
+##### Adresse du Helm Chart '*podinfo*'
+
+Pour retrouver l'adresse où récupérer le '*Helm Chart*', cliquons sur le lien '*charts/podinfo*' dans la partie '*Packages*' dans la colonne de droite de la UI GitHub : 
 
 ![Depot GitHub de l'application podinfo](./images/podinfo_github_repo_2.png)
 
+L'URL du *Helm Chart* de '*podinfo*' est donc : `oci://ghcr.io/stefanprodan/charts/podinfo`.
+
+
+##### Authentification auprès du *Helm Repository*
 
 Nous devons commencer par nous authentifier auprès de la '*GitHub Container Registry*' :
 
 !!! doc
     [Authenticating to the GitHub container registry with a personal access token](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-with-a-personal-access-token-classic)
 
+Puisque notre *Helm Repository* est GitHub, nous utiliserons nos '*credentials*' sur cette plateforme, c'est à dire notre login et notre '*Personal Access Token*' (ou '*PAT*').
+
+Testons tout de suite avant d'écrire nos manifests YAML que nous confierons à FluxCD :
+
 === "code"
-    ```sh    
+    ```sh 
     export GITHUB_USER=papaFrancky
     export GITHUB_TOKEN=<my_github_personal_access_token>
 
@@ -1078,9 +1097,10 @@ Nous sommes désormais en mesure de l'interroger :
 === "code"
     ```sh
     helm show chart oci://ghcr.io/stefanprodan/charts/podinfo
+    helm show values oci://ghcr.io/stefanprodan/charts/podinfo
     ```
 
-=== "output"
+=== "'podinfo' Helm Chart information"
     ```sh
     Pulled: ghcr.io/stefanprodan/charts/podinfo:6.9.2
     Digest: sha256:971fef0d04d5b3d03d035701dad59411ea0f60e28d16190f02469ddfe5587588
@@ -1098,12 +1118,212 @@ Nous sommes désormais en mesure de l'interroger :
     version: 6.9.2    
     ```
 
-L'adresse du Helm Chart est vérifiée et exploitable, nous pouvons continuer.
+=== "'podinfo' Helm Chart values"
+    ```sh
+    Pulled: ghcr.io/stefanprodan/charts/podinfo:6.9.2
+    Digest: sha256:971fef0d04d5b3d03d035701dad59411ea0f60e28d16190f02469ddfe5587588
+    # Default values for podinfo.
+
+    replicaCount: 1
+    logLevel: info
+    host: #0.0.0.0
+    backend: #http://backend-podinfo:9898/echo
+    backends: []
+
+    image:
+      repository: ghcr.io/stefanprodan/podinfo
+      tag: 6.9.2
+      pullPolicy: IfNotPresent
+
+    ui:
+      color: "#34577c"
+      message: ""
+      logo: ""
+
+    # failure conditions
+    faults:
+      delay: false
+      error: false
+      unhealthy: false
+      unready: false
+      testFail: false
+      testTimeout: false
+
+    # Kubernetes Service settings
+    service:
+      enabled: true
+      annotations: {}
+      type: ClusterIP
+      metricsPort: 9797
+      httpPort: 9898
+      externalPort: 9898
+      grpcPort: 9999
+      grpcService: podinfo
+      nodePort: 31198
+      # the port used to bind the http port to the host
+      # NOTE: requires privileged container with NET_BIND_SERVICE capability -- this is useful for testing
+      # in local clusters such as kind without port forwarding
+      hostPort:
+
+    # enable h2c protocol (non-TLS version of HTTP/2)
+    h2c:
+      enabled: false
+
+    # config file settings
+    config:
+      # config file path
+      path: ""
+      # config file name
+      name: ""
+
+    # Additional command line arguments to pass to podinfo container
+    extraArgs: []
+
+    # enable tls on the podinfo service
+    tls:
+      enabled: false
+      # the name of the secret used to mount the certificate key pair
+      secretName:
+      # the path where the certificate key pair will be mounted
+      certPath: /data/cert
+      # the port used to host the tls endpoint on the service
+      port: 9899
+      # the port used to bind the tls port to the host
+      # NOTE: requires privileged container with NET_BIND_SERVICE capability -- this is useful for testing
+      # in local clusters such as kind without port forwarding
+      hostPort:
+
+    # create a certificate manager certificate (cert-manager required)
+    certificate:
+      create: false
+      # the issuer used to issue the certificate
+      issuerRef:
+        kind: ClusterIssuer
+        name: self-signed
+      # the hostname / subject alternative names for the certificate
+      dnsNames:
+        - podinfo
+
+    # metrics-server add-on required
+    hpa:
+      enabled: false
+      maxReplicas: 10
+      # average total CPU usage per pod (1-100)
+      cpu:
+      # average memory usage per pod (100Mi-1Gi)
+      memory:
+      # average http requests per second per pod (k8s-prometheus-adapter)
+      requests:
+
+    # Redis address in the format tcp://<host>:<port>
+    cache: ""
+    # Redis deployment
+    redis:
+      enabled: false
+      repository: redis
+      tag: 7.0.7
+
+    serviceAccount:
+      # Specifies whether a service account should be created
+      enabled: false
+      # The name of the service account to use.
+      # If not set and create is true, a name is generated using the fullname template
+      name:
+      # List of image pull secrets if pulling from private registries
+      imagePullSecrets: []
+
+    # set container security context
+    securityContext: {}
+
+    # set pod security context
+    podSecurityContext: {}
+
+    ingress:
+      enabled: false
+      className: ""
+      additionalLabels: {}
+      annotations: {}
+        # kubernetes.io/ingress.class: nginx
+        # kubernetes.io/tls-acme: "true"
+      hosts:
+        - host: podinfo.local
+          paths:
+            - path: /
+              pathType: ImplementationSpecific
+      tls: []
+      #  - secretName: chart-example-tls
+      #    hosts:
+      #      - chart-example.local
+
+    linkerd:
+      profile:
+        enabled: false
+
+    # create Prometheus Operator monitor
+    serviceMonitor:
+      enabled: false
+      interval: 15s
+      additionalLabels: {}
+
+    resources:
+      limits:
+      requests:
+        cpu: 1m
+        memory: 16Mi
+
+    # Extra environment variables for the podinfo container
+    extraEnvs: []
+    # Example on how to configure extraEnvs
+    #  - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+    #    value: "http://otel:4317"
+    #  - name: MULTIPLE_VALUES
+    #    value: TEST
+
+    nodeSelector: {}
+
+    tolerations: []
+
+    affinity: {}
+
+    podAnnotations: {}
+
+    # https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
+    topologySpreadConstraints: []
+
+    # Disruption budget will be configured only when the replicaCount is greater than 1
+    podDisruptionBudget: {}
+    #  maxUnavailable: 1
 
 
-### Définition du HelmRepository '*podinfo*'
+    # https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+    probes:
+      readiness:
+        initialDelaySeconds: 1
+        timeoutSeconds: 5
+        failureThreshold: 3
+        successThreshold: 1
+        periodSeconds: 10
+      liveness:
+        initialDelaySeconds: 1
+        timeoutSeconds: 5
+        failureThreshold: 3
+        successThreshold: 1
+        periodSeconds: 10
+      startup:
+        enable: false
+        initialDelaySeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 20
+        successThreshold: 1
+        periodSeconds: 10
+    ```
 
-#### Authentification à la Container Registry
+Nos '*credentials*' ainsi que l'adresse du Helm Chart sont vérifiés et exploitables, nous pouvons continuer.
+
+
+#### Définition du HelmRepository '*podinfo*'
+
+##### Authentification au Helm Repository
 
 Nous devons créer un '*secret*' de type '*Docker registry*' pour nous y authentifier, comme nous venons de le faire pour récupérer des informations à propos du Helm Chart. S'agissant d'un '*secret*', nous ne le placerons pas dans notre dépôt GitHub.
 
@@ -1112,15 +1332,37 @@ Nous devons créer un '*secret*' de type '*Docker registry*' pour nous y authent
     export GITHUB_USER=papafrancky
     export GITHUB_TOKEN=<my_github_personal_access_token>
 
-    kubectl create secret docker-registry github \
+    kubectl create secret docker-registry podinfo-helmrepository \
       --namespace=podinfo \
       --docker-server=ghcr.io \
       --docker-username=${GITHUB_USER} \
       --docker-password=${GITHUB_TOKEN}
+
+    kubectl -n podinfo get secret podinfo-helmrepository
+    ```
+
+=== "output"
+    ```sh
+    apiVersion: v1
+    items:
+    - apiVersion: v1
+      data:
+        .dockerconfigjson: eyJhdXRocyI6eyJnaGNyLmlvIjp7InVzZXJuYW1lIjoicGFwYWZyYX5ja9kiLCJwYXNzd29yZCI6ImdocF9vTmNQZHlQRU04SlllT4diN0VQYWZ6Yk1XQk5zNmQ0MFRuMUciLCJhdXRoIjoiY0dGd1lXWnlZVzVqYTNrNloyaHdYMjlPWTFCa2VWQkZUVGhLV1dWaloySTNSVkJoWm5waVRWZENUbk0yWkRRd0KHNHhSdz09In19fQ==
+      kind: Secret
+      metadata:
+        creationTimestamp: "2025-10-04T09:14:05Z"
+        name: podinfo-helmrepository
+        namespace: podinfo
+        resourceVersion: "356702"
+        uid: 431c3c9f-0790-49ed-928c-2e0f774b1da6
+      type: kubernetes.io/dockerconfigjson
+    kind: List
+    metadata:
+      resourceVersion: ""
     ```
 
 
-#### Définition du HelmRepository
+##### Définition du HelmRepository
 
 === "code"
     ```sh
@@ -1136,7 +1378,7 @@ Nous devons créer un '*secret*' de type '*Docker registry*' pour nous y authent
     --export > ./apps/podinfo/podinfo.helmrepository.yaml
 
     git add .
-    git commit -m 'Created namespace and helmrepository for podinfo application.'
+    git commit -m 'Defined helmrepository for podinfo application.'
     git push
     ```
 
@@ -1155,15 +1397,21 @@ Nous devons créer un '*secret*' de type '*Docker registry*' pour nous y authent
       url: https://stefanprodan.github.io/podinfo
     ```
 
+##### Définition de notre HelmRelease
+
+XXXXX
+
 #### Kustomization liée au dépôt GitHub de l'application '*podinfo*'
 
 Dans la ségrégation des rôles Dev|Ops, la définition de la HelmRelease incombera à l'équipe de Dev en charge de l'application.
+
 C'est elle qui personnalisera son application en surchargeant les valeurs par défaut de la Helm Chart utilisée.
+
 Ces objets seront donc définis dans des manifests YAML dans le dépôt GitHub dédié aux applications : `https://github.com/${GITHUB_USER}/k8s-kind-apps`.
 
 Nous devons indiquer à FluxCD qu'il doit gérer les manifests qu'il y trouvera dans le sous-répertoire dédié à '*podinfo*' : `./podinfo`
 
-
+C'est le rôle de la '*Kustomization*'.
 
 === "code"
     ```sh
@@ -1172,29 +1420,12 @@ Nous devons indiquer à FluxCD qu'il doit gérer les manifests qu'il y trouvera 
 
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
-    # Définition du 'secret' permettant de s'authentifier à GitHub
-    flux create secret git k8s-kind-apps \
-      --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-apps \
-      --namespace=podinfo
-
-    # Extraction de la clé publique (Deploy Key) pour l'ajouter sur le dépôt GitHub des applications :
-    kubectl -n podinfo get secret k8s-kind-apps -o jsonpath='{.data.identity\.pub}' | base64 -d
-
-    # Définition du GitRepository où FluxCD trouvera la définition de la HelmRelease et les 'custom values' :
-    flux create source git k8s-kind-apps \
-      --url=ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-apps.git \
-      --branch=main \
-      --secret-ref=k8s-kind-apps \
-      --namespace=podinfo \
-      --export > apps/podinfo/k8s-kind-apps.gitrepository.yaml
-
-    # Définition de la 'kustomization' pour le 'GitRepository' nouvellement défini :
     flux create kustomization podinfo \
       --source=GitRepository/k8s-kind-apps.foo \
       --path=./podinfo \
       --prune=true \
       --namespace=podinfo \
-      --export  > apps/podinfo/sync.yaml
+      --export  > apps/podinfo/podinfo.kustomization.yaml
     ```
 
 === "k8s-kind-apps secret"
