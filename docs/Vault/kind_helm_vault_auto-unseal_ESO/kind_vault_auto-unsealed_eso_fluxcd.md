@@ -444,71 +444,55 @@ La clé privée du service-account GCP 'k8s-kind-vault est transmise dans les 'e
 
 
 ```yaml
-global:
-  enabled: false
-  serverTelemetry:
-    prometheusOperator: true
+  global:
+    enabled: false
+    namespace: "vault"
 
-injector:
-  enabled: false
+  injector:
+    enabled: false
 
-server:
-  enabled: true
-  # Used to define commands to run after the pod is ready.
-  # This can be used to automate processes such as initialization
-  # or boostrapping auth methods.
-  postStart: []
-  # - /bin/sh
-  # - -c
-  # - /vault/userconfig/myscript/run.sh
-  extraEnvironmentVars:
-    GOOGLE_REGION: europe-west9
-    GOOGLE_PROJECT: vault-415918
-    GOOGLE_APPLICATION_CREDENTIALS: /vault/userconfig/kms-sa/k8s-kind-vault.creds.json
-  extraVolumes:
-    - type: secret
-      name: kms-sa
-      path: /vault/userconfig
-  dataStorage:
-    size: 1Gi
-  standalone:
+  server:
     enabled: true
-    config: |
-      ui = true
-
-      listener "tcp" {
-        tls_disable = 1
-        address = "[::]:8200"
-        cluster_address = "[::]:8201"
-        telemetry {
-          unauthenticated_metrics_access = "true"
-        }
-      }
-      storage "file" {
-        path = "/vault/data"
-      }
-      seal "gcpckms" {
-         project     = "vault-helm-dev-246514"
-         region      = "euope-west9"
-         key_ring    = "k8s-kind-vault"
-         crypto_key  = "k8s-kind-vault"
-      }
-      telemetry {
-        prometheus_retention_time = "30s"
-        disable_hostname = true
-      }
-  serviceAccount:
-    create: true
-    name: "vault"
-
-ui:
-  enabled: true
-
-serverTelemetry:
-  serviceMonitor:
-    enabled: true
-  prometheusRules:
+    extraEnvironmentVars:
+      GOOGLE_REGION: europe-west9
+      GOOGLE_PROJECT: vault-415918
+      GOOGLE_APPLICATION_CREDENTIALS: /vault/userconfig/kms-sa/k8s-kind-vault.creds.json
+    extraVolumes:
+      - type: secret
+        name: kms-sa
+        path: /vault/userconfig
+    dataStorage:
+      size: 1Gi
+    standalone:
       enabled: true
+      config: |
+        ui = true
+
+        listener "tcp" {
+          tls_disable = 1
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+          # Enable unauthenticated metrics access (necessary for Prometheus Operator)
+          #telemetry {
+          #  unauthenticated_metrics_access = "true"
+          #}
+        }
+        storage "file" {
+          path = "/vault/data"
+        }
+
+        seal "gcpckms" {
+           project     = "vault-helm-dev-246514"
+           region      = "euope-west9"
+           key_ring    = "k8s-kind-vault"
+           crypto_key  = "k8s-kind-vault"
+        }
+    serviceAccount:
+      create: true
+      name: "vault"
+
+  ui:
+    enabled: true
 ```
 
 
