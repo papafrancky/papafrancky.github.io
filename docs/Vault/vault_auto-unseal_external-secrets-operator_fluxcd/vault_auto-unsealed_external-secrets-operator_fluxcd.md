@@ -26,7 +26,7 @@ Le présent HOWTO décrit la mise en place d'un coffre ('**HashiCorp Vault**') d
 Nous commencerons par préparer notre environnement local, un namespace dédié à '*Vault*' et un autre à '*External Secrets Operator*'; puis nous mettrons l'alerting '*Discord*' en place, avant de déployer les 2 composants depuis leurs '*Helm Repositories*' respectifs avec une configuration adaptée à notre besoin.
 
 
-### Préparation de notre environnement de développement (local)
+## Préparation de notre environnement de développement (local)
 
 ```sh
 # Répertoire accueillant nos dépôts Git en local
@@ -44,7 +44,7 @@ mkdir -p ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/external-secrets
 
 
 
-### Namespace dédié à la gestion des secrets
+## Namespace dédié à la gestion des secrets
 
 ```sh
 kubectl create ns vault --dry-run=client -o yaml > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault/namespace.yaml
@@ -54,9 +54,9 @@ kubectl apply -f ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/external-secrets/nam
 ```
 
 
-### Alerting Discord
+## Alerting Discord
 
-Nous passerons vite sur cette partie, car nous l'avons déjà bien documentée dans le HOWTO précédent.
+Nous passerons vite sur cette partie, car nous l'avons déjà bien documentée [dans le HOWTO précédent](https://papafrancky.github.io/FluxCD/FluxCD_demonstration_par_l_exemple/#creation-dun-channel-dans-notre-serveur-discord).
 
 Nous utiliserons notre serveur Discord _*'k8s'*_ déjà existant et créerons pour **Vault** et pour **External Secrets** leur propre '*channel*' ainsi qu'un '*webhook*' associé.
 
@@ -68,8 +68,7 @@ Nous utiliserons notre serveur Discord _*'k8s'*_ déjà existant et créerons po
 |external-secrets|https://discord.com/api/webhooks/1426890931122208919/_isXhWPYEX1b2l_ST80xwUAuofsrPyWBUns5MyMkfXBKcsg_aK2Ay2Qtmbg0wU5Xe1Et|
 
 
-
-#### Définition des webhooks des *channels* Discord '*vault*' et '*external-secrets*'
+### Définition des webhooks des *channels* Discord '*vault*' et '*external-secrets*'
 
 === "code"
     ```sh
@@ -113,7 +112,7 @@ Nous utiliserons notre serveur Discord _*'k8s'*_ déjà existant et créerons po
 
 
 
-#### Discord notification provider
+### Discord notification provider
 
 === "code"
     ```sh
@@ -171,7 +170,7 @@ Nous utiliserons notre serveur Discord _*'k8s'*_ déjà existant et créerons po
     ```
 
 
-#### Discord alert
+### Discord alert
 
 === "code"
     ```sh
@@ -248,9 +247,8 @@ Nous utiliserons notre serveur Discord _*'k8s'*_ déjà existant et créerons po
         name: discord
     ```
 
-XXXXX
 
-#### Activation de l'alerting
+### Activation de l'alerting
 
 ```sh
 export LOCAL_GITHUB_REPOS="${HOME}/code/github"
@@ -258,7 +256,7 @@ export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
 git add .
-git commit -m "feat: setting up 'vault' Discord alerting."
+git commit -m "feat: setting up 'vault' and 'external secrets' Discord alerting."
 git push
 
 flux reconcile kustomization flux-system --with-source
@@ -268,21 +266,35 @@ Vérification :
 
 === "code"
     ```sh
-    kubectl -n vault get providers,alerts
+    kubectl -n vault            get providers,alerts
+    kubectl -n external-secrets get providers,alerts
     ```
 
-=== "output"
+=== "namespace 'vault'"
     ```sh
-    NAME                                              AGE   READY   STATUS
-    provider.notification.toolkit.fluxcd.io/discord   70s   True    Initialized
-    
-    NAME                                           AGE   READY   STATUS
-    alert.notification.toolkit.fluxcd.io/discord   70s   True    Initialized
+    NAME                                              AGE
+    provider.notification.toolkit.fluxcd.io/discord   2m49s
+
+    NAME                                           AGE
+    alert.notification.toolkit.fluxcd.io/discord   2m49s
+    ```
+
+=== "namespace 'external-secrets'"
+    ```sh
+    NAME                                              AGE
+    provider.notification.toolkit.fluxcd.io/discord   2m49s
+
+    NAME                                           AGE
+    alert.notification.toolkit.fluxcd.io/discord   2m49s
     ```
 
 
+## Helm repositories
 
-### Helm repositories
+!!! Doc
+    Vault helm chart - [https://developer.hashicorp.com/vault/docs/deploy/kubernetes/helm](https://developer.hashicorp.com/vault/docs/deploy/kubernetes/helm)
+
+    External secrets operator - [https://external-secrets.io/latest/introduction/getting-started/#installing-with-helm](https://external-secrets.io/latest/introduction/getting-started/#installing-with-helm)
 
 Nous allons définir au niveau de FluxCD les _*'Helm registries'*_ pour installer sur notre cluster l'**External Secrets Operator** et **HashiCorp Vault OSS** :
 
@@ -296,19 +308,25 @@ Nous allons définir au niveau de FluxCD les _*'Helm registries'*_ pour installe
       --url=https://helm.releases.hashicorp.com \
       --namespace=vault \
       --interval=1m \
-      --export > apps/vault/vault.helm-repository.yaml
+      --export > apps/vault/hashicorp.helmrepository.yaml
 
     flux create source helm external-secrets \
       --url=https://charts.external-secrets.io \
-      --namespace=vault \
+      --namespace=external-secrets \
       --interval=1m \
-      --export > apps/vault/external-secrets.helm-repository.yaml
+      --export > apps/external-secrets/external-secrets.helmrepository.yaml
+
+    git add .
+    git commit -m "feat: Defined 'hashicorp' and 'external-secrets' helm repositories." 
+    git push
+
+    flux reconcile kustomization flux-system --with-source
     ```
 
 === "'hashicorp' helm repository"
-    ```sh
+    ```yaml
     ---
-    apiVersion: source.toolkit.fluxcd.io/v1beta2
+    apiVersion: source.toolkit.fluxcd.io/v1
     kind: HelmRepository
     metadata:
       name: hashicorp
@@ -319,38 +337,282 @@ Nous allons définir au niveau de FluxCD les _*'Helm registries'*_ pour installe
     ```
 
 === "'external-secrets' helm repository"
-    ```sh
+    ```yaml
     ---
-    apiVersion: source.toolkit.fluxcd.io/v1beta2
+    apiVersion: source.toolkit.fluxcd.io/v1
     kind: HelmRepository
     metadata:
       name: external-secrets
-      namespace: vault
+      namespace: externel-secrets
     spec:
       interval: 1m0s
       url: https://charts.external-secrets.io
     ```
 
-### Prise en compte des changements
 
-Il est temps de soumettre nos changements à FluxCD :
+Discord nous informe tout de suite de la bonne création des _*'Helm registries'*_ :
+
+![Hashicorp HelmRepository creation alert](./images/alert_hashicorp_helmrepository_creation.png)
+
+![External-secrets HelmRepository creation alert](./images/alert_external-secrets_helmrepository_creation.png)
 
 
-```sh
-export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 
-cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+## Déploiement de l'**External Secrets Operator (ESO)**
 
-git add .
-git commit -m "feat: preparing vault -> discord alerting, helm repositories." 
-git push
+La solution fonctionne '*as-is*' : il n'est pas nécessaire de personnaliser la configuration de l'opérateur.
 
-flux reconcile kustomization flux-system --with-source
-```
+Nous allons donc nous contenter de définir dans le dépôt GitHub que nous avons dédié à nos applications (`k8s-kind-apps`) une **Helm Release** depuis la *Helm Chart* '*external-secrets*' sans '*custom values*'.
 
-Discord nous informe tout de suite de la bonne création du _*'Helm registry'*_ :
 
-![Discord initialisation du namespace 'vault'](./images/discord_vault_init.png)
+### Le GitRepository dédié aux applications
+
+Commençons par définir le dépôt Git où nous définirons notre Helm Release.
+
+#### Création et installation de la '**Deploy Key**'
+
+Pour accéder à notre **GitRepository**, nous devons nous authentifier.
+
+=== "code"
+    ```sh
+    export GITHUB_USERNAME=papafrancky
+
+    flux create secret git k8s-kind-apps-gitrepository-deploykeys \
+      --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-apps \
+      --namespace=external-secrets
+    
+    kubectl -n external-secrets get secret k8s-kind-apps-gitrepository-deploykeys -o yaml
+    ```
+
+=== "output"
+    ```yaml
+    apiVersion: v1
+    data:
+      identity: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JRzJBZ0VBTUJBR0J5cUdTTTQ5QWdFR0JTdUJCQUFpQklHZU1JR2JBZ0VCQkREdnlWSWRMWjNlamYvTHBPb1AKdnVrbVp4Uzg3ZG15dFROaFV0MDFoTUlTU29KVHJseW94TjNKdndTUnJkY2VRdjZoWkFOaUFBUUwvYlB5SGhYRApmVElKSkR4OEZKTXhSMG5aNDRuU091a25lWEtWUUZWRVlobFBYVHB0Wm80SzR1MDl0UysvSHZVT0FUdG8rTkM2CklzWDNMLzJQazVieFdXZlVSRHFRWWtOcElPekpwcG1lMUJLZ2Z2cklpaEJCSEFpY2NHWGRpdVE9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
+      identity.pub: ZWNkc2Etc2hhMi1uaXN0cDM4NCBBQUFBRTJWalpITmhMWE5vWVRJdGJtbHpkSEF6T0RRQUFBQUlibWx6ZEhBek9EUUFBQUJoQkF2OXMvSWVGY045TWdra1BId1VrekZIU2RuamlkSTY2U2Q1Y3BWQVZVUmlHVTlkT20xbWpncmk3VDIxTDc4ZTlRNEJPMmo0MExvaXhmY3YvWStUbHZGWlo5UkVPcEJpUTJrZzdNbW1tWjdVRXFCKytzaUtFRUVjQ0p4d1pkMks1QT09Cg==
+      known_hosts: Z2l0aHViLmNvbSBlY2RzYS1zaGEyLW5pc3RwMjU2IEFBQUFFMlZqWkhOaExYTm9ZVEl0Ym1semRIQXlOVFlBQUFBSWJtbHpkSEF5TlRZQUFBQkJCRW1LU0VOalFFZXpPbXhrWk15N29wS2d3RkI5bmt0NVlScllNak51RzVOODd1UmdnNkNMcmJvNXdBZFQveTZ2MG1LVjBVMncwV1oyWUIvKytUcG9ja2c9
+    kind: Secret
+    metadata:
+      creationTimestamp: "2025-10-12T17:10:52Z"
+      name: k8s-kind-apps-gitrepository-deploykeys
+      namespace: external-secrets
+      resourceVersion: "486819"
+      uid: 632669dc-9f66-4876-bc67-ece788d3ca55
+    type: Opaque
+    ```
+
+Nous devons déployer la **Deploy Key** (ie. la clé publique du jeu de clés que nous venons de créer) sur notre dépôt GitHub '*k8s-kind-apps*'.
+
+Commençons par récupérer notre clé publique depuis le *secret* que nous venons de créer : 
+
+=== "code"
+    ```sh
+    kubectl -n external-secrets get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity\.pub}' | base64 -
+    ```
+
+=== "output"
+    ```yaml
+    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBAv9s/IeFcN9MgkkPHwUkzFHSdnjidI66Sd5cpVAVURiGU9dOm1mjgri7T21L78e9Q4BO2j40Loixfcv/Y+TlvFZZ9REOpBiQ2kg7MmmmZ7UEqB++siKEEEcCJxwZd2K5A==
+    ```
+
+Intégrons-la enfin sur le dépôt GitHub dédié à nos applications :
+
+![External-secrets Deploy Key](./images/external-secrets_deploy_key.png)
+
+![External-secrets Deploy Key](./images/external-secrets_deploy_key.2.png)
+
+
+
+
+#### Définition du GitRepository
+
+Nous avons défini la '**Deploy Key**', nous pouvons désormais définir le dépôt Git :
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    export GITHUB_USERNAME=papafrancky
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    flux create source git k8s-kind-apps \
+      --url=ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-apps.git \
+      --branch=main \
+      --secret-ref=k8s-kind-apps-gitrepository-deploykeys \
+      --namespace=external-secrets \
+      --export > apps/external-secrets/k8s-kind-apps.gitrepository.yaml
+    ```
+
+=== "'k8s-kind-apps' GitRepository"
+    ```yaml
+    ---
+    apiVersion: source.toolkit.fluxcd.io/v1
+    kind: GitRepository
+    metadata:
+      name: k8s-kind-apps
+      namespace: external-secrets
+    spec:
+      interval: 1m0s
+      ref:
+        branch: main
+      secretRef:
+        name: k8s-kind-apps-gitrepository-deploykeys
+      url: ssh://git@github.com/papafrancky/k8s-kind-apps.git
+    ```
+
+
+### La **Kustomization** 'external-secrets'
+
+Nous devons demander à FluxCD de surveiller le sous-répertoire que nous dédierons à l'**External Secrets Operator** sur le dépôt GitHub dédié aux applications :
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    flux create kustomization external-secrets \
+      --source=GitRepository/k8s-kind-apps.external-secrets \
+      --path=./external-secrets \
+      --prune=true \
+      --namespace=external-secrets \
+      --export  > apps/external-secrets/external-secrets.kustomization.yaml
+    
+    git add .
+    git commit -m 'feat: Defined a deploy key, a git repository and a kustomization for external secrets operator.'
+    git push
+
+    flux reconcile kustomization flux-system --with-source
+    ```
+
+=== "'external-secrets' kustomization"
+    ```yaml
+    ---
+    apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    metadata:
+      name: external-secrets
+      namespace: external-secrets
+    spec:
+      interval: 1m0s
+      path: ./external-secrets
+      prune: true
+      sourceRef:
+        kind: GitRepository
+        name: k8s-kind-apps
+        namespace: external-secrets
+    ```
+
+Discord prévient d'une erreur liée à la *kustomization* '*external-secrets*' :
+
+![](./images/alert_external-secrets_kustomization_error.png)
+
+C'est peut-être normal : dans le dépôt `k8s-kind-apps`, le sous-répertoire `./external-secrets` est vide. Il est temps d'y définir la **HelmRelease**.
+
+
+### La Helm Release 'external-secrets'
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+    mkdir external-secrets
+    
+    flux create helmrelease external-secrets \
+      --source=HelmRepository/external-secrets \
+      --chart=external-secrets \
+      --namespace=external-secrets \
+      --export > ./external-secrets/external-secrets.helmrelease.yaml
+
+    git add .
+    git commit -m 'feat: Defined external-secrets helm release.'
+    git push
+
+    flux -n external-secrets reconcile kustomization external-secrets --with-source
+    ```
+
+=== "'external-secrets' Helm release"
+    ```yaml
+    ---
+    apiVersion: helm.toolkit.fluxcd.io/v2
+    kind: HelmRelease
+    metadata:
+      name: external-secrets
+      namespace: external-secrets
+    spec:
+      chart:
+        spec:
+          chart: external-secrets
+          reconcileStrategy: ChartVersion
+          sourceRef:
+            kind: HelmRepository
+            name: external-secrets
+      interval: 1m0s
+    ```
+
+Discord nous annonce la résolution du problème autour de la *kustomization* '*external secrets*' ainsi que le bon déploiement de la Helm release :
+
+![external-secrets Helm release deployment](./images/discord_external-secrets_helm_release.png)
+
+
+Regardons quels objets ont été déployés sur le cluster :
+
+=== "code"
+    ```sh
+    kubectl -n external-secrets get all -l app.kubernetes.io/name=external-secrets
+    ```
+
+=== "output"
+    ```sh
+    NAME                                   READY   STATUS    RESTARTS   AGE
+    pod/external-secrets-f44d64679-446nt   1/1     Running   0          10m
+
+    NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
+    deployment.apps/external-secrets   1/1     1            1           10m
+
+    NAME                                         DESIRED   CURRENT   READY   AGE
+    replicaset.apps/external-secrets-f44d64679   1         1         1       10m
+    ```
+
+Effectons une dernière vérification : 
+
+=== "code"
+    ```sh
+    kubectl -n external-secrets get all
+    ```
+
+=== "output"
+    ```sh
+    NAME                                                   READY   STATUS    RESTARTS   AGE
+    pod/external-secrets-cert-controller-6658f6fb8-2bsrj   1/1     Running   0          12m
+    pod/external-secrets-f44d64679-446nt                   1/1     Running   0          12m
+    pod/external-secrets-webhook-955948cd4-599dt           1/1     Running   0          12m
+
+    NAME                               TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)   AGE
+    service/external-secrets-webhook   ClusterIP   10.43.39.24   <none>        443/TCP   12m
+
+    NAME                                               READY   UP-TO-DATE   AVAILABLE   AGE
+    deployment.apps/external-secrets                   1/1     1            1           12m
+    deployment.apps/external-secrets-cert-controller   1/1     1            1           12m
+    deployment.apps/external-secrets-webhook           1/1     1            1           12m
+
+    NAME                                                         DESIRED   CURRENT   READY   AGE
+    replicaset.apps/external-secrets-cert-controller-6658f6fb8   1         1         1       12m
+    replicaset.apps/external-secrets-f44d64679                   1         1         1       12m
+    replicaset.apps/external-secrets-webhook-955948cd4           1         1         1       12m
+    ```
+
+
+!!! Success
+    **'External-Secrets Operator (ESO)'** est déployé correctement sur notre cluster ! :fontawesome-regular-face-laugh-wink:
+
+
+
+## Déploiement de **Vault OSS**
+
+
+XXXXX
+
 
 
 
