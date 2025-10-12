@@ -1,23 +1,29 @@
-# Déploiement de Vault (auto-unsealed) et ESO via FluxCD sur un cluster KinD
+# Déploiement de Vault (auto-unsealed) et External Secrets Operator via FluxCD
 
 ## Abstract
 
-Ce howto fait suite au howto ['kube-prometheus-stack' managed with FluxCD](https://papafrancky.github.io/Prometheus_and_Grafana/kube-prometheus-stack_managed_with_fluxcd/).
+Ce howto fait suite au howto ['FluxCD / FluxCD - Démonstration par l'exemple](https://papafrancky.github.io/FluxCD/FluxCD_demonstration_par_l_exemple/).
 
-Jusqu'à présent, nous disposons d'un cluster KinD piloté par FluxCD et sur lequel nous avons déployé une stack de monitoring Prometheus complète. Nous continuons l'enrichissement de notre cluster en lui ajoutant cette fois-ci une solution de protection de nos données sensibles (ie. des _*'secrets'*_) : HashiCorp Vault OSS.
+Jusqu'à présent, nous disposons d'un cluster Kubernetes piloté par FluxCD et sur lequel nous avons déployé deux applications : 
 
-Pour interagir avec ce dernier, nous déploierons également l'**External Secrets Operator** (ESO).
+* '**agnhost**', dont le code source est accessible depuis un dépôt Git (GitHub dans notre cas);
+* '**podinfo**', application packagée avec *Helm* et que nous avons récupérée directement depuis sont dépôt *Helm* (ou '*Helm Repository*').
+  
+Ces applications sont monitorées via '*Discord*', une messagerie instantanée, qui nous alerte lorsqu'une modification est apportée aux applications.
 
-Pour illustrer le bon fonctionnement de ces outils, nous confierons à Vault le login et le mot de passe du compte d'administration de Grafana.
+Pour déployer nos applications, nous avons dû définir des '*secrets*' sur notre cluster Kubernetes. Pour des raisons évidentes de sécurité, nous ne les avons pas écrits dans notre code pour qu'ils ne se retrouvent pas sur nos dépôts Git.
 
-!!! tip
-    Nous nous inspirerons fortement des _**howtos**_ que nous avons déjà produits sur **Vault** et **External Secrets Operator**.
+Le présent HOWTO décrit la mise en place d'un coffre ('**HashiCorp Vault**') dans lequel nous placerons nos '*secrets*', et installerons également '**External Secrets Operator**' (ou '**ESO**') pour interagir avec ce dernier depuis les namespaces Kubernetes.
+
+!!! Doc
+    Vault - [https://developer.hashicorp.com/vault](https://developer.hashicorp.com/vault)
+
+    External Secrets Operator - [https://external-secrets.io/latest/](https://external-secrets.io/latest/)
 
 
+## Mode opératoire
 
-## Préparatifs
-
-Nous commencerons par préparer notre environnement local, un namespace dédié à la gestion des secrets, l'alerting Discord et définir les dépôts Helm avant de nous atteler à Vault et ESO.
+Nous commencerons par préparer notre environnement local, un namespace dédié à '*Vault*' et un autre à '*External Secrets Operator*'; puis nous mettrons l'alerting '*Discord*' en place, avant de déployer les 2 composants depuis leurs '*Helm Repositories*' respectifs avec une configuration adaptée à notre besoin.
 
 
 ### Préparation de notre environnement de développement (local)
@@ -32,6 +38,8 @@ cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd && git pull
 
 # Création d'un répertoire dédié à la gestion des secrets
 mkdir -p ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault
+mkdir -p ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/external-secrets
+
 ```
 
 
@@ -40,46 +48,72 @@ mkdir -p ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault
 
 ```sh
 kubectl create ns vault --dry-run=client -o yaml > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault/namespace.yaml
+kubectl create ns external-secrets --dry-run=client -o yaml > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/external-secrets/namespace.yaml
 kubectl apply -f ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault/namespace.yaml
+kubectl apply -f ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/external-secrets/namespace.yaml
 ```
 
 
 ### Alerting Discord
 
-Nous passerons vite sur cette partie, car nous l'avons déjà bien documentée dans les howtos précédents.
+Nous passerons vite sur cette partie, car nous l'avons déjà bien documentée dans le HOWTO précédent.
 
-Nous utiliserons notre serveur Discord _*'k8s-kind'*_ déjà existant et partirons du principe que vous avez déjà créé un salon textuel privé nommé **'vault'** ainsi qu'un webhook **'FluxCD'** associé.
+Nous utiliserons notre serveur Discord _*'k8s'*_ déjà existant et créerons pour **Vault** et pour **External Secrets** leur propre '*channel*' ainsi qu'un '*webhook*' associé.
+
+![Vault and External Secrets Operator new Discord channels](./images/discord_vault_and_external-secrets_channels.png)
+
+|Discord Channel|WebHook URL|
+|---|---|
+|vault|https://discord.com/api/webhooks/1426889931195813968/5IuDXdjRNlpmaszWgRxHt4-P1QottSfWgFdg9bmuTSbwuquRpDZNus1U0AvRMyp26VMu|
+|external-secrets|https://discord.com/api/webhooks/1426890931122208919/_isXhWPYEX1b2l_ST80xwUAuofsrPyWBUns5MyMkfXBKcsg_aK2Ay2Qtmbg0wU5Xe1Et|
 
 
 
-#### webhook du salon Discord
+#### Définition des webhooks des *channels* Discord '*vault*' et '*external-secrets*'
 
 === "code"
     ```sh
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-    export WEBHOOK_VAULT="https://discord.com/api/webhooks/1243971721745399809/G49lALsZgmXriz5xzJ0GqJ9WizUt9ADc38VrVN_yjENerABboe8k_JGcfG8MXSsiTLyJ"
+    export WEBHOOK_VAULT="https://discord.com/api/webhooks/1426889931195813968/5IuDXdjRNlpmaszWgRxHt4-P1QottSfWgFdg9bmuTSbwuquRpDZNus1U0AvRMyp26VMu"
+    export WEBHOOK_EXTERNAL_SECRETS="https://discord.com/api/webhooks/1426890931122208919/_isXhWPYEX1b2l_ST80xwUAuofsrPyWBUns5=MyMkfXBKcsg_aK2Ay2Qtmbg0wU5Xe1Et"
     
-    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-    
-    kubectl -n vault create secret generic discord-webhook --from-literal=address=${WEBHOOK_VAULT} --dry-run=client -o yaml > apps/vault/discord-webhook.secret.yaml
-    kubectl apply -f apps/vault/discord-webhook.secret.yaml
+    kubectl -n vault            create secret generic discord-webhook --from-literal=address=${WEBHOOK_VAULT}
+    kubectl -n external-secrets create secret generic discord-webhook --from-literal=address=${WEBHOOK_EXTERNAL_SECRETS} 
     ```
 
-=== "'discord-webhook' secret"
-    ```sh
+=== "vault"
+    ```yaml
     apiVersion: v1
     data:
-      address: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTI0Mzk3MTcyMTc0NTM5OTgwOS9HNDlsQUxzWmdtWHJpejV4ekowR3FKOVdpelV0OUFEYzM4VnJWTl95akVOZXJBQmJvZThrX0pHY2ZHOE1YU3NpVEx5Sg==
+      address: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTQyNjg4OTkzMTE5NTgxMzk2OC81SXVEWGRqUk5scG1hc3pXZ1J4SHQ0LVAxUW90dFNmV2dGZGc5Ym11VFNid3VxdVJwRFpOdXMxVTBBdlJNeXAyNlZNdQ==
     kind: Secret
     metadata:
-      creationTimestamp: null
+      creationTimestamp: "2025-10-12T11:40:41Z"
       name: discord-webhook
       namespace: vault
+      resourceVersion: "472479"
+      uid: 3fcebb03-80a6-4edd-abf6-b9c41d8657da
+    type: Opaque
+    ```
+
+=== "external-secrets"
+    ```yaml
+    apiVersion: v1
+    data:
+      address: aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTQyNjg5MDkzMTEyMjIwODkxOS9faXNYaFdQWUVYMWIybF9TVDgweHdVQXVvZnNyUHlXQlVuczU9TXlNa2ZYQktjc2dfYUsyQXkyUXRtYmcwd1U1WGUxRXQ=
+    kind: Secret
+    metadata:
+      creationTimestamp: "2025-10-12T11:40:41Z"
+      name: discord-webhook
+      namespace: external-secrets
+      resourceVersion: "472480"
+      uid: f16617d0-129b-4ce5-b0f4-a4bc084f223f
+    type: Opaque
     ```
 
 
 
-#### Alert-provider
+#### Discord notification provider
 
 === "code"
     ```sh
@@ -94,12 +128,20 @@ Nous utiliserons notre serveur Discord _*'k8s-kind'*_ déjà existant et partiro
       --username=FluxCD \
       --namespace=vault \
       --export > apps/vault/notification-provider.yaml
+
+    flux create alert-provider discord \
+      --type=discord \
+      --secret-ref=discord-webhook \
+      --channel=external-secrets \
+      --username=FluxCD \
+      --namespace=external-secrets \
+      --export > apps/external-secrets/notification-provider.yaml
     ```
 
-=== "'discord-webhook' alert-provider"
-    ```sh
+=== "vault"
+    ```yaml
     ---
-    apiVersion: notification.toolkit.fluxcd.io/v1beta2
+    apiVersion: notification.toolkit.fluxcd.io/v1beta3
     kind: Provider
     metadata:
       name: discord
@@ -112,9 +154,24 @@ Nous utiliserons notre serveur Discord _*'k8s-kind'*_ déjà existant et partiro
       username: FluxCD
     ```
 
+=== "external-secrets"
+    ```yaml
+    ---
+    apiVersion: notification.toolkit.fluxcd.io/v1beta3
+    kind: Provider
+    metadata:
+      name: discord
+      namespace: external-secrets
+    spec:
+      channel: external-secrets
+      secretRef:
+        name: discord-webhook
+      type: discord
+      username: FluxCD
+    ```
 
 
-#### Alert
+#### Discord alert
 
 === "code"
     ```sh
@@ -128,10 +185,17 @@ Nous utiliserons notre serveur Discord _*'k8s-kind'*_ déjà existant et partiro
       --provider-ref=discord \
       --namespace=vault \
       --export > apps/vault/notification-alert.yaml
+
+    flux create alert discord \
+      --event-severity=info \
+      --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*,HelmRelease/*' \
+      --provider-ref=discord \
+      --namespace=external-secrets \
+      --export > apps/external-secrets/notification-alert.yaml
     ```
 
-=== "'discord' alert"
-    ```sh
+=== "vault"
+    ```yaml
     ---
     apiVersion: notification.toolkit.fluxcd.io/v1beta2
     kind: Alert
@@ -157,7 +221,34 @@ Nous utiliserons notre serveur Discord _*'k8s-kind'*_ déjà existant et partiro
         name: discord
     ```
 
+=== "external-secrets"
+    ```yaml
+    ---
+    apiVersion: notification.toolkit.fluxcd.io/v1beta3
+    kind: Alert
+    metadata:
+      name: discord
+      namespace: external-secrets
+    spec:
+      eventSeverity: info
+      eventSources:
+      - kind: GitRepository
+        name: '*'
+      - kind: Kustomization
+        name: '*'
+      - kind: ImageRepository
+        name: '*'
+      - kind: ImagePolicy
+        name: '*'
+      - kind: HelmRepository
+        name: '*'
+      - kind: HelmRelease
+        name: '*'
+      providerRef:
+        name: discord
+    ```
 
+XXXXX
 
 #### Activation de l'alerting
 
@@ -507,19 +598,21 @@ Nous pouvons désormais définir notre 'helm release' pour que FluxCD puiss egé
 === "code"
     ```sh
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
     
     flux create helmrelease vault \
       --source=HelmRepository/hashicorp \
       --chart=vault \
       --namespace=vault \
-      --values=${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault/vault.custom.values.txt \
-      --export > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault/vault.helm-release.yaml
+      --from-values=ConfigMap/vault-values
+      --export > ./apps/vault/vault.helm-release.yaml
     ```
 
 === "'vault' helm release"
     ```yaml
     ---
-    apiVersion: helm.toolkit.fluxcd.io/v2beta1
+    apiVersion: helm.toolkit.fluxcd.io/v2
     kind: HelmRelease
     metadata:
       name: vault
@@ -533,64 +626,9 @@ Nous pouvons désormais définir notre 'helm release' pour que FluxCD puiss egé
             kind: HelmRepository
             name: hashicorp
       interval: 1m0s
-      values:
-        global:
-          serverTelemetry:
-            prometheusOperator: true
-        injector:
-          affinity: {}
-        server:
-          extraEnvironmentVars:
-            GOOGLE_APPLICATION_CREDENTIALS: /vault/userconfig/kms-sa/k8s-kind-vault.creds.json
-            GOOGLE_PROJECT: vault-415918
-            GOOGLE_REGION: europe-west9
-          extraVolumes:
-          - name: kms-sa
-            path: /vault/userconfig
-            type: secret
-          ha:
-            enabled: true
-            raft:
-              config: |
-                ui = true
-    
-                listener "tcp" {
-                  tls_disable = 1
-                  address = "[::]:8200"
-                  cluster_address = "[::]:8201"
-                  # Enable unauthenticated metrics access (necessary for Prometheus Operator)
-                  telemetry {
-                    unauthenticated_metrics_access = "true"
-                  }
-                }
-    
-                storage "raft" {
-                  path = "/vault/data"
-                }
-    
-                service_registration "kubernetes" {}
-    
-                # Example configuration for using auto-unseal, using Google Cloud KMS. The
-                # GKMS keys must already exist, and the cluster must have a service account
-                # that is authorized to access GCP KMS.
-                seal "gcpckms" {
-                   project     = "vault-415918"
-                   region      = "europe-west9"
-                   key_ring    = "k8s-kind-vault"
-                   crypto_key  = "k8s-kind-vault"
-                }
-                # Example configuration for enabling Prometheus metrics.
-                # If you are using Prometheus Operator you can enable a ServiceMonitor resource below.
-                # You may wish to enable unauthenticated metrics in the listener block above.
-                telemetry {
-                  prometheus_retention_time = "30s"
-                  disable_hostname = true
-                }
-              enabled: true
-            replicas: 1
-        serverTelemetry:
-          serviceMonitor:
-            enabled: true
+      valuesFrom:
+      - kind: ConfigMap
+        name: vault-values
     ```
 
 Poussons les modifications jusqu'à FluxCD :
