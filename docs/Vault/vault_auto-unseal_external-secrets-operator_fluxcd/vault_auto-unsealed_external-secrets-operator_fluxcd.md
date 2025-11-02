@@ -616,8 +616,12 @@ Effectons une dernière vérification :
 
 Le mécanisme d'*auto-unseal* de Vault repose sur l'utilisation d'un service de gestion de clés (ie. '*Key Management System*', ou '*KMS*') proposé par un '*Cloud Service Provider*' ('*CSP*'). Notre choix s'est porté sur la plateforme '*Google Cloud Platform*' ('*CGP*') mais tout autre *CSP* proposant un *KMS* aurait pu faire l'affaire.
 
+!!! info
+    https://developer.hashicorp.com/vault/tutorials/auto-unseal/autounseal-gcp-kms
 
-#### Compte GCP, projet, etc...
+
+
+#### Projet GCP
 
 Nous disposons d'un compte GCP et avons préalablement créé un projet dont voici les informations essentielles :
 
@@ -632,13 +636,18 @@ Nous disposons d'un compte GCP et avons préalablement créé un projet dont voi
 
 Pour consommer les services GCP, il faut activer leurs APIs.
 
+|APIs à activer|
+|---|
+|Cloud Key Management Service (KMS) API|
+|Compute Engine API|
+
 
 ##### Activation via la console (web UI)
 
 !!! tip
     APIs & Services > Enabled APIs & Services > + ENABLE APIS AND SERVICES
 
-Sélectionner 'Enabled APIs and Services' dnas la colonne de gauche :
+Sélectionner 'Enabled APIs and Services' dans la colonne de gauche :
 ![Enabled APIs and services](./images/gcp.enable_apis.01.png)
 
 Ajout d'une nouvelle API :
@@ -671,39 +680,33 @@ Activation de l'API Compute :
 
 ##### Activation via *gcloud* (CLI)
 
-=== "code"
-    ```sh
-    # gcloud update
-    gcloud components update --quiet
+```sh
+# gcloud update
+gcloud components update --quiet
 
-    # Authentification
-    gcloud auth login
+# Authentification
+gcloud auth login
 
-    # Affichage des projets existants
-    gcloud projects list
-    # PROJECT_ID   NAME         PROJECT_NUMBER
-    # papafrancky  papaFrancky  11623004919
+# Affichage des projets existants
+gcloud projects list
+  # PROJECT_ID   NAME         PROJECT_NUMBER
+  # papafrancky  papaFrancky  11623004919
 
-    # Sélection du projet papaFrancky
-    gcloud config set project papafrancky
+# Sélection du projet papaFrancky
+gcloud config set project papafrancky
 
-    # Activation des APIS 'cloudkms' et 'compute'
-    gcloud services enable cloudkms.googleapis.com compute.googleapis.com
+# Activation des APIS 'cloudkms' et 'compute'
+gcloud services enable cloudkms.googleapis.com compute.googleapis.com
 
-    # Vérification de la bonne activation des APIS
-    gcloud services list | grep -E 'kms|compute'    
-    ```
-
-|APIs activées|
-|---|
-|Cloud Key Management Service (KMS) API|
-|Compute Engine API|
+# Vérification de la bonne activation des APIS
+gcloud services list | grep -E 'kms|compute'    
+```
 
 
 
 #### Service account
 
-Vault utilisera un service-account GCP (en fournissant ses credentials) qui disposera des droits d'accès à une clé hébergée dans le *Key Management Service (KMS)* de *GCP*. Paramétré en mode auto-unseal, Vault se servira de cette clé comme "root key" pour protèger l'"encryption key".
+Vault utilisera un service-account GCP (en fournissant ses credentials) qui disposera des droits d'accès à une clé hébergée dans le *Key Management Service (KMS)* de *GCP*. Paramétré en mode auto-unseal, Vault se servira de cette clé comme *root key* pour protèger l'*encryption key*.
 
 
 ##### Création du service account via la console (Web UI)
@@ -821,9 +824,6 @@ Il s'agit maintenant de créer dans le service GCP '*KMS*' la clé qui servira d
 !!! Warning
     Avant de créer la clé, nous devons créer son trousseau (ou _*'key ring'*_).
 
-
-###### Création du trousseau (ou '*key ring*') et de sa clé via la console (Web UI)
-
 Informations concernant le trousseau :
 
 |KEY|VALUE|
@@ -836,11 +836,15 @@ Informations concernant la clé  :
 
 |KEY|VALUE|
 |---|---|
-|Key name|k8s-kind-vault|
+|Key name|k8s-vault|
 |Protection level|software|
 |Key material|generated|
 |Purpose and algorithm|symmetric encrypt/decrypt|
 |Key rotation|90d|
+
+
+###### Création du trousseau (ou '*key ring*') et de sa clé via la console (Web UI)
+
 
 ![Création du trouseau KMS et de sa clé #1](./images/gcp.kms.key.01.png)
 
@@ -871,146 +875,363 @@ Informations concernant la clé  :
       --next-rotation-time "2025-11-01T00:00:00"
     ```
 
-XXXXX
-
 
 #### Accès du service account à la clé
 
-Il nous reste à autoriser notre service account ***'k8s-kind-vault@vault-415918.iam.gserviceaccount.com'*** à accéder à la clé que nous venons de créer et de rattacher à son trousseau.
-
-!!! tip
-    Security > Key Management > k8s-kind-vault (key ring) > k8s-kind-vault (key) > PERMISSIONS > + GRANT ACCESS
+Il nous reste à autoriser notre service account ***'k8s-vault@papafrancky.iam.gserviceaccount.com'*** à accéder à la clé que nous venons de créer.
 
 |KEY|VALUE|
 |---|---|
-|Principal|k8s-kind-vault@vault-415918.iam.gserviceaccount.com|
+|Principal|k8s-vault@papafrancky.iam.gserviceaccount.com|
 |Role|Cloud KMS Viewer|
 |Role|Cloud KMS CryptoKey Encrypter/Decrypter|
 
-Nous en avons fini avec les préparatifs côté GCP ^^
+
+##### Accès du service account à la clé via la console (Web UI)
+
+!!! tip
+    Security > Key Management > k8s-vault (key ring) > k8s-vault (key) > PERMISSIONS > + GRANT ACCESS
 
 
---- reprendre ici ---
+![Autorisation d'accès du service account à la clé KMS #1](./images/gcp.kms.grant_access.01.png)
 
-Nous allons maintenant créer un service-account dans GCP et lui donner accès à une clé KMS que Vault utilisera pour son auto-unsealing.
+![Autorisation d'accès du service account à la clé KMS #2](./images/gcp.kms.grant_access.02.png)
 
-!!! info
-    https://developer.hashicorp.com/vault/tutorials/auto-unseal/autounseal-gcp-kms
+![Autorisation d'accès du service account à la clé KMS #3](./images/gcp.kms.grant_access.03.png)
+
+![Autorisation d'accès du service account à la clé KMS #4](./images/gcp.kms.grant_access.04.png)
+
+![Autorisation d'accès du service account à la clé KMS #5](./images/gcp.kms.grant_access.05.png)
+
+![Autorisation d'accès du service account à la clé KMS #6](./images/gcp.kms.grant_access.06.png)
+
+![Autorisation d'accès du service account à la clé KMS #7](./images/gcp.kms.grant_access.07.png)
+
+![Autorisation d'accès du service account à la clé KMS #8](./images/gcp.kms.grant_access.08.png)
+
+![Autorisation d'accès du service account à la clé KMS #9](./images/gcp.kms.grant_access.09.png)
+
+![Autorisation d'accès du service account à la clé KMS #10](./images/gcp.kms.grant_access.10.png)
+
+
+##### Accès du service account à la clé via gcloud (CLI)
+
+!!! Doc
+    [https://cloud.google.com/kms/docs/iam#granting_permissions_to_use_keys](https://cloud.google.com/kms/docs/iam#granting_permissions_to_use_keys)
+
+
+Donnons les accès souhaités à notre service account '*k8s-vault*' sur la clé KMS :
+
+```sh
+gcloud kms keys add-iam-policy-binding k8s-vault \
+  --keyring k8s-vault \
+  --location europe-west9 \
+  --member serviceAccount:k8s-vault@papafrancky.iam.gserviceaccount.com \
+  --role roles/cloudkms.viewe
+gcloud kms keys add-iam-policy-binding k8s-vault \
+  --keyring k8s-vault \
+  --location europe-west9 \
+  --member serviceAccount:k8s-vault@papafrancky.iam.gserviceaccount.com \
+  --role roles/cloudkms.cryptoKeyEncrypterDecrypter
+```
+
+
+Vérifions l'opération :
+
+=== "code"
+    ```sh
+    gcloud kms keys get-iam-policy k8s-vault \
+      --keyring k8s-vault \
+      --location europe-west9
+    ```
+
+=== "output"
+    ```sh
+    bindings:
+    - members:
+      - serviceAccount:k8s-vault@papafrancky.iam.gserviceaccount.com
+      role: roles/cloudkms.cryptoKeyEncrypterDecrypter
+    - members:
+      - serviceAccount:k8s-vault@papafrancky.iam.gserviceaccount.com
+      role: roles/cloudkms.viewer
+    etag: BwZCnYs5aTQ=
+    version: 1
+    ```
+
+Nous en avons fini avec les préparatifs côté GCP :fontawesome-regular-face-laugh-wink:
 
 
 
-
-
-
-
-## Mise en place de Vault en mode 'auto-unseal'
+### Mise en place de Vault en mode 'auto-unseal'
 
 Nous couvrirons dans cette section l'installation de Vault, son initialisation et son _*unsealing*_.
 
 
-### 'Custom values'
+#### Dépôt GitHub
 
-Pour configurer Vault en mode _*'auto-unseal'*_, nous devons modifier la configuration par défaut du Helm Chart.
-
-
-#### Récupération des 'Default values'
+La définition de la '*HelmRelease*' ainsi que ses '*custom values*' sera hébergée dans un sous-répertoire déddié à **Vault**, dans le dépôt GitHub des applications gérées par FluxCD :
 
 ```sh
 export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+mkdir vault
+```
 
+
+#### 'Custom values'
+
+Les '*Helm Charts*' viennent toujours avec des '*default values*' et **Vault** ne fait pas exception à la règle.
+
+Pour consulter les '*custom values*' de **Vault** :
+
+```sh
+helm show values hashicorp/vault
+```
+
+Nous souhaitons déployer sur notre cluster Kubernetes Vault en mode standalone et en 'auto-unseal', ce qui ne correspond pas au paramétrage proposé par les '*default values*'.
+
+Sur la base de ces dernières, nous allons écrire les '*custom values*' de notre instance **Vault** pour arriver à nos fins. Nous stockerons nos '*custom values*' dans un '*ConfigMap*' :
+
+!!! Warning
+    Nous déploierons ici Vault en mode **'standalone'**, ce qui ne se prête pas à un contexte de production.
+
+Notre pod Vault aura besoin de la clé privée du service-account GCP '*k8s-vault*' pour accéder à la clé KMS qui débloquera Vault ('*unsealing*'). Cette clé privée est récupérée à partir du *secret* Kubernetes '*k8s-vault-gcp-service-account-key*' qui sera monté dans le répertoire '*/vault/userconfig*' du pod.
+
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
+mkdir vault
+# Ecriture des 'custom values' du HelmChart vault dans un fichier 'values.yaml' :
+cat << EOF > ./vault/values.yaml
+global:
+  enabled: false
+  namespace: "vault"
+injector:
+  enabled: false
+server:
+  enabled: true
+  extraEnvironmentVars:
+    GOOGLE_REGION: europe-west9
+    GOOGLE_PROJECT: papafrancky
+    GOOGLE_APPLICATION_CREDENTIALS: /vault/userconfig/k8s-vault-gcp-service-account-keyk8s-vaultservice-account.private-key.json
+  extraVolumes:
+    - type: secret
+      name: k8s-vault-gcp-service-account-key
+      path: /vault/userconfig
+  dataStorage:
+    size: 1Gi
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+      listener "tcp" {
+        tls_disable = 1
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+        # Enable unauthenticated metrics access (necessary for Prometheus Operator)
+        #telemetry {
+        #  unauthenticated_metrics_access = "true"
+        #}
+      }
+      storage "file" {
+        path = "/vault/data"
+      }
+      seal "gcpckms" {
+         project     = "papafrancky"
+         region      = "euope-west9"
+         key_ring    = "k8s-vault"
+         crypto_key  = "k8s-vault"
+      }
+  serviceAccount:
+    create: true
+    name: "vault"
+ui:
+  enabled: true
+EOF
+
+# Création du ConfigMap :
+kubectl -n vault create configmap vault-values \
+  --from-file=./vault/vault-values.yaml \
+  --dry-run=client \
+  -o yaml > ./vault/vault.values.yaml
+
+# Suppression du fichier values.yaml :
+/bin/rm ./vault/values.yaml
+```
+
+
+#### Helm release Vault
+
+
+##### Le GitRepository dédié à Vault
+
+###### Création et installation de la '**Deploy Key**'
+
+La '*deploy key*' va permettre à FluxCD de s'authentifier auprès du dépôt GitHub dédié à nos applications. Nous avons pris le partir de fournir une '*deploy key*' par application.
+
+=== "code"
+    ```sh
+    export GITHUB_USERNAME=papafrancky
+
+    flux create secret git k8s-kind-apps-gitrepository-deploykeys \
+      --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-apps \
+      --namespace=vault \
+      --export > 
+    
+    kubectl -n vault get secret k8s-kind-apps-gitrepository-deploykeys -o yaml
+    ```
+
+=== "output"
+    ```yaml
+      apiVersion: v1
+      data:
+        identity:       LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JRzJBZ0VBTUJBR0J5cUdTTTQ5QWdFR0JTdUJCQUFpQklHZU1JR2JBZ0VCQkRCZ     kIrbnV3VUVuOWxKc0NQMTIKR0NoZzIrYVJ5c2dKem95b2xVMEJZT09KL29kRjJIdFRMd0k1a1FXb2lGYVBld3FoWkFOaUFBVHZTal     ZrNWF0eQpMSDhWUVhVV0pCdlFBbXJYVFd2K1RCQVRoMGZwcmsxbmJxS1hlc1pab0d4eGFJWElYMEJiZi9FZXdMTWxNRWUrClVqRVV   FSE4veGF4b1E3ZnAwV2NkeGtnV1loVkF4ZU15Z09EQXU3TzhBK1l6K3RVT0h5U1NKSTA9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0t      LS0K
+        identity.pub:       ZWNkc2Etc2hhMi1uaXN0cDM4NCBBQUFBRTJWalpITmhMWE5vWVRJdGJtbHpkSEF6T0RRQUFBQUlibWx6ZEhBek9EUUFBQUJoQk85S     05XVGxxM0lzZnhWQmRSWWtHOUFDYXRkTmEvNU1FQk9IUittdVRXZHVvcGQ2eGxtZ2JIRm9oY2hmUUZ0LzhSN0FzeVV3Ujc1U01SUV     FjMy9GckdoRHQrblJaeDNHU0JaaUZVREY0ektBNE1DN3M3d0Q1alA2MVE0ZkpKSWtqUT09Cg==
+        known_hosts:      Z2l0aHViLmNvbSBlY2RzYS1zaGEyLW5pc3RwMjU2IEFBQUFFMlZqWkhOaExYTm9ZVEl0Ym1semRIQXlOVFlBQUFBSWJtbHpkSEF5T     lRZQUFBQkJCRW1LU0VOalFFZXpPbXhrWk15N29wS2d3RkI5bmt0NVlScllNak51RzVOODd1UmdnNkNMcmJvNXdBZFQveTZ2MG1LVj   BVMncwV1oyWUIvKytUcG9ja2c9
+      kind: Secret
+      metadata:
+        creationTimestamp: "2025-11-02T17:40:12Z"
+        name: k8s-kind-apps-gitrepository-deploykeys
+        namespace: vault
+        resourceVersion: "829103"
+        uid: b213f750-58a1-40af-afb7-53eb765a2985
+      type: Opaque
+    ```
+
+Nous devons déployer la **Deploy Key** sur notre dépôt GitHub '*k8s-kind-apps*' comme nous l'avons fait précédemment pour '*external secrets operator*'.
+
+Commençons par récupérer notre clé publique depuis le *secret* que nous venons de créer : 
+
+=== "code"
+    ```sh
+    kubectl -n vault get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity\.pub}' | base64 -D
+    ```
+
+=== "output"
+    ```yaml
+    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBO9KNWTlq3IsfxVBdRYkG9ACatdNa/5MEBOHR+muTWduopd6xlmgbHFohchfQFt/8R7AsyUwR75SMRQQc3/FrGhDt+nRZx3GSBZiFUDF4zKA4MC7s7wD5jP61Q4fJJIkjQ==
+    ```
+
+Intégrons-la enfin sur le dépôt GitHub dédié à nos applications :
+
+![Vault Deploy Key #1](./images/vault.deploy_key.01.png)
+
+![Vault Deploy Key #2](./images/vault.deploy_key.02.png)
+
+![Vault Deploy Key #3](./images/vault.deploy_key.03.png)
+
+
+
+###### Le GitRepository dédié aux applications
+
+Nous avons défini la '**Deploy Key**', nous pouvons désormais définir le dépôt Git :
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    export GITHUB_USERNAME=papafrancky
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    flux create source git k8s-kind-apps \
+      --url=ssh://git@github.com/${GITHUB_USERNAME}/k8s-kind-apps.git \
+      --branch=main \
+      --secret-ref=k8s-kind-apps-gitrepository-deploykeys \
+      --namespace=vault \
+      --export > apps/vault/k8s-kind-apps.gitrepository.yaml
+    ```
+
+=== "'k8s-kind-apps' GitRepository"
+    ```yaml
+    ---
+    apiVersion: source.toolkit.fluxcd.io/v1
+    kind: GitRepository
+    metadata:
+      name: k8s-kind-apps
+      namespace: external-secrets
+    spec:
+      interval: 1m0s
+      ref:
+        branch: main
+      secretRef:
+        name: k8s-kind-apps-gitrepository-deploykeys
+      url: ssh://git@github.com/papafrancky/k8s-kind-apps.git
+    ```
+
+Forçons FluxCD à créer ce nouvel objet :
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+git add .
+git commit -m 'Defined k8s-kind-apps GitRepository in namespace vault.'
+git push
 
-helm show values hashicorp/vault > apps/vault/vault.default.values.txt
-```
-
-!!! warning
-    Bien que le fichier récupéré soit en **YAML**, nous modifierons son extention en **.TXT** pour qu'il ne soit pas interprété par FluxCD.
-
-
-
-#### Création du fichier 'Custom values'
-
-Dans le même répertoire, nous créerons notre fichier 'values' sur la base du fichier que nous venons de récupérer, et le nommerons ***'vault.custom.values.txt'***
-
-Nous déploierons ici Vault en mode *'standalone'*, ce qui ne se prête pas à un contexte de production.
-
-La clé privée du service-account GCP 'k8s-kind-vault est transmise dans les 'extraEnvironmentVars', récupérés depuis le secret Kubernetes *'kms-sa'* et monté dans '/vault/userconfig'.
-
-
-
-```yaml
-  global:
-    enabled: false
-    namespace: "vault"
-
-  injector:
-    enabled: false
-
-  server:
-    enabled: true
-    extraEnvironmentVars:
-      GOOGLE_REGION: europe-west9
-      GOOGLE_PROJECT: vault-415918
-      GOOGLE_APPLICATION_CREDENTIALS: /vault/userconfig/kms-sa/k8s-kind-vault.creds.json
-    extraVolumes:
-      - type: secret
-        name: kms-sa
-        path: /vault/userconfig
-    dataStorage:
-      size: 1Gi
-    standalone:
-      enabled: true
-      config: |
-        ui = true
-
-        listener "tcp" {
-          tls_disable = 1
-          address = "[::]:8200"
-          cluster_address = "[::]:8201"
-          # Enable unauthenticated metrics access (necessary for Prometheus Operator)
-          #telemetry {
-          #  unauthenticated_metrics_access = "true"
-          #}
-        }
-        storage "file" {
-          path = "/vault/data"
-        }
-
-        seal "gcpckms" {
-           project     = "vault-helm-dev-246514"
-           region      = "euope-west9"
-           key_ring    = "k8s-kind-vault"
-           crypto_key  = "k8s-kind-vault"
-        }
-    serviceAccount:
-      create: true
-      name: "vault"
-
-  ui:
-    enabled: true
+flux reconcile kustomization flux-system --with-source
 ```
 
 
 
-### Helm release
+##### La Kustomization pour Vault
+
+Nous devons dire à Flux qu'il doit gérer le sous-répertoire '*vault*' dans le dépôt Git dédié à nos applications :
+
+```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    # Définition de la kustomization Vault :
+    flux create kustomization vault \
+      --source=GitRepository/k8s-kind-apps.vault \
+      --path=./vault \
+      --prune=true \
+      --namespace=vault \
+      --export  > apps/vault/vault.kustomization.yaml
+```
+
+Poussons nos modifications sur GitHub pour une prise en compte par FluxCD :
+
+```sh
+   export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+   cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+   git add .
+   git commit -m 'Defined kustomization for Vault application.'
+   git push
+   
+   flux reconcile kustomization flux-system --with-source
+```
+
+Discord nous remonte une erreur dans le channel vault : 
+
+![Vault kustomization Deployment](./images/vault_kustomization.deployment.png)
 
 
-#### Installation de la Release
 
-Nous pouvons désormais définir notre 'helm release' pour que FluxCD puiss egérer le déploiement de Vault :
+##### La Helm Release Vault
+
+Nous définirons la HelmRelease de Vault et ses '*custom values*' dans le dépôt Git dédié à nos applications, comme nous l'avons fait précédemment pour '*external secrets operator*' :
+
+
+
+###### Définition de la Release
+
+Nous pouvons désormais définir notre 'helm release' pour que FluxCD puisse gérer le déploiement de Vault :
 
 === "code"
     ```sh
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 
-    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
     
     flux create helmrelease vault \
       --source=HelmRepository/hashicorp \
       --chart=vault \
       --namespace=vault \
-      --from-values=ConfigMap/vault-values
-      --export > ./apps/vault/vault.helm-release.yaml
+      --values-from=ConfigMap/vault-values \
+      --export > ./vault/vault.helm-release.yaml
     ```
 
 === "'vault' helm release"
@@ -1040,18 +1261,24 @@ Poussons les modifications jusqu'à FluxCD :
 ```sh
 export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 
-cd ${HOME}/code/github/k8s-kind-fluxcd
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps
 
 git add .
 git commit -m "feat: vault helm release with custom values"
 git push
 
-flux reconcile kustomization flux-system --with-source
+flux reconcile kustomization fluxsystem --with-source
+flux -n vault reconcile kustomization vault --with-source
 ```
 
-Discord nous informe tout de suite de la création de la Helm Release nommée *'vault'* dans le namespace *'vault'* ("helmrelease/vault.vault") :
+Discord nous annonce que la kustomization 'vault' est désormais bien fonctionnelle (notre dernier commit a créé le sous-répertoire 'vault' attendu) et que Vault est bien déployé sur notre cluster :
 
-![Vault Helm release installation](./images/vault_helm_release.png)
+![Vault Helm Release Deployment](./images/vault_helm_release.deployment.png)
+
+
+
+
+XXXXX
 
 Regardons l'état de nos objets dans le namespace 'vault' :
 
@@ -1062,25 +1289,16 @@ Regardons l'état de nos objets dans le namespace 'vault' :
 
 === "output"
     ```sh
-    NAME                                        READY   STATUS    RESTARTS   AGE
-    pod/vault-0                                 0/1     Running   0          9s
-    pod/vault-agent-injector-755c8bb799-j7f9w   1/1     Running   0          10s
-    
-    NAME                               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)             AGE
-    service/vault                      ClusterIP   10.96.166.217   <none>        8200/TCP,8201/TCP   10s
-    service/vault-active               ClusterIP   10.96.17.218    <none>        8200/TCP,8201/TCP   10s
-    service/vault-agent-injector-svc   ClusterIP   10.96.181.53    <none>        443/TCP             10s
-    service/vault-internal             ClusterIP   None            <none>        8200/TCP,8201/TCP   10s
-    service/vault-standby              ClusterIP   10.96.123.15    <none>        8200/TCP,8201/TCP   10s
-    
-    NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
-    deployment.apps/vault-agent-injector   1/1     1            1           10s
-    
-    NAME                                              DESIRED   CURRENT   READY   AGE
-    replicaset.apps/vault-agent-injector-755c8bb799   1         1         1       10s
+    NAME          READY   STATUS             RESTARTS        AGE
+    pod/vault-0   0/1     CrashLoopBackOff   6 (2m10s ago)   8m5s
+
+    NAME                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)             AGE
+    service/vault            ClusterIP   10.43.76.26     <none>        8200/TCP,8201/TCP   8m5s
+    service/vault-internal   ClusterIP   None            <none>        8200/TCP,8201/TCP   8m5s
+    service/vault-ui         ClusterIP   10.43.131.120   <none>        8200/TCP            8m5s
     
     NAME                     READY   AGE
-    statefulset.apps/vault   0/1     10s
+    statefulset.apps/vault   0/1     8m5s
     ```
 
 Nous voyons que le pod 'vault-0' à un status 'Running' mais qu'il n'est pas 'ready'. Vérifions l'état de Vault sur le pod : 
