@@ -611,14 +611,10 @@ Effectons une dernière vérification :
 ## Déploiement de **Vault OSS**
 
 
-XXXXX
-
-
-
 
 ### Google Cloud Platform
 
-Le mécanisme d'auto-unseal de Vault repose sur les service d'un Cloud Service Provider (CSP). Notre choix s'est porté sur Google Cloud Platform (CGP) mais tout autre CSP proposant un service de gestion de clés aurait pu faire l'affaire.
+Le mécanisme d'*auto-unseal* de Vault repose sur l'utilisation d'un service de gestion de clés (ie. '*Key Management System*', ou '*KMS*') proposé par un '*Cloud Service Provider*' ('*CSP*'). Notre choix s'est porté sur la plateforme '*Google Cloud Platform*' ('*CGP*') mais tout autre *CSP* proposant un *KMS* aurait pu faire l'affaire.
 
 
 #### Compte GCP, projet, etc...
@@ -627,9 +623,8 @@ Nous disposons d'un compte GCP et avons préalablement créé un projet dont voi
 
 |KEY|VALUE|
 |---:|---|
-|Project Name|vault|
-|Project ID|vault-415918|
-|||
+|Project Name|papaFrancky|
+|Project ID|papafrancky|
 
 
 
@@ -637,8 +632,67 @@ Nous disposons d'un compte GCP et avons préalablement créé un projet dont voi
 
 Pour consommer les services GCP, il faut activer leurs APIs.
 
+
+##### Activation via la console (web UI)
+
 !!! tip
     APIs & Services > Enabled APIs & Services > + ENABLE APIS AND SERVICES
+
+Sélectionner 'Enabled APIs and Services' dnas la colonne de gauche :
+![Enabled APIs and services](./images/gcp.enable_apis.01.png)
+
+Ajout d'une nouvelle API :
+![Ajout d'une nouvelle API](./images/gcp.enable_apis.02.png)
+
+Recherche de l'API KMS :
+![Recherche de l'API KMS](./images/gcp.enable_apis.03.png)
+
+Sélection de l'API KMS :
+![Sélection de l'API KMS](./images/gcp.enable_apis.04.png)
+
+Activation de l'API KMS :
+![Activation de l'API KMS](./images/gcp.enable_apis.05.png)
+
+Ajout d'une nouvelle API :
+![Ajout d'une nouvelle API](./images/gcp.enable_apis.02.png)
+
+Validation et retour à la recherche d'APIs :
+![Validation et retour à la recherche d'APIs](./images/gcp.enable_apis.06.png)
+
+Recherche de l'API Compute :
+![Recherche de l'API Compute](./images/gcp.enable_apis.07.png)
+
+Sélection de l'API Compute :
+![Sélection de l'API Compute](./images/gcp.enable_apis.08.png)
+
+Activation de l'API Compute :
+![Activation de l'API Compute](./images/gcp.enable_apis.09.png)
+
+
+##### Activation via *gcloud* (CLI)
+
+=== "code"
+    ```sh
+    # gcloud update
+    gcloud components update --quiet
+
+    # Authentification
+    gcloud auth login
+
+    # Affichage des projets existants
+    gcloud projects list
+    # PROJECT_ID   NAME         PROJECT_NUMBER
+    # papafrancky  papaFrancky  11623004919
+
+    # Sélection du projet papaFrancky
+    gcloud config set project papafrancky
+
+    # Activation des APIS 'cloudkms' et 'compute'
+    gcloud services enable cloudkms.googleapis.com compute.googleapis.com
+
+    # Vérification de la bonne activation des APIS
+    gcloud services list | grep -E 'kms|compute'    
+    ```
 
 |APIs activées|
 |---|
@@ -647,81 +701,138 @@ Pour consommer les services GCP, il faut activer leurs APIs.
 
 
 
-#### Service-account
+#### Service account
 
-Vault utilisera un service-account GCP (en fournissant ses credentials) qui disposera des droits d'accès à une clé hébergée chez GCP (via Key Management Service KMS). Paramétré en mode auto-unseal, Vault se servira de cette clé comme "root key" qui protège l'"encryption key".
+Vault utilisera un service-account GCP (en fournissant ses credentials) qui disposera des droits d'accès à une clé hébergée dans le *Key Management Service (KMS)* de *GCP*. Paramétré en mode auto-unseal, Vault se servira de cette clé comme "root key" pour protèger l'"encryption key".
 
 
-##### Service-account
+##### Création du service account via la console (Web UI)
 
 !!! tip
     IAM & Admin > Service Accounts > + CREATE SERVICE ACCOUNT
 
-|KEY|VALUE|
-|---|---|
-|Name|k8s-kind-vault|
-|Email|k8s-kind-vault@vault-415918.iam.gserviceaccount.com|
-|Key|yes|
+Sélection de 'APIs and services' > 'service account' :
+![Sélection de 'API and services' > 'service accounts'](./images/gcp.service_account.01.png)
+
+Création d'un nouveau *service account* :
+![Création d'un nouveau service account](./images/gcp.service_account.02.png)
+
+![Création d'un nouveau service account](./images/gcp.service_account.03.png)
+
+Validation de la création du *service account* :
+![Création d'un nouveau service account](./images/gcp.service_account.04.png)
 
 
+##### Création du service account via gcloud (CLI)
 
-##### Service-account key
 
-Vault aura besoin de la clé privée du service account créé précédemment pour consommer les APIs de GCP avec les privilèges associés à ce compte.
-
-!!! tip
-    IAM & Admin > Service Accounts > KEYS > ADD KEY (key type: JSON)
-
-La création d'une clé déclenche le téléchargement d'un fichier texte au format JSON que nous placerons temporairement à l'endroit suivant : **~/tmp/k8s-kind-vault.creds.json**
-
-=== "service-account key"
-    ```json
-    {
-      "type": "service_account",
-      "project_id": "vault-415918",
-      "private_key_id": "75f932e7ca96f31247f5328055a7d7d3802bab92",
-      "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDIGOQ0njkgaciE\nNZfVZ0yObQ9nt8l7CzqCeKPcmk5gaxPxm1/fiXhjynqxdcgpzppzJE5gLA3uwhOf\nVmRVrF9aobinFXZ8iKVbi6tSPSnxEPXreOuhuwicFfsX81UeG    +MozSodj04nKKuL\nmJdqkesTuRcFRu/2hSojtOG1dyyaOQSZ1hDCRq+dlnoVaJR7ADGJOvwuoPs1EeHo\nnRavuvTGsSDHqLQwUe20sfTJSVKTXF1S21RDmpxZqEHrETHNzHc8irMMvUteDA28\nLw6lIy9Ahn6+nxtrBRGyv5K7l1LQg4mdYkAw/REOW83UEWff2Job6v/VWm1lwef8\nDJsytsPbAgMBAAECggEAATxU+QNa1qv5tJhy/    N9ik8lxfDJXWuWYbQvWiFs4u0Gy\nmIvK8ergaU5+FOdTKB3LOGDPKWG8Q7gxGWaoLWRoZla9Cwn1mzb8PUnFqO3sn2HE\nt5TUlWXQJMxUPMV7xhSKSwIRVvEbLuAm/edE5vbck8Z11hOBpCPxhj812sJQEuoD\nkd0NwiqBtCjJRz/S7f9c6z9zu3RxhqppleqFG5L3T50OCpJxIIDC976SQlkCeml6\nHxGScFZjua    +VTcZVuM8NVVx71iRVUi77DTBqGaCMGjiWo4oxo9YyhD62q7oBdRu9\nfbS3beSlr1scijFwNr0uzcjpowCz+OjUXzhGds//OQKBgQDvCKkhMDHxF5deoeCf\n5ib+ywIeLRWDwZB8249P/WNhiILvsW144iBuWwZFGJ2N/FMulC7MKlVFsfKrlvMm\nedLh+/    LG9xmxzpOUDvtKPXzwWqvt70hhv4Oo1rpm7LkXfZVxUctFPEzToxqiN56I\nxtDso30w8oXJo2apb7ro4bHd5wKBgQDWTLzDPmraS6xUFjYQKjcMZ2tNe7IQXiDR\nXqz7UbJfdZzsvKWCRpU7cDEPhtfimFRMfaAaF9feVV+ocip4qt3uoatQzjwcn0Ys\nwpg/0LG2Uwcc+RoohtSXenZzMB+J3jxsJD2dlgeG4fC47YTG8uqwYe1QysJ    +DTZg\n8gVEpmRj7QKBgCWG9Y6ZU23nZ0NbJLnV109vLcDxEQyjafzAN6q2PFEGro/VCjvN\nPIw2zDAy4iF1eNW6O/Kfvs13V4Lq6veibqI9/OqRxr3skazQAVGxf5j4kz+Crply\nCMiMFa2tAo4WkEy/K6uOAP3FAJxxIPmWRRyxuijiGnECr05wlSaUsGkHAoGAe0Wr\nM9i82JO9LqWUNdpCzkTTab/k3xt2X1nJwcvuApGCUn/    16Sm3AHj6D8duei9MFrAR\nH9FlYMTVgO0jV0Ra48Fl7dakp4ZLdMX/lH31LD84kUcN8BAXTIeqiXo+Oi13rnFu\nbC74Z3Oi6I3g2hy0OgAq5lWsaZwqErxFoYbhqsUCgYEAtpoLNzhMqGj31yUUP05p\n2mDn62OKfwtO0pHqv++unJ9edzjGHBGlVcHk4E2TvagHdaWLBhkyhD4dEvTHAW4G\nIJ5Xf4FgdAeh0ypdM7g7UlluatQC/2z    +S32jlTATpx412mq1SXWJy6AzXHPFdDv8\nm3ADd7UI+ACitGZW+vFSlmQ=\n-----END PRIVATE KEY-----\n",
-      "client_email": "k8s-kind-vault@vault-415918.iam.gserviceaccount.com",
-      "client_id": "117555050512332525003",
-      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-      "token_uri": "https://oauth2.googleapis.com/token",
-      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-      "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/k8s-kind-vault%40vault-415918.iam.gserviceaccount.com",
-      "universe_domain": "googleapis.com"
-    }
+=== "code"
+    ```sh
+    gcloud iam service-accounts create k8s-vault-test \
+      --project="papafrancky" \
+      --description="Vault OSS" \
+      --display-name="k8s-vault"
     ```
+
+
+#### Service-account key
+
+Pour consommer les APIS activées sur notre projet GCP avec les privilèges associés au *service account 'k8s-vault'*, Vault OSS aura besoin de la clé privée de ce dernier. Nous Décrirons ici la création de cette clé privée.
+
+
+##### Création de la clé via la console (Web UI)
+
+![Création de la clé privée du service account #1](./images/gcp.service_account_key.01.png)
+
+![Création de la clé privée du service account #2](./images/gcp.service_account_key.02.png)
+
+![Création de la clé privée du service account #3](./images/gcp.service_account_key.03.png)
+
+![Création de la clé privée du service account #4](./images/gcp.service_account_key.04.png)
+
+![Création de la clé privée du service account #5](./images/gcp.service_account_key.05.png)
+
+La création d'une clé déclenche le téléchargement d'un fichier texte au format JSON :
+![Création de la clé privée du service account #6](./images/gcp.service_account_key.06.png)
+
+![Création de la clé privée du service account #7](./images/gcp.service_account_key.07.png)
+
+
+
+##### Création de la clé via la console (Web UI)
+
+=== "code"
+    ```sh
+    gcloud iam service-accounts keys create ~/k8s-vault.service-account.private-key.json \
+      --iam-account=k8s-vault@papafrancky.iam.gserviceaccount.com
+    ```
+=== "output"
+    ```sh
+    created key [22a3198bbbd9984c615b3600d0eef0183091c4bb] of type [json] as [/Users/franck/k8s-vault.service-account.private-key.json] for [k8s-vault@papafrancky.iam.gserviceaccount.com]
+    ```
+
+=== "Clé privée au format JSON"
+    ```json
+    type	"service_account"
+    project_id	"papafrancky"
+    private_key_id	"22a3198bbbd9984c615b3600d0eef0183091c4bb"
+    private_key	"-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC5mIGm5BJNvq0s\n7no5mx+hzPIKRyGRAAX8xKuKtabkRCEcVpQVhQqtWeFFNZa8QxAtfLvQbBkbEvLz\nef6FNMGqnQrZkmMzOW1lvls023GzQvTkvv6GOq6rFDI8caieC6aSte5NLlftSFTV\nq1iydQYJuMC6BniKoScD2hXpIfOqdEV2OSjrrL9P1tKCEvf5+A5TnVIUbC3plJrT\nSVcAY3GHZbaMT8M7h6Dfgkw7NMYy25/d84TRJtx/FqsT4OHZFyrmuPz2V5hfqD+p\n5O8+avb19nbsh86k7jGSLfowLdJUOwq8JfxF1AHuHLuJm0i9zBqWa1+bOkezz+Q4\nZgP5wRuxAgMBAAECggEAC4mJdcBzytVxmntwqagU/U/qM+1cDtF7jc0EBOlp6IK7\ntDFFn1jX4xLVSCIerrFUjh9U5Y3yuZYh+DS7N7ih2WNNy1yoQgTt4gdFUDHcDZK5\n+oZM+DcpqITm4o8GNlzvC+u3VqDs4lk+vNGb/+v6ZhxQDsBcOfHupPSnrAhqR0w7\novevzuUAVHlkNU3ZJjUb5FGQS58cbe4aJGP/jYjrp/1S3lwPQ9pKsmTb7m+I8U7O\n71kcaJA51Wg5BqX9p1t1tgYcdK/cdpu1x55CXf9xCf7yF0EGVMWJrN23ysOtKv0V\nT2uCpPk6IVwPgEi/7rizqbfUCng2Upacle5PDsb06QKBgQD9z5krDPOlxr8JzPFg\n0zbBAwayVA9nsCb4nMCG8guWpz09azUWilf0dg1SO1ySKNKXJsax9TRQ8w3wMkpS\n7ANDS4ROWWvcJFXDQEWLkQuywHD8tZw+3pcBUTYzMH/u++fWpq9HEitmV0y18yR1\n0Y6uS0h4Th9/drxVdDcARsnB1wKBgQC7MkrcZ2gWjWIkB5IKhH4PRG6e7EKhdji4\nTQV8YsRdBIrSoTwAhdsvcqi79dL2yFKqEom2eiHmTrN+wPlyD9HbsxhgBBSB45cU\nhYUfy+xVlmr0W6w/WwW5FqdN0VasgkjhG1GhMGYul439BSsHPKHQLcKmz6pA1hcA\nuDA1hhlttwKBgAX000FhYm5nhaAzQQ7mpghNi+CvfFUQmzmGZDZGg+MbNaK1W1+W\nC45fHtzpK7j6YEbP0CXo/TtRGOikJX5gr4rqwMYd7xwRdjnIzlkCJGYjggNMN8h5\n7M1JHJ6C6t2u57fv3Xkrgf0620AB3r8tFc4dUiwQmUiifrT6rzfAcYetAoGBAIAJ\nKQzRKW9rannMN8Y70uDsZGEMpZI8AxWDkMH/5+DbT3w7TYfqBf3RBbnxrEagw3GR\n1mFZ7b/RipGiubqbOWV0fLKHd+NTYC1oGaKi3tW3WRYjcY+v2R08clgWW5sITYKy\nJcYDDZDGlhY+J6z+eoqiEeX4WbGY/Qi/8jFZtCDHAoGBAJpYHxiq2vO9FuyDM7xk\nKtyEbkT8DZLqlkMlpY+8jRRTOANyx7CAbuusMV4G4UUr2nqO3q5JGOF0Fe2LBF7h\nBKAEWKch108X8OpktA4UqqXsDthaHvZ0Ui1qOOMWyYKU+/XIloOOtx7R0QbyoBsV\npAslSleTwRQvg0fs9b95hxt2\n-----END PRIVATE KEY-----\n"
+    client_email	"k8s-vault@papafrancky.iam.gserviceaccount.com"
+    client_id	"114409726477469875395"
+    auth_uri	"https://accounts.google.com/o/oauth2/auth"
+    token_uri	"https://oauth2.googleapis.com/token"
+    auth_provider_x509_cert_url	"https://www.googleapis.com/oauth2/v1/certs"
+    client_x509_cert_url	"https://www.googleapis.com/robot/v1/metadata/x509/k8s-vault%40papafrancky.iam.gserviceaccount.com"
+    universe_domain	"googleapis.com"
+    ```
+
 
 
 Nous allons tout de suite intégrer cette clé sous la forme de _*secret Kubernetes*_ dans le namespace dédié à Vault :
 
-```sh
-kubectl -n vault create secret generic kms-sa --from-file=/Users/franck/tmp/k8s-kind-vault.creds.json
-kubectl -n vault get secret kms-sa -o jsonpath='{.data.k8s-kind-vault\.creds\.json}' | base64 -d
-kubectl -n vault get secret kms-sa -o jsonpath='{.data.k8s-kind-vault\.creds\.json}' | base64 -d | yq -r '.private_key'
-```
+=== "code"
+    ```sh
+    kubectl -n vault create secret generic k8s-vault-gcp-service-account-key --from-file=${HOME}/k8s-vault.service-account.private-key.json
+    kubectl -n vault get secret k8s-vault-gcp-service-account-key -o jsonpath='{.data.k8s-vault\.service-account\.private-key\.json}' | base64 -D
+    ```
+
+=== "output"
+    ```sh
+    {
+      type	"service_account"
+      project_id	"papafrancky"
+      private_key_id	"22a3198bbbd9984c615b3600d0eef0183091c4bb"
+      private_key	"-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC5mIGm5BJNvq0s\n7no5mx+hzPIKRyGRAAX8xKuKtabkRCEcVpQVhQqtWeFFNZa8QxAtfLvQbBkbEvLz\nef6FNMGqnQrZkmMzOW1lvls023GzQvTkvv6GOq6rFDI8caieC6aSte5NLlftSFTV\nq1iydQYJuMC6BniKoScD2hXpIfOqdEV2OSjrrL9P1tKCEvf5+A5TnVIUbC3plJrT\nSVcAY3GHZbaMT8M7h6Dfgkw7NMYy25/d84TRJtx/FqsT4OHZFyrmuPz2V5hfqD+p\n5O8+avb19nbsh86k7jGSLfowLdJUOwq8JfxF1AHuHLuJm0i9zBqWa1+bOkezz+Q4\nZgP5wRuxAgMBAAECggEAC4mJdcBzytVxmntwqagU/U/qM+1cDtF7jc0EBOlp6IK7\ntDFFn1jX4xLVSCIerrFUjh9U5Y3yuZYh+DS7N7ih2WNNy1yoQgTt4gdFUDHcDZK5\n+oZM+DcpqITm4o8GNlzvC+u3VqDs4lk+vNGb/+v6ZhxQDsBcOfHupPSnrAhqR0w7\novevzuUAVHlkNU3ZJjUb5FGQS58cbe4aJGP/jYjrp/1S3lwPQ9pKsmTb7m+I8U7O\n71kcaJA51Wg5BqX9p1t1tgYcdK/cdpu1x55CXf9xCf7yF0EGVMWJrN23ysOtKv0V\nT2uCpPk6IVwPgEi/7rizqbfUCng2Upacle5PDsb06QKBgQD9z5krDPOlxr8JzPFg\n0zbBAwayVA9nsCb4nMCG8guWpz09azUWilf0dg1SO1ySKNKXJsax9TRQ8w3wMkpS\n7ANDS4ROWWvcJFXDQEWLkQuywHD8tZw+3pcBUTYzMH/u++fWpq9HEitmV0y18yR1\n0Y6uS0h4Th9/drxVdDcARsnB1wKBgQC7MkrcZ2gWjWIkB5IKhH4PRG6e7EKhdji4\nTQV8YsRdBIrSoTwAhdsvcqi79dL2yFKqEom2eiHmTrN+wPlyD9HbsxhgBBSB45cU\nhYUfy+xVlmr0W6w/WwW5FqdN0VasgkjhG1GhMGYul439BSsHPKHQLcKmz6pA1hcA\nuDA1hhlttwKBgAX000FhYm5nhaAzQQ7mpghNi+CvfFUQmzmGZDZGg+MbNaK1W1+W\nC45fHtzpK7j6YEbP0CXo/TtRGOikJX5gr4rqwMYd7xwRdjnIzlkCJGYjggNMN8h5\n7M1JHJ6C6t2u57fv3Xkrgf0620AB3r8tFc4dUiwQmUiifrT6rzfAcYetAoGBAIAJ\nKQzRKW9rannMN8Y70uDsZGEMpZI8AxWDkMH/5+DbT3w7TYfqBf3RBbnxrEagw3GR\n1mFZ7b/RipGiubqbOWV0fLKHd+NTYC1oGaKi3tW3WRYjcY+v2R08clgWW5sITYKy\nJcYDDZDGlhY+J6z+eoqiEeX4WbGY/Qi/8jFZtCDHAoGBAJpYHxiq2vO9FuyDM7xk\nKtyEbkT8DZLqlkMlpY+8jRRTOANyx7CAbuusMV4G4UUr2nqO3q5JGOF0Fe2LBF7h\nBKAEWKch108X8OpktA4UqqXsDthaHvZ0Ui1qOOMWyYKU+/XIloOOtx7R0QbyoBsV\npAslSleTwRQvg0fs9b95hxt2\n-----END PRIVATE KEY-----\n"
+      client_email	"k8s-vault@papafrancky.iam.gserviceaccount.com"
+      client_id	"114409726477469875395"
+      auth_uri	"https://accounts.google.com/o/oauth2/auth"
+      token_uri	"https://oauth2.googleapis.com/token"
+      auth_provider_x509_cert_url	"https://www.googleapis.com/oauth2/v1/certs"
+      client_x509_cert_url	"https://www.googleapis.com/robot/v1/metadata/x509/k8s-vault%40papafrancky.iam.gserviceaccount.com"
+      universe_domain	"googleapis.com"
+    }
+    ```
 
 
 #### KMS key
 
-Il faut d'abord créer un trousseau (ie. un _*'key ring'*_) avant d'y ajouter une clé.
+Il s'agit maintenant de créer dans le service GCP '*KMS*' la clé qui servira de '*root key*' pour *Vault OSS*.
+
+!!! Warning
+    Avant de créer la clé, nous devons créer son trousseau (ou _*'key ring'*_).
 
 
-##### Key ring
+###### Création du trousseau (ou '*key ring*') et de sa clé via la console (Web UI)
 
-!!! tip
-    Security > Key Management > + CREATE KEY RING
+Informations concernant le trousseau :
 
 |KEY|VALUE|
 |---|---|
-|Key ring name|k8s-kind-vault|
+|Key ring name|k8s-vault|
 |Single/multi region|single|
 |Region|europe-west9|
 
-
-##### KMS key
-
-!!! tip
-    Security > Key Management > k8s-kind-vault > + CREATE KEY
+Informations concernant la clé  :
 
 |KEY|VALUE|
 |---|---|
@@ -729,7 +840,38 @@ Il faut d'abord créer un trousseau (ie. un _*'key ring'*_) avant d'y ajouter un
 |Protection level|software|
 |Key material|generated|
 |Purpose and algorithm|symmetric encrypt/decrypt|
-|Key rotation|180d|
+|Key rotation|90d|
+
+![Création du trouseau KMS et de sa clé #1](./images/gcp.kms.key.01.png)
+
+![Création du trouseau KMS et de sa clé #2](./images/gcp.kms.key.02.png)
+
+![Création du trouseau KMS et de sa clé #3](./images/gcp.kms.key.03.png)
+
+![Création du trouseau KMS et de sa clé #4](./images/gcp.kms.key.04.png)
+
+![Création du trouseau KMS et de sa clé #5](./images/gcp.kms.key.05.png)
+
+
+###### Création du trousseau (ou '*key ring*') et de sa clé via gcloud (CLI)
+
+
+=== "code"
+    ```sh
+    # Création du trousseau (ou 'key ring') :
+    gcloud kms keyrings create k8s-vault \
+      --location europe-west9
+
+    # Création de la clé :
+    gcloud kms keys create k8s-vault2 \
+      --keyring k8s-vault \
+      --location europe-west9 \
+      --purpose encryption \
+      --rotation-period "90d" \
+      --next-rotation-time "2025-11-01T00:00:00"
+    ```
+
+XXXXX
 
 
 #### Accès du service account à la clé
