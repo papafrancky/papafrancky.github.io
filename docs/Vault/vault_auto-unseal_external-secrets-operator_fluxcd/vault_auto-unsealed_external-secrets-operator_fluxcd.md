@@ -762,7 +762,7 @@ La création d'une clé déclenche le téléchargement d'un fichier texte au for
 
 
 
-##### Création de la clé via la console (Web UI)
+##### Création de la clé via gcloud (CLI)
 
 === "code"
     ```sh
@@ -927,7 +927,8 @@ gcloud kms keys add-iam-policy-binding k8s-vault \
   --keyring k8s-vault \
   --location europe-west9 \
   --member serviceAccount:k8s-vault@papafrancky.iam.gserviceaccount.com \
-  --role roles/cloudkms.viewe
+  --role roles/cloudkms.viewer
+
 gcloud kms keys add-iam-policy-binding k8s-vault \
   --keyring k8s-vault \
   --location europe-west9 \
@@ -1014,7 +1015,7 @@ server:
   extraEnvironmentVars:
     GOOGLE_REGION: europe-west9
     GOOGLE_PROJECT: papafrancky
-    GOOGLE_APPLICATION_CREDENTIALS: /vault/userconfig/k8s-vault-gcp-service-account-keyk8s-vaultservice-account.private-key.json
+    GOOGLE_APPLICATION_CREDENTIALS: /vault/userconfig/k8s-vault-gcp-service-account-key/k8s-vault.service-account.private-key.json
   extraVolumes:
     - type: secret
       name: k8s-vault-gcp-service-account-key
@@ -1052,7 +1053,7 @@ EOF
 
 # Création du ConfigMap :
 kubectl -n vault create configmap vault-values \
-  --from-file=./vault/vault-values.yaml \
+  --from-file=./vault/values.yaml \
   --dry-run=client \
   -o yaml > ./vault/vault.values.yaml
 
@@ -1296,7 +1297,7 @@ Regardons l'état de nos objets dans le namespace 'vault' :
     service/vault            ClusterIP   10.43.76.26     <none>        8200/TCP,8201/TCP   8m5s
     service/vault-internal   ClusterIP   None            <none>        8200/TCP,8201/TCP   8m5s
     service/vault-ui         ClusterIP   10.43.131.120   <none>        8200/TCP            8m5s
-    
+
     NAME                     READY   AGE
     statefulset.apps/vault   0/1     8m5s
     ```
