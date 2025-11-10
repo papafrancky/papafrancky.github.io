@@ -764,55 +764,88 @@ La création d'une clé déclenche le téléchargement d'un fichier texte au for
 
 ##### Création de la clé via gcloud (CLI)
 
+!!! Note
+    Nous préciserons que nous souhaitons récupérer le fichier JSON contenant la clé privée de notre *service account* en local dans le fichier ```${HOME}/vault-sa-key```.
+
 === "code"
     ```sh
-    gcloud iam service-accounts keys create ~/k8s-vault.service-account.private-key.json \
+    gcloud iam service-accounts keys create ${HOME}/vault-sa-key \
       --iam-account=k8s-vault@papafrancky.iam.gserviceaccount.com
     ```
 === "output"
     ```sh
-    created key [22a3198bbbd9984c615b3600d0eef0183091c4bb] of type [json] as [/Users/franck/k8s-vault.service-account.private-key.json] for [k8s-vault@papafrancky.iam.gserviceaccount.com]
+    created key [22a3198bbbd9984c615b3600d0eef0183091c4bb] of type [json] as [/Users/franck/vault-sa-key] for [k8s-vault@papafrancky.iam.gserviceaccount.com]
     ```
 
 === "Clé privée au format JSON"
     ```json
-    type	"service_account"
-    project_id	"papafrancky"
-    private_key_id	"22a3198bbbd9984c615b3600d0eef0183091c4bb"
-    private_key	"-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC5mIGm5BJNvq0s\n7no5mx+hzPIKRyGRAAX8xKuKtabkRCEcVpQVhQqtWeFFNZa8QxAtfLvQbBkbEvLz\nef6FNMGqnQrZkmMzOW1lvls023GzQvTkvv6GOq6rFDI8caieC6aSte5NLlftSFTV\nq1iydQYJuMC6BniKoScD2hXpIfOqdEV2OSjrrL9P1tKCEvf5+A5TnVIUbC3plJrT\nSVcAY3GHZbaMT8M7h6Dfgkw7NMYy25/d84TRJtx/FqsT4OHZFyrmuPz2V5hfqD+p\n5O8+avb19nbsh86k7jGSLfowLdJUOwq8JfxF1AHuHLuJm0i9zBqWa1+bOkezz+Q4\nZgP5wRuxAgMBAAECggEAC4mJdcBzytVxmntwqagU/U/qM+1cDtF7jc0EBOlp6IK7\ntDFFn1jX4xLVSCIerrFUjh9U5Y3yuZYh+DS7N7ih2WNNy1yoQgTt4gdFUDHcDZK5\n+oZM+DcpqITm4o8GNlzvC+u3VqDs4lk+vNGb/+v6ZhxQDsBcOfHupPSnrAhqR0w7\novevzuUAVHlkNU3ZJjUb5FGQS58cbe4aJGP/jYjrp/1S3lwPQ9pKsmTb7m+I8U7O\n71kcaJA51Wg5BqX9p1t1tgYcdK/cdpu1x55CXf9xCf7yF0EGVMWJrN23ysOtKv0V\nT2uCpPk6IVwPgEi/7rizqbfUCng2Upacle5PDsb06QKBgQD9z5krDPOlxr8JzPFg\n0zbBAwayVA9nsCb4nMCG8guWpz09azUWilf0dg1SO1ySKNKXJsax9TRQ8w3wMkpS\n7ANDS4ROWWvcJFXDQEWLkQuywHD8tZw+3pcBUTYzMH/u++fWpq9HEitmV0y18yR1\n0Y6uS0h4Th9/drxVdDcARsnB1wKBgQC7MkrcZ2gWjWIkB5IKhH4PRG6e7EKhdji4\nTQV8YsRdBIrSoTwAhdsvcqi79dL2yFKqEom2eiHmTrN+wPlyD9HbsxhgBBSB45cU\nhYUfy+xVlmr0W6w/WwW5FqdN0VasgkjhG1GhMGYul439BSsHPKHQLcKmz6pA1hcA\nuDA1hhlttwKBgAX000FhYm5nhaAzQQ7mpghNi+CvfFUQmzmGZDZGg+MbNaK1W1+W\nC45fHtzpK7j6YEbP0CXo/TtRGOikJX5gr4rqwMYd7xwRdjnIzlkCJGYjggNMN8h5\n7M1JHJ6C6t2u57fv3Xkrgf0620AB3r8tFc4dUiwQmUiifrT6rzfAcYetAoGBAIAJ\nKQzRKW9rannMN8Y70uDsZGEMpZI8AxWDkMH/5+DbT3w7TYfqBf3RBbnxrEagw3GR\n1mFZ7b/RipGiubqbOWV0fLKHd+NTYC1oGaKi3tW3WRYjcY+v2R08clgWW5sITYKy\nJcYDDZDGlhY+J6z+eoqiEeX4WbGY/Qi/8jFZtCDHAoGBAJpYHxiq2vO9FuyDM7xk\nKtyEbkT8DZLqlkMlpY+8jRRTOANyx7CAbuusMV4G4UUr2nqO3q5JGOF0Fe2LBF7h\nBKAEWKch108X8OpktA4UqqXsDthaHvZ0Ui1qOOMWyYKU+/XIloOOtx7R0QbyoBsV\npAslSleTwRQvg0fs9b95hxt2\n-----END PRIVATE KEY-----\n"
-    client_email	"k8s-vault@papafrancky.iam.gserviceaccount.com"
-    client_id	"114409726477469875395"
-    auth_uri	"https://accounts.google.com/o/oauth2/auth"
-    token_uri	"https://oauth2.googleapis.com/token"
-    auth_provider_x509_cert_url	"https://www.googleapis.com/oauth2/v1/certs"
-    client_x509_cert_url	"https://www.googleapis.com/robot/v1/metadata/x509/k8s-vault%40papafrancky.iam.gserviceaccount.com"
-    universe_domain	"googleapis.com"
+    {
+      "type": "service_account",
+      "project_id": "papafrancky",
+      "private_key_id": "9888481c9848a94a8549c8b58112642fa8032a2f",
+      "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCfKVHMPAX5sbri\n8lQUMELRGipMxsd    +FwFQQ0uYSYRW9YgK6YgyJojTnnh/XJqPk/JLP/tEP4cg2wFe\nrNw7+PWe3j1t0TZPMHzSUylm6CKHfqdXGiaDRmmDp8pbTtLGCk   +NrqN7IIXZrZq1\nNnEQ4WRQciRZmHba2NL7jM6kPgpkRR2vAr0rnz0LJe1UI0em1EPqAtOTyRIwn3fV\n3Sccbl2WI2G5Dhq1DaLkz9D/  dWfpmGzDPURfGQJ9Igen7Erw0mzcQQ81F2j/+RuH\npmOKUrH8I9thb00BHIa54VwSENzAL/UV1p   +7W22O61uqdpjpDiUm6eaY27DstBP4\nSeVJeOWvAgMBAAECggEAO1VshH413g1XNcaP+Iy7Q/eEoGWUNhm+aB0GP+ncN4zF\n4AeKOePqqzVPB2/   OwMqvD0V1Vs52AhYSzygS3Bql+kkwTlGpdOEHD2NoMlBEmw1o\ntcxuYg7sQ+PXyK08Xw619IQPttV7gJg67eYzRU85FdJPYcU4PcKJ+LPXzxu/  xPv2\nCK0KIeX6taQNPpTY48lqRAs0gl9yHpRwTEGmWkWcic5qH9F6hAnfp4SPbOFAXtTm\n7JTtsE0hd1GSnZFl2aGep6yfpU6MrhXNZLjUBFnB7XZw3ZBHRnsEx2GAkTaRs3   Uj\nXSKt6STH+p1q+u3HaeNwl9PvyykBNb7P4JxGxSij7QKBgQDcsisG0Oym0zI+Wc2T\nG9lElL4cn7Xa62qys9tQggd4i6CMI/  nBlPXqkQ1or2JVTfehB0grRJAVeE2VWseT\nJaum7imkadp259/LvgRqrZDbWMZ9rfbi9fBE0CCvTakLs7Y5ZDGiVqYEOFzrzwh/\ne0/    9xPMOn6nyEFq0PErZWs969QKBgQC4nzftBSWEQe4BZ2GZMB1pqWzMeu+pxtO4\ntstEK4gbihhVdkcLNW7NjqvX1W3+zEFDQTzFmZCdNivyLpaw5gdPI9Y9Kr7ZqaG/   \n4PR8bPowDAXqh28UbEWgvheKUqblj0cL4EW54OPRh6n2Xk5neXAmBId1Ux2iRKT3\n29k/Wuc/kwKBgFnrRdibGzDFb/  0zfazoddeZevQSpnex32E8IqlksUKOMTWoGsSi\nuqd9vibe/oOfJru3SdJHNyVoRMQLnrD3cj6rXtAcSOSViPtsSkRkv1Z/jy/5x1Ol\nvOVsn0SNsciQyjgL   +KUaBL5HcKSrT90REwBkVFuq9gUoYKx6vExe0ZZZAoGARHxT\nq6noE9q9JmoqK0BM+OAvit7jvrAR5Ahy  +LPJRqYAhttcWU0V8EzHdEYpCobMgt1V\nZNulaJwqyyj7H14FQhdCJuiPaYDijqItL2bhnCcpnqlkzEepwIojg11LqgZvTXmB\nhAVnnVdc9hZfsUS8FG5DrYMKkCI0q/   ky6qyW8d8CgYAkH9WQFS7xR2oIzSkCH8NW\nZKlO9ruGUSIUT0pIdh5yD0oGgFN/cR3f2sEgj5wX7zXg3+fJ/f7wBKx438hWw540\nzD58uxl/9brOYx95/   dld58AGiLWvYhJBgVI1QZNPmXZxMHdW86/G+3S/JQC6nprE\nMXVybj1Axo6H+6LsSbb71w==\n-----END PRIVATE KEY-----\n",
+      "client_email": "k8s-vault@papafrancky.iam.gserviceaccount.com",
+      "client_id": "114409726477469875395",
+      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+      "token_uri": "https://oauth2.googleapis.com/token",
+      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+      "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/k8s-vault%40papafrancky.iam.gserviceaccount.com",
+      "universe_domain": "googleapis.com"
+    }
     ```
 
 
 
 Nous allons tout de suite intégrer cette clé sous la forme de _*secret Kubernetes*_ dans le namespace dédié à Vault :
 
+
+```sh
+kubectl -n vault create secret generic vault-sa-key --from-file=${HOME}/vault-sa-key
+```
+
+Vérifions notre objet nouvellement créé :
+
 === "code"
     ```sh
-    kubectl -n vault create secret generic k8s-vault-gcp-service-account-key --from-file=${HOME}/k8s-vault.service-account.private-key.json
-    kubectl -n vault get secret k8s-vault-gcp-service-account-key -o jsonpath='{.data.k8s-vault\.service-account\.private-key\.json}' | base64 -D
+    kubectl -n vault get secret vault-sa-key -o yaml
     ```
 
 === "output"
+    ```yaml
+    apiVersion: v1
+    data:
+      vault-sa-key:     ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAicGFwYWZyYW5ja3kiLAogICJwcml2YXRlX2tleV9pZCI6ICI5ODg4NDgxYzk4NDhhOTRhODU0OW    M4YjU4MTEyNjQyZmE4MDMyYTJmIiwKICAicHJpdmF0ZV9rZXkiOiAiLS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tXG5NSUlFdkFJQkFEQU5CZ2txaGtpRzl3MEJBUUVGQUFTQ0JL    WXdnZ1NpQWdFQUFvSUJBUUNmS1ZITVBBWDVzYnJpXG44bFFVTUVMUkdpcE14c2QrRndGUVEwdVlTWVJXOVlnSzZZZ3lKb2pUbm5oL1hKcVBrL0pMUC90RVA0Y2cyd0ZlXG5yTnc3K1    BXZTNqMXQwVFpQTUh6U1V5bG02Q0tIZnFkWEdpYURSbW1EcDhwYlR0TEdDaytOcnFON0lJWFpyWnExXG5ObkVRNFdSUWNpUlptSGJhMk5MN2pNNmtQZ3BrUlIydkFyMHJuejBMSmUx    VUkwZW0xRVBxQXRPVHlSSXduM2ZWXG4zU2NjYmwyV0kyRzVEaHExRGFMa3o5RC9kV2ZwbUd6RFBVUmZHUUo5SWdlbjdFcncwbXpjUVE4MUYyai8rUnVIXG5wbU9LVXJIOEk5dGhiMD    BCSElhNTRWd1NFTnpBTC9VVjFwKzdXMjJPNjF1cWRwanBEaVVtNmVhWTI3RHN0QlA0XG5TZVZKZU9XdkFnTUJBQUVDZ2dFQU8xVnNoSDQxM2cxWE5jYVArSXk3US9lRW9HV1VOaG0r    YUIwR1ArbmNONHpGXG40QWVLT2VQcXF6VlBCMi9Pd01xdkQwVjFWczUyQWhZU3p5Z1MzQnFsK2trd1RsR3BkT0VIRDJOb01sQkVtdzFvXG50Y3h1WWc3c1ErUFh5SzA4WHc2MTlJUV    B0dFY3Z0pnNjdlWXpSVTg1RmRKUFljVTRQY0tKK0xQWHp4dS94UHYyXG5DSzBLSWVYNnRhUU5QcFRZNDhscVJBczBnbDl5SHBSd1RFR21Xa1djaWM1cUg5RjZoQW5mcDRTUGJPRkFY    dFRtXG43SlR0c0UwaGQxR1NuWkZsMmFHZXA2eWZwVTZNcmhYTlpMalVCRm5CN1hadzNaQkhSbnNFeDJHQWtUYVJzM1VqXG5YU0t0NlNUSCtwMXErdTNIYWVOd2w5UHZ5eWtCTmI3UD    RKeEd4U2lqN1FLQmdRRGNzaXNHME95bTB6SStXYzJUXG5HOWxFbEw0Y243WGE2MnF5czl0UWdnZDRpNkNNSS9uQmxQWHFrUTFvcjJKVlRmZWhCMGdyUkpBVmVFMlZXc2VUXG5KYXVt    N2lta2FkcDI1OS9MdmdScXJaRGJXTVo5cmZiaTlmQkUwQ0N2VGFrTHM3WTVaREdpVnFZRU9GenJ6d2gvXG5lMC85eFBNT242bnlFRnEwUEVyWldzOTY5UUtCZ1FDNG56ZnRCU1dFUW    U0QloyR1pNQjFwcVd6TWV1K3B4dE80XG50c3RFSzRnYmloaFZka2NMTlc3TmpxdlgxVzMrekVGRFFUekZtWkNkTml2eUxwYXc1Z2RQSTlZOUtyN1pxYUcvXG40UFI4YlBvd0RBWHFo    MjhVYkVXZ3ZoZUtVcWJsajBjTDRFVzU0T1BSaDZuMlhrNW5lWEFtQklkMVV4MmlSS1QzXG4yOWsvV3VjL2t3S0JnRm5yUmRpYkd6REZiLzB6ZmF6b2RkZVpldlFTcG5leDMyRThJcW    xrc1VLT01UV29Hc1NpXG51cWQ5dmliZS9vT2ZKcnUzU2RKSE55Vm9STVFMbnJEM2NqNnJYdEFjU09TVmlQdHNTa1JrdjFaL2p5LzV4MU9sXG52T1ZzbjBTTnNjaVF5amdMK0tVYUJM    NUhjS1NyVDkwUkV3QmtWRnVxOWdVb1lLeDZ2RXhlMFpaWkFvR0FSSHhUXG5xNm5vRTlxOUptb3FLMEJNK09Bdml0N2p2ckFSNUFoeStMUEpScVlBaHR0Y1dVMFY4RXpIZEVZcENvYk    1ndDFWXG5aTnVsYUp3cXl5ajdIMTRGUWhkQ0p1aVBhWURpanFJdEwyYmhuQ2NwbnFsa3pFZXB3SW9qZzExTHFnWnZUWG1CXG5oQVZublZkYzloWmZzVVM4Rkc1RHJZTUtrQ0kwcS9r    eTZxeVc4ZDhDZ1lBa0g5V1FGUzd4UjJvSXpTa0NIOE5XXG5aS2xPOXJ1R1VTSVVUMHBJZGg1eUQwb0dnRk4vY1IzZjJzRWdqNXdYN3pYZzMrZkovZjd3Qkt4NDM4aFd3NTQwXG56RD    U4dXhsLzlick9ZeDk1L2RsZDU4QUdpTFd2WWhKQmdWSTFRWk5QbVhaeE1IZFc4Ni9HKzNTL0pRQzZucHJFXG5NWFZ5YmoxQXhvNkgrNkxzU2JiNzF3PT1cbi0tLS0tRU5EIFBSSVZB    VEUgS0VZLS0tLS1cbiIsCiAgImNsaWVudF9lbWFpbCI6ICJrOHMtdmF1bHRAcGFwYWZyYW5ja3kuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLAogICJjbGllbnRfaWQiOiAiMTE0ND    A5NzI2NDc3NDY5ODc1Mzk1IiwKICAiYXV0aF91cmkiOiAiaHR0cHM6Ly9hY2NvdW50cy5nb29nbGUuY29tL28vb2F1dGgyL2F1dGgiLAogICJ0b2tlbl91cmkiOiAiaHR0cHM6Ly9v    YXV0aDIuZ29vZ2xlYXBpcy5jb20vdG9rZW4iLAogICJhdXRoX3Byb3ZpZGVyX3g1MDlfY2VydF91cmwiOiAiaHR0cHM6Ly93d3cuZ29vZ2xlYXBpcy5jb20vb2F1dGgyL3YxL2Nlcn    RzIiwKICAiY2xpZW50X3g1MDlfY2VydF91cmwiOiAiaHR0cHM6Ly93d3cuZ29vZ2xlYXBpcy5jb20vcm9ib3QvdjEvbWV0YWRhdGEveDUwOS9rOHMtdmF1bHQlNDBwYXBhZnJhbmNr    eS5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgInVuaXZlcnNlX2RvbWFpbiI6ICJnb29nbGVhcGlzLmNvbSIKfQo=
+    kind: Secret
+    metadata:
+      creationTimestamp: "2025-11-10T15:10:23Z"
+      name: vault-sa-key
+      namespace: vault
+      resourceVersion: "1050214"
+      uid: eef1fcc1-555e-4e88-90de-36195257616f
+    type: Opaque
+    ```
+
+S'agissant d'un objet de type 'secret', le contenu est en base 64. Déchiffrons-le pour nous assurer que son contenu correspond bien au fichier JSON téléchargé depuis GCP et contenant la clé privée de notre 'service account':
+
+=== "code"
     ```sh
+    kubectl -n vault get secret vault-sa-key -o yaml | yq -r .data.vault-sa-key | base64 -d
+    ```
+
+=== "output"
+    ```json
     {
-      type	"service_account"
-      project_id	"papafrancky"
-      private_key_id	"22a3198bbbd9984c615b3600d0eef0183091c4bb"
-      private_key	"-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC5mIGm5BJNvq0s\n7no5mx+hzPIKRyGRAAX8xKuKtabkRCEcVpQVhQqtWeFFNZa8QxAtfLvQbBkbEvLz\nef6FNMGqnQrZkmMzOW1lvls023GzQvTkvv6GOq6rFDI8caieC6aSte5NLlftSFTV\nq1iydQYJuMC6BniKoScD2hXpIfOqdEV2OSjrrL9P1tKCEvf5+A5TnVIUbC3plJrT\nSVcAY3GHZbaMT8M7h6Dfgkw7NMYy25/d84TRJtx/FqsT4OHZFyrmuPz2V5hfqD+p\n5O8+avb19nbsh86k7jGSLfowLdJUOwq8JfxF1AHuHLuJm0i9zBqWa1+bOkezz+Q4\nZgP5wRuxAgMBAAECggEAC4mJdcBzytVxmntwqagU/U/qM+1cDtF7jc0EBOlp6IK7\ntDFFn1jX4xLVSCIerrFUjh9U5Y3yuZYh+DS7N7ih2WNNy1yoQgTt4gdFUDHcDZK5\n+oZM+DcpqITm4o8GNlzvC+u3VqDs4lk+vNGb/+v6ZhxQDsBcOfHupPSnrAhqR0w7\novevzuUAVHlkNU3ZJjUb5FGQS58cbe4aJGP/jYjrp/1S3lwPQ9pKsmTb7m+I8U7O\n71kcaJA51Wg5BqX9p1t1tgYcdK/cdpu1x55CXf9xCf7yF0EGVMWJrN23ysOtKv0V\nT2uCpPk6IVwPgEi/7rizqbfUCng2Upacle5PDsb06QKBgQD9z5krDPOlxr8JzPFg\n0zbBAwayVA9nsCb4nMCG8guWpz09azUWilf0dg1SO1ySKNKXJsax9TRQ8w3wMkpS\n7ANDS4ROWWvcJFXDQEWLkQuywHD8tZw+3pcBUTYzMH/u++fWpq9HEitmV0y18yR1\n0Y6uS0h4Th9/drxVdDcARsnB1wKBgQC7MkrcZ2gWjWIkB5IKhH4PRG6e7EKhdji4\nTQV8YsRdBIrSoTwAhdsvcqi79dL2yFKqEom2eiHmTrN+wPlyD9HbsxhgBBSB45cU\nhYUfy+xVlmr0W6w/WwW5FqdN0VasgkjhG1GhMGYul439BSsHPKHQLcKmz6pA1hcA\nuDA1hhlttwKBgAX000FhYm5nhaAzQQ7mpghNi+CvfFUQmzmGZDZGg+MbNaK1W1+W\nC45fHtzpK7j6YEbP0CXo/TtRGOikJX5gr4rqwMYd7xwRdjnIzlkCJGYjggNMN8h5\n7M1JHJ6C6t2u57fv3Xkrgf0620AB3r8tFc4dUiwQmUiifrT6rzfAcYetAoGBAIAJ\nKQzRKW9rannMN8Y70uDsZGEMpZI8AxWDkMH/5+DbT3w7TYfqBf3RBbnxrEagw3GR\n1mFZ7b/RipGiubqbOWV0fLKHd+NTYC1oGaKi3tW3WRYjcY+v2R08clgWW5sITYKy\nJcYDDZDGlhY+J6z+eoqiEeX4WbGY/Qi/8jFZtCDHAoGBAJpYHxiq2vO9FuyDM7xk\nKtyEbkT8DZLqlkMlpY+8jRRTOANyx7CAbuusMV4G4UUr2nqO3q5JGOF0Fe2LBF7h\nBKAEWKch108X8OpktA4UqqXsDthaHvZ0Ui1qOOMWyYKU+/XIloOOtx7R0QbyoBsV\npAslSleTwRQvg0fs9b95hxt2\n-----END PRIVATE KEY-----\n"
-      client_email	"k8s-vault@papafrancky.iam.gserviceaccount.com"
-      client_id	"114409726477469875395"
-      auth_uri	"https://accounts.google.com/o/oauth2/auth"
-      token_uri	"https://oauth2.googleapis.com/token"
-      auth_provider_x509_cert_url	"https://www.googleapis.com/oauth2/v1/certs"
-      client_x509_cert_url	"https://www.googleapis.com/robot/v1/metadata/x509/k8s-vault%40papafrancky.iam.gserviceaccount.com"
-      universe_domain	"googleapis.com"
+      "type": "service_account",
+      "project_id": "papafrancky",
+      "private_key_id": "9888481c9848a94a8549c8b58112642fa8032a2f",
+      "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCfKVHMPAX5sbri\n8lQUMELRGipMxsd    +FwFQQ0uYSYRW9YgK6YgyJojTnnh/XJqPk/JLP/tEP4cg2wFe\nrNw7+PWe3j1t0TZPMHzSUylm6CKHfqdXGiaDRmmDp8pbTtLGCk   +NrqN7IIXZrZq1\nNnEQ4WRQciRZmHba2NL7jM6kPgpkRR2vAr0rnz0LJe1UI0em1EPqAtOTyRIwn3fV\n3Sccbl2WI2G5Dhq1DaLkz9D/  dWfpmGzDPURfGQJ9Igen7Erw0mzcQQ81F2j/+RuH\npmOKUrH8I9thb00BHIa54VwSENzAL/UV1p   +7W22O61uqdpjpDiUm6eaY27DstBP4\nSeVJeOWvAgMBAAECggEAO1VshH413g1XNcaP+Iy7Q/eEoGWUNhm+aB0GP+ncN4zF\n4AeKOePqqzVPB2/OwMqvD0V1Vs52AhYSzygS3Bql  +kkwTlGpdOEHD2NoMlBEmw1o\ntcxuYg7sQ+PXyK08Xw619IQPttV7gJg67eYzRU85FdJPYcU4PcKJ+LPXzxu/   xPv2\nCK0KIeX6taQNPpTY48lqRAs0gl9yHpRwTEGmWkWcic5qH9F6hAnfp4SPbOFAXtTm\n7JTtsE0hd1GSnZFl2aGep6yfpU6MrhXNZLjUBFnB7XZw3ZBHRnsEx2GAkTaRs3Uj\n  XSKt6STH+p1q+u3HaeNwl9PvyykBNb7P4JxGxSij7QKBgQDcsisG0Oym0zI+Wc2T\nG9lElL4cn7Xa62qys9tQggd4i6CMI/   nBlPXqkQ1or2JVTfehB0grRJAVeE2VWseT\nJaum7imkadp259/LvgRqrZDbWMZ9rfbi9fBE0CCvTakLs7Y5ZDGiVqYEOFzrzwh/\ne0/   9xPMOn6nyEFq0PErZWs969QKBgQC4nzftBSWEQe4BZ2GZMB1pqWzMeu+pxtO4\ntstEK4gbihhVdkcLNW7NjqvX1W3+zEFDQTzFmZCdNivyLpaw5gdPI9Y9Kr7ZqaG/  \n4PR8bPowDAXqh28UbEWgvheKUqblj0cL4EW54OPRh6n2Xk5neXAmBId1Ux2iRKT3\n29k/Wuc/kwKBgFnrRdibGzDFb/   0zfazoddeZevQSpnex32E8IqlksUKOMTWoGsSi\nuqd9vibe/oOfJru3SdJHNyVoRMQLnrD3cj6rXtAcSOSViPtsSkRkv1Z/jy/5x1Ol\nvOVsn0SNsciQyjgL  +KUaBL5HcKSrT90REwBkVFuq9gUoYKx6vExe0ZZZAoGARHxT\nq6noE9q9JmoqK0BM+OAvit7jvrAR5Ahy   +LPJRqYAhttcWU0V8EzHdEYpCobMgt1V\nZNulaJwqyyj7H14FQhdCJuiPaYDijqItL2bhnCcpnqlkzEepwIojg11LqgZvTXmB\nhAVnnVdc9hZfsUS8FG5DrYMKkCI0q/  ky6qyW8d8CgYAkH9WQFS7xR2oIzSkCH8NW\nZKlO9ruGUSIUT0pIdh5yD0oGgFN/cR3f2sEgj5wX7zXg3+fJ/f7wBKx438hWw540\nzD58uxl/9brOYx95/    dld58AGiLWvYhJBgVI1QZNPmXZxMHdW86/G+3S/JQC6nprE\nMXVybj1Axo6H+6LsSbb71w==\n-----END PRIVATE KEY-----\n",
+      "client_email": "k8s-vault@papafrancky.iam.gserviceaccount.com",
+      "client_id": "114409726477469875395",
+      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+      "token_uri": "https://oauth2.googleapis.com/token",
+      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+      "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/k8s-vault%40papafrancky.iam.gserviceaccount.com",
+      "universe_domain": "googleapis.com"
     }
     ```
 
@@ -867,7 +900,7 @@ Informations concernant la clé  :
       --location europe-west9
 
     # Création de la clé :
-    gcloud kms keys create k8s-vault2 \
+    gcloud kms keys create k8s-vault \
       --keyring k8s-vault \
       --location europe-west9 \
       --purpose encryption \
@@ -1015,17 +1048,16 @@ server:
   extraEnvironmentVars:
     GOOGLE_REGION: europe-west9
     GOOGLE_PROJECT: papafrancky
-    GOOGLE_APPLICATION_CREDENTIALS: /vault/userconfig/k8s-vault-gcp-service-account-key/k8s-vault.service-account.private-key.json
+    GOOGLE_APPLICATION_CREDENTIALS: /vault/userconfig/vault-sa-key/vault-sa-key
   extraVolumes:
     - type: secret
-      name: k8s-vault-gcp-service-account-key
+      name: vault-sa-key
       path: /vault/userconfig
-  dataStorage:
-    size: 1Gi
   standalone:
     enabled: true
     config: |
       ui = true
+
       listener "tcp" {
         tls_disable = 1
         address = "[::]:8200"
@@ -1038,11 +1070,15 @@ server:
       storage "file" {
         path = "/vault/data"
       }
+
+      # Example configuration for using auto-unseal, using Google Cloud KMS. The
+      # GKMS keys must already exist, and the cluster must have a service account
+      # that is authorized to access GCP KMS.
       seal "gcpckms" {
-         project     = "papafrancky"
-         region      = "euope-west9"
-         key_ring    = "k8s-vault"
-         crypto_key  = "k8s-vault"
+        project     = "papafrancky"
+        region      = "euope-west9"
+        key_ring    = "k8s-vault"
+        crypto_key  = "k8s-vault"
       }
   serviceAccount:
     create: true
@@ -1055,7 +1091,7 @@ EOF
 kubectl -n vault create configmap vault-values \
   --from-file=./vault/values.yaml \
   --dry-run=client \
-  -o yaml > ./vault/vault.values.yaml
+  -o yaml > ./vault/vault-values.configmap.yaml
 
 # Suppression du fichier values.yaml :
 /bin/rm ./vault/values.yaml
@@ -1077,8 +1113,7 @@ La '*deploy key*' va permettre à FluxCD de s'authentifier auprès du dépôt Gi
 
     flux create secret git k8s-kind-apps-gitrepository-deploykeys \
       --url=ssh://github.com/${GITHUB_USERNAME}/k8s-kind-apps \
-      --namespace=vault \
-      --export > 
+      --namespace=vault
     
     kubectl -n vault get secret k8s-kind-apps-gitrepository-deploykeys -o yaml
     ```
@@ -1178,7 +1213,8 @@ flux reconcile kustomization flux-system --with-source
 
 Nous devons dire à Flux qu'il doit gérer le sous-répertoire '*vault*' dans le dépôt Git dédié à nos applications :
 
-```sh
+=== "code"
+    ```sh
     export LOCAL_GITHUB_REPOS="${HOME}/code/github"
     cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
@@ -1189,7 +1225,25 @@ Nous devons dire à Flux qu'il doit gérer le sous-répertoire '*vault*' dans le
       --prune=true \
       --namespace=vault \
       --export  > apps/vault/vault.kustomization.yaml
-```
+    ```
+
+=== "'vault' kustomization"
+    ```yaml
+    ---
+    apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    metadata:
+      name: vault
+      namespace: vault
+    spec:
+      interval: 1m0s
+      path: ./vault
+      prune: true
+      sourceRef:
+        kind: GitRepository
+        name: k8s-kind-apps
+        namespace: vault
+    ```
 
 Poussons nos modifications sur GitHub pour une prise en compte par FluxCD :
 
@@ -1278,8 +1332,18 @@ Discord nous annonce que la kustomization 'vault' est désormais bien fonctionne
 
 
 
+Assurons-nous que la Helm release est bien déployée dans le namespace '*vault*' :
 
-XXXXX
+=== "code"
+    ```sh
+    helm -n vault list
+    ```
+
+=== "output"
+    ```sh
+    NAME 	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART       	APP VERSION
+    vault	vault    	1       	2025-11-10 15:48:01.835257 +0000 UTC	deployed	vault-0.31.0	1.20.4
+    ```
 
 Regardons l'état de nos objets dans le namespace 'vault' :
 
@@ -1290,8 +1354,8 @@ Regardons l'état de nos objets dans le namespace 'vault' :
 
 === "output"
     ```sh
-    NAME          READY   STATUS             RESTARTS        AGE
-    pod/vault-0   0/1     CrashLoopBackOff   6 (2m10s ago)   8m5s
+    NAME          READY   STATUS    RESTARTS        AGE
+    pod/vault-0   0/1     Running   6 (2m10s ago)   8m5s
 
     NAME                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)             AGE
     service/vault            ClusterIP   10.43.76.26     <none>        8200/TCP,8201/TCP   8m5s
@@ -1321,10 +1385,10 @@ Nous voyons que le pod 'vault-0' à un status 'Running' mais qu'il n'est pas 're
     Threshold                0
     Unseal Progress          0/0
     Unseal Nonce             n/a
-    Version                  1.16.1
-    Build Date               2024-04-03T12:35:53Z
-    Storage Type             raft
-    HA Enabled               true
+    Version                  1.20.4
+    Build Date               2025-09-23T13:22:38Z
+    Storage Type             file
+    HA Enabled               false
     command terminated with exit code 2
     ```
 
@@ -1343,16 +1407,16 @@ L'initialisation de Vault passe par une commande à passer directement sur les p
 
 === "output"
     ```sh
-    Recovery Key 1: xhiaiaNYaJG6IjCSgvtlDOktdl1D8pEQiuuflLF4TFn6
-    Recovery Key 2: i6Z/xCFSOottTsabjYemf182h80c4gz8S8pP0Uv5kmws
-    Recovery Key 3: iCYiSqb8MwMIb34GGyy2+pUMfL7774gAXb6BVV24v+EZ
-    Recovery Key 4: cMFdU8okh5OZ2VSdhpRk7965EE+hO+N+M9OlHEtZBfdl
-    Recovery Key 5: QmMRWjhJrzEJ+Oc0UnWhN9hlJff4seCmBkr7Ne8uP3ay
-    
-    Initial Root Token: hvs.VPcxxUbQjWt66U3jRzMjfIaI
-    
+    Recovery Key 1: eE4Os3Z4TSnVLjsROqGIyFdEiDVBTGvolywiY5PJ2tLh
+    Recovery Key 2: SBLCPjboyMEdzhpPLwnC4g1FnMH5xG1Z8jHv/X/5fDIB
+    Recovery Key 3: toG6YbkGeI6yRYMeeKVsKh+WocVFiqE9ZzFxRFpdw8QH
+    Recovery Key 4: YVfC0LIPdZZ8OqC6vc3PlYsRjShbJRYLRaOq8bhBI823
+    Recovery Key 5: GD2tpYHrtzBtPVzBHSo9ZeK8RM5/H6gxskUOoHBzSvAn
+
+    Initial Root Token: hvs.CQwblgr767wFfJLVU5DgjIi8
+
     Success! Vault is initialized
-    
+
     Recovery key initialized with 5 key shares and a key threshold of 3. Please
     securely distribute the key shares printed above.
     ```
@@ -1377,20 +1441,15 @@ Vérifions que Vault est bien opérationnel :
     Sealed                   false
     Total Recovery Shares    5
     Threshold                3
-    Version                  1.16.1
-    Build Date               2024-04-03T12:35:53Z
-    Storage Type             raft
-    Cluster Name             vault-cluster-877de470
-    Cluster ID               8a3d7616-1771-aa7d-bf00-e587e88f9f4d
-    HA Enabled               true
-    HA Cluster               https://vault-0.vault-internal:8201
-    HA Mode                  active
-    Active Since             2024-06-01T16:21:00.144765355Z
-    Raft Committed Index     67
-    Raft Applied Index       67
+    Version                  1.20.4
+    Build Date               2025-09-23T13:22:38Z
+    Storage Type             file
+    Cluster Name             vault-cluster-632ed50e
+    Cluster ID               7b77d1d9-cb52-e83b-486f-5ce7811c6929
+    HA Enabled               false
     ```
 
-Vault est bien initialisé. Assurons-nous malgré tout que le pod est désormais bien 'ready' :
+Vault est bien initialisé (Sealed = false). Assurons-nous malgré tout que le pod est désormais bien 'ready' :
 
 === " code"
     ```sh
@@ -1400,7 +1459,7 @@ Vault est bien initialisé. Assurons-nous malgré tout que le pod est désormais
 === "output"
     ```sh
     NAME      READY   STATUS    RESTARTS   AGE
-    vault-0   1/1     Running   0          25m
+    vault-0   1/1     Running   0          65m
     ```
 
 Tout est comme attendu ! :fontawesome-regular-face-laugh-wink:
@@ -1411,11 +1470,18 @@ Tout est comme attendu ! :fontawesome-regular-face-laugh-wink:
 
 Vault est installé en *'statefulset'*, sa configuration est pérenne, aussi allons-nous le désinstaller et attendre que FluxCD le réinstalle pour nous assurer que Vault sera réinstallé dans un état initialisé et *'unsealed'*.
 
-helm -n vault list
+=== "code"
+    ```sh
+    helm -n vault list
+    ```
 
-NAME 	NAMESPACE	REVISION	UPDATED                                	STATUS  	CHART       	APP VERSION
-vault	vault    	1       	2024-06-01 16:13:04.681229835 +0000 UTC	deployed	vault-0.28.0	1.16.1
+=== "output"
+    ```sh
+    NAME 	NAMESPACE	REVISION	UPDATED                                	STATUS  	CHART       	APP VERSION
+    vault	vault    	1       	2024-06-01 16:13:04.681229835 +0000 UTC	deployed	vault-0.28.0	1.16.1
+    ```
 
+Désinstallons Vault tout en sachant que FluxCD le réinstallera ensuite :
 
 === "code"
     ```sh
@@ -1449,23 +1515,20 @@ Regardons sur le pod nouvellement re-déployé l'état de Vault :
     Sealed                   false
     Total Recovery Shares    5
     Threshold                3
-    Version                  1.16.1
-    Build Date               2024-04-03T12:35:53Z
-    Storage Type             raft
-    Cluster Name             vault-cluster-877de470
-    Cluster ID               8a3d7616-1771-aa7d-bf00-e587e88f9f4d
-    HA Enabled               true
-    HA Cluster               https://vault-0.vault-internal:8201
-    HA Mode                  active
-    Active Since             2024-06-01T16:45:14.602109688Z
-    Raft Committed Index     109
-    Raft Applied Index       109
+    Version                  1.20.4
+    Build Date               2025-09-23T13:22:38Z
+    Storage Type             file
+    Cluster Name             vault-cluster-632ed50e
+    Cluster ID               7b77d1d9-cb52-e83b-486f-5ce7811c6929
+    HA Enabled               false
     ```
+
+Vault est bien '*unsealed*'. Parce qu'il s'agit d'un '*statefulset*', les données sont persistantes sur le cluster et Vault se souvient malgré avoir été désinstallé qu'il avait été initialisé précédemment, raison pour laquelle nous n'avons pas eu à le faire encore une fois.
 
 !!! Success
     Nous venons de valider le bon fonctionnement de l'**'auto-unsealing'** de Vault.
 
-
+XXXXX
 
 ## External Secrets Operator
 
