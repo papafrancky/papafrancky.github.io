@@ -44,13 +44,14 @@ mkdir -p ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/external-secrets
 
 
 
-## Namespace dédié à la gestion des secrets
+## Namespaces dédiés à Vault et External-Secrets Operator (ESO)
 
 ```sh
-kubectl create ns vault --dry-run=client -o yaml > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault/namespace.yaml
-kubectl create ns external-secrets --dry-run=client -o yaml > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/external-secrets/namespace.yaml
-kubectl apply -f ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault/namespace.yaml
-kubectl apply -f ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/external-secrets/namespace.yaml
+kubectl create ns vault --dry-run=client -o yaml > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault/vault.namespace.yaml
+kubectl create ns external-secrets --dry-run=client -o yaml > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/external-secrets/external-secrets.namespace.yaml
+
+kubectl apply -f ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault/vault.namespace.yaml
+kubectl apply -f ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/external-secrets/external-secrets.namespace.yaml
 ```
 
 
@@ -126,7 +127,7 @@ Nous utiliserons notre serveur Discord _*'k8s'*_ déjà existant et créerons po
       --channel=vault \
       --username=FluxCD \
       --namespace=vault \
-      --export > apps/vault/notification-provider.yaml
+      --export > apps/vault/discord.notification-provider.yaml
 
     flux create alert-provider discord \
       --type=discord \
@@ -134,7 +135,7 @@ Nous utiliserons notre serveur Discord _*'k8s'*_ déjà existant et créerons po
       --channel=external-secrets \
       --username=FluxCD \
       --namespace=external-secrets \
-      --export > apps/external-secrets/notification-provider.yaml
+      --export > apps/external-secrets/discord.notification-provider.yaml
     ```
 
 === "vault"
@@ -183,14 +184,14 @@ Nous utiliserons notre serveur Discord _*'k8s'*_ déjà existant et créerons po
       --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*,HelmRelease/*' \
       --provider-ref=discord \
       --namespace=vault \
-      --export > apps/vault/notification-alert.yaml
+      --export > apps/vault/discord.notification-alert.yaml
 
     flux create alert discord \
       --event-severity=info \
       --event-source='GitRepository/*,Kustomization/*,ImageRepository/*,ImagePolicy/*,HelmRepository/*,HelmRelease/*' \
       --provider-ref=discord \
       --namespace=external-secrets \
-      --export > apps/external-secrets/notification-alert.yaml
+      --export > apps/external-secrets/discord.notification-alert.yaml
     ```
 
 === "vault"
@@ -360,6 +361,9 @@ Discord nous informe tout de suite de la bonne création des _*'Helm registries'
 
 ## Déploiement de l'**External Secrets Operator (ESO)**
 
+!!! Doc
+    [https://external-secrets.io/latest/introduction/overview/](https://external-secrets.io/latest/introduction/overview/)
+
 La solution fonctionne '*as-is*' : il n'est pas nécessaire de personnaliser la configuration de l'opérateur.
 
 Nous allons donc nous contenter de définir dans le dépôt GitHub que nous avons dédié à nos applications (`k8s-kind-apps`) une **Helm Release** depuis la *Helm Chart* '*external-secrets*' sans '*custom values*'.
@@ -407,7 +411,7 @@ Commençons par récupérer notre clé publique depuis le *secret* que nous veno
 
 === "code"
     ```sh
-    kubectl -n external-secrets get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity\.pub}' | base64 -
+    kubectl -n external-secrets get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity\.pub}' | base64 -D
     ```
 
 === "output"
@@ -617,13 +621,13 @@ Effectons une dernière vérification :
 Le mécanisme d'*auto-unseal* de Vault repose sur l'utilisation d'un service de gestion de clés (ie. '*Key Management System*', ou '*KMS*') proposé par un '*Cloud Service Provider*' ('*CSP*'). Notre choix s'est porté sur la plateforme '*Google Cloud Platform*' ('*CGP*') mais tout autre *CSP* proposant un *KMS* aurait pu faire l'affaire.
 
 !!! info
-    https://developer.hashicorp.com/vault/tutorials/auto-unseal/autounseal-gcp-kms
+    [https://developer.hashicorp.com/vault/tutorials/auto-unseal/autounseal-gcp-kms](https://developer.hashicorp.com/vault/tutorials/auto-unseal/autounseal-gcp-kms)
 
 
 
 #### Projet GCP
 
-Nous disposons d'un compte GCP et avons préalablement créé un projet dont voici les informations essentielles :
+Nous disposons d'un compte GCP et avons préalablement créé le projet suivant :
 
 |KEY|VALUE|
 |---:|---|
@@ -642,7 +646,7 @@ Pour consommer les services GCP, il faut activer leurs APIs.
 |Compute Engine API|
 
 
-##### Activation via la console (web UI)
+##### Activation des APIs GCP via la console (web UI)
 
 !!! tip
     APIs & Services > Enabled APIs & Services > + ENABLE APIS AND SERVICES
@@ -678,7 +682,7 @@ Activation de l'API Compute :
 ![Activation de l'API Compute](./images/gcp.enable_apis.09.png)
 
 
-##### Activation via *gcloud* (CLI)
+##### Activation des APIs GCP via *gcloud* (CLI)
 
 ```sh
 # gcloud update
@@ -1263,6 +1267,7 @@ Discord nous remonte une erreur dans le channel vault :
 
 ![Vault kustomization Deployment](./images/vault_kustomization.deployment.png)
 
+Rien d'anormal, car nous n'avons écrit aucun manifest YAML dans le sous-répertoire '*vault*' du dépôt GitHub dédié à nos applications '*k8s-kind-apps*'. Dans Git, sans fichiers dans un répertoire, le répertoire n'existe pas. Le problème sera corrigé lorsque nous aurons défini notre '*Helm Release*' et ses '*custom values*'.
 
 
 ##### La Helm Release Vault
@@ -1462,13 +1467,36 @@ Vault est bien initialisé (Sealed = false). Assurons-nous malgré tout que le p
     vault-0   1/1     Running   0          65m
     ```
 
+
+Connectons-nous à la web UI de Vault. Pour ce faire, nous utiliserons le '*root token*' récupéré lors de l'initialisation de Vault.
+
+Commençons par utiliser le '*port-forwarding*' :
+
+```sh
+kubectl -n vault port-forward service/vault-ui 8200 8200
+```
+
+Ouvrons ensuite notre navigateur à l'URL suivante : ```http://localhost:8200/```.
+![Vault UI #01](./images/vault.ui.01.png)
+
+Nous accédons bien à Vault via son interface graphique !
+![Vault UI #02](./images/vault.ui.02.png)
+
+
+
+
 Tout est comme attendu ! :fontawesome-regular-face-laugh-wink:
 
 
 
 ### Test de l'auto-unseal
 
-Vault est installé en *'statefulset'*, sa configuration est pérenne, aussi allons-nous le désinstaller et attendre que FluxCD le réinstalle pour nous assurer que Vault sera réinstallé dans un état initialisé et *'unsealed'*.
+Vault est installé en *'statefulset'*, sa configuration est pérenne, aussi allons-nous le désinstaller et attendre que FluxCD le réinstalle pour nous assurer que Vault sera réinstallé dans un état initialisé. Paramétré en mode '*auto-unseal*', notre coffre devrait être opérationnel :
+
+|Paramètre|Valeur|
+|---|---|
+|Initialized|true|
+|Sealed|false|
 
 === "code"
     ```sh
@@ -1498,6 +1526,27 @@ Discord nous prévient que FluxCD a redéployé la Helm release :
 
 ![Vault Helm release re-deployment](./images/vault_helm_release.png)
 
+La Helm Release a bien re-déployé tous les objects nécessaires au bon fonctionnement de Vault en mode '*standalone*' :
+
+=== "code"
+    ```sh
+    kubectl -n vault get all
+    ```
+
+=== "output"
+    ```sh
+    NAME          READY   STATUS    RESTARTS      AGE
+    pod/vault-0   1/1     Running   8 (76m ago)   87m
+
+    NAME                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)             AGE
+    service/vault            ClusterIP   10.43.175.203   <none>        8200/TCP,8201/TCP   26h
+    service/vault-internal   ClusterIP   None            <none>        8200/TCP,8201/TCP   26h
+    service/vault-ui         ClusterIP   10.43.103.17    <none>        8200/TCP            26h
+
+    NAME                     READY   AGE
+    statefulset.apps/vault   1/1     26h
+    ```
+
 Regardons sur le pod nouvellement re-déployé l'état de Vault :
 
 === "code"
@@ -1523,139 +1572,16 @@ Regardons sur le pod nouvellement re-déployé l'état de Vault :
     HA Enabled               false
     ```
 
-Vault est bien '*unsealed*'. Parce qu'il s'agit d'un '*statefulset*', les données sont persistantes sur le cluster et Vault se souvient malgré avoir été désinstallé qu'il avait été initialisé précédemment, raison pour laquelle nous n'avons pas eu à le faire encore une fois.
+Vault est bien '*unsealed*'. Parce qu'il s'agit d'un '*statefulset*', les données sont persistantes sur le cluster et Vault se souvient malgré sa récente désinstallation qu'il avait été initialisé précédemment, raison pour laquelle nous n'avons pas eu à le refaire.
+
+Parce qu'il est initialisé et paramétré correctement en mode '*auto-unseal*', notre coffre est complètement opérationnel juste après sa ré-installation. 
 
 !!! Success
-    Nous venons de valider le bon fonctionnement de l'**'auto-unsealing'** de Vault.
+    Nous venons de valider le bon fonctionnement de l'**'auto-unsealing'** de Vault. :fontawesome-regular-face-laugh-wink:
+
+
 
 XXXXX
-
-## External Secrets Operator
-
-!!! Info
-    https://external-secrets.io/latest/introduction/overview/
-
-
-### Helm repository
-
-Commençons par définir le Helm repository :
-
-=== "code"
-    ```sh
-    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-        
-    flux create source helm external-secrets \
-      --url=https://charts.external-secrets.io \
-      --namespace=vault \
-      --interval=1m \
-      --export > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault/external-secrets.helm-repository.yaml
-    ```
-
-=== "'external-secrets' Helm repository"
-    ```yaml
-    ---
-    apiVersion: source.toolkit.fluxcd.io/v1beta2
-    kind: HelmRepository
-    metadata:
-      name: external-secrets
-      namespace: vault
-    spec:
-      interval: 1m0s
-      url: https://charts.external-secrets.io
-    ```
-
-
-#### Helm release
-
-Nous avions déjà défini le **Helm repository** [dans la première partie](http://lpapafrancky.github.io/Vault/kind_helm_vault_auto-unseal_ESO/kind_vault_auto-unsealed_eso_fluxcd/#helm-repositories)  de ce howto. 
-
-Il nous reste à définir la **Helm release** asociée :
-
-=== "code"
-    ```sh
-    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-    
-        flux create helmrelease external-secrets \
-          --source=HelmRepository/external-secrets \
-          --chart=external-secrets \
-          --namespace=vault \
-          --export > ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd/apps/vault/external-secrets.helm-release.yaml
-    ```
-
-=== "'external-secrets' Helm release"
-    ```yaml
-    ---
-    apiVersion: helm.toolkit.fluxcd.io/v2beta1
-    kind: HelmRelease
-    metadata:
-      name: external-secrets
-      namespace: vault
-    spec:
-      chart:
-        spec:
-          chart: external-secrets
-          reconcileStrategy: ChartVersion
-          sourceRef:
-            kind: HelmRepository
-            name: external-secrets
-      interval: 1m0s
-    ```
-
-### Déploiement sur le cluster
-
-```sh
-export LOCAL_GITHUB_REPOS="${HOME}/code/github"
-
-cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
-
-git add .
-git commit -m "feat: deploying external-secrets operator on the cluster."
-git push
-
-flux reconcile kustomization flux-system --with-source
-```
-
-Nous recevons tout de suite des alertes dans notre salon Discord dédié à Vault : 
-
-![ESO helm release deployment](./images/eso_helm_release.png)
-
-
-Regardons quels objets ont été déployés sur le cluster :
-
-=== "code"
-    ```sh
-    kubectl -n vault  get all -l app.kubernetes.io/name=external-secrets
-    ```
-
-=== "output"
-    ```sh
-    NAME                                    READY   STATUS    RESTARTS   AGE
-    pod/external-secrets-7f9f5fd4d6-gfc6h   1/1     Running   0          16m
-    
-    NAME                               READY   UP-TO-DATE   AVAILABLE   AGE
-    deployment.apps/external-secrets   1/1     1            1           16m
-    
-    NAME                                          DESIRED   CURRENT   READY   AGE
-    replicaset.apps/external-secrets-7f9f5fd4d6   1         1         1       16m
-    ```
-
-Faisons une dernière vérification :
-
-=== "code"
-    ```sh
-    kubectl -n vault get externalsecret,secretstore
-    ```
-=== "output"
-    ```sh
-    No resources found in vault namespace.
-    ```
-
-Même si la dernière commande ne retourne aucun objet, au moins nous sommes sûrs que les objets de type *'externalsecret'* et *'secretstore'* sont bien définis au niveau de notre cluster.
-
-!!! Success
-    **'External-Secrets Operator (ESO)'** est déployé correctement sur notre cluster ! :fontawesome-regular-face-laugh-wink:
-
-
 
 
 
@@ -1679,7 +1605,7 @@ Connectons-nous au pod *'Vault-0'* pour activer le *'secret engine'* **'KVv2'** 
 kubectl -n vault exec -it vault-0 -- sh
 
 # Login sur Vault avec le Root token
-vault login hvs.VPcxxUbQjWt66U3jRzMjfIaI
+vault login hvs.CQwblgr767wFfJLVU5DgjIi8
 
 # Activation du 'secret engine' KVv2
 vault secrets enable -version=2 kv
