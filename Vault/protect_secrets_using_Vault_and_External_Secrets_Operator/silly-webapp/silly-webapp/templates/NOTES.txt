@@ -1,0 +1,6 @@
+'silly-webapp' really is... a silly webapp : it consists in a simple Apache 2.4 webserver exposing a webpage which contains credentials retrieved from Vault through the 'External Secrets Operator (ESO)'.
+
+To see it in action :
+
+    kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ .Release.Name }} 8080:{{ .Values.service.port }}
+    Visit http://127.0.0.1:8080 to see the secrets.
