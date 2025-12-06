@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: fedora
+  name: fedora
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fedora
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: fedora
+    spec:
+      serviceAccountName: vault
+      containers:
+      - image: fedora
+        name: fedora
+        command: ['sleep', '10000']

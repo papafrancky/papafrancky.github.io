@@ -1,0 +1,59 @@
+global:
+  enabled: false
+  namespace: "vault"
+injector:
+  enabled: false
+server:
+  enabled: true
+  # Used to define commands to run after the pod is ready.
+  # This can be used to automate processes such as initialization
+  # or boostrapping auth methods.
+  postStart: []
+  # - /bin/sh
+  # - -c
+  # - /vault/userconfig/myscript/run.sh
+  extraEnvironmentVars:
+    GOOGLE_REGION: europe-west9
+    GOOGLE_PROJECT: vault-415918
+    GOOGLE_APPLICATION_CREDENTIALS: /vault/userconfig/kms-creds/credentials.json
+  extraVolumes:
+    - type: secret
+      name: kms-creds
+      path: /vault/userconfig # default is `/vault/userconfig`
+  standalone:
+    config: |
+      ui = true
+
+      listener "tcp" {
+        tls_disable = 1
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+        # Enable unauthenticated metrics access (necessary for Prometheus Operator)
+        #telemetry {
+        #  unauthenticated_metrics_access = "true"
+        #}
+      }
+      storage "file" {
+        path = "/vault/data"
+      }
+      seal "gcpckms" {
+         project     = "vault-415918"
+         region      = "europe-west9"
+         key_ring    = "vault-helm-unseal-kr"
+         crypto_key  = "vault-helm-unseal-key"
+      }
+  #ha:
+  #  enabled: true
+  #  replicas: 1
+  #  raft:
+  #    enabled: true
+  serviceAccount:
+    create: true
+    name: "vault"
+ui:
+  # True if you want to create a Service entry for the Vault UI.
+  #
+  # serviceType can be used to control the type of service created. For
+  # example, setting this to "LoadBalancer" will create an external load
+  # balancer (for supported K8S installations) to access the UI.
+  enabled: false
