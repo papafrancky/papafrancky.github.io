@@ -1584,6 +1584,45 @@ Parce qu'il est initialisé et paramétré correctement en mode '*auto-unseal*',
 XXXXX
 
 
+podinfo
+
+=== code
+    ```sh
+    kubectl -n podinfo get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity}' | base64 -d
+    ```
+
+=== "output"
+    ```sh
+    -----BEGIN PRIVATE KEY-----
+    MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDCsmDJSy9FKDpSxH94x
+    wkFOcZlBWqwRN4pGC+mp0mxa8YQDlziKNQmcg4gT5B1a6TuhZANiAASm8PcjGzfE
+    jyCUPT/A2cBlO1iWbsCra3OCjNt2hyxQQkMsfKKeP7+tv3obYmmZ6x+OYPTixgsI
+    aufN0nPw64Apf3DyUmlmw1ZFxqMX8D2Buboa0tJHo2z11rZUgFGcDhI=
+    -----END PRIVATE KEY-----
+    ```
+
+
+```sh
+# Accès au pod du micro-service 'vault'
+kubectl -n vault exec -it vault-0 -- sh
+
+# Login sur Vault avec le Root token
+vault login hvs.CQwblgr767wFfJLVU5DgjIi8
+
+# Activation du 'secret engine' KVv2
+vault secrets enable -version=2 kv
+
+# Ecriture du secret 
+vault kv put -mount kv podinfo/gitrepositories/k8s-kind-apps/deploykey \
+  dentity="-----BEGIN PRIVATE KEY-----
+  MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDCsmDJSy9FKDpSxH94x
+  wkFOcZlBWqwRN4pGC+mp0mxa8YQDlziKNQmcg4gT5B1a6TuhZANiAASm8PcjGzfE
+  jyCUPT/A2cBlO1iWbsCra3OCjNt2hyxQQkMsfKKeP7+tv3obYmmZ6x+OYPTixgsI
+  aufN0nPw64Apf3DyUmlmw1ZFxqMX8D2Buboa0tJHo2z11rZUgFGcDhI="
+
+
+
+```
 
 ## Intégration de Vault et External-Secrets à la Helm Release 'kube-prometheus-stack'
 
