@@ -1479,6 +1479,9 @@ kubectl -n vault port-forward service/vault-ui 8200 8200
 Ouvrons ensuite notre navigateur à l'URL suivante : ```http://localhost:8200/```.
 ![Vault UI #01](./images/vault.ui.01.png)
 
+!!! Note
+    Le *'root token'* nous a été donné lors de l'initialisation de Vault : `hvs.CQwblgr767wFfJLVU5DgjIi8`
+
 Nous accédons bien à Vault via son interface graphique !
 ![Vault UI #02](./images/vault.ui.02.png)
 
@@ -1581,48 +1584,357 @@ Parce qu'il est initialisé et paramétré correctement en mode '*auto-unseal*',
 
 
 
-XXXXX
 
+## Gestion des secrets de podinfo par Vault et ESO
 
-podinfo
+Commençons par recenser les *secrets* utilisés par podinfo :
 
-=== code
+=== "code"
     ```sh
-    kubectl -n podinfo get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity}' | base64 -d
+    kubectl -n podinfo get secrets
     ```
 
 === "output"
     ```sh
-    -----BEGIN PRIVATE KEY-----
+    NAME                                     TYPE                             DATA   AGE
+    discord-webhook                          Opaque                           1      62d
+    k8s-kind-apps-gitrepository-deploykeys   Opaque                           3      63d
+    podinfo-helmrepository                   kubernetes.io/dockerconfigjson   1      63d
+    sh.helm.release.v1.podinfo.v5            helm.sh/release.v1               1      62d
+    sh.helm.release.v1.podinfo.v6            helm.sh/release.v1               1      62d
+    sh.helm.release.v1.podinfo.v7            helm.sh/release.v1               1      62d
+    sh.helm.release.v1.podinfo.v8            helm.sh/release.v1               1      62d
+    sh.helm.release.v1.podinfo.v9            helm.sh/release.v1               1      13d
+    ```
+
+2 *secrets* nous intéressent ici : 
+
+- **k8s-kind-apps-gitrepository-deploykeys** : les clés privée et publique utilisées par FluxCD pour se connecter au dépôt GitHub dédié à nos applications;
+- **discord-webhook** : le webhook permettant d'envoyer les alertes dans le channel Discord dédié à *podinfo* 
+
+Commençons par la '*Deploy Key*'.
+
+### La '*deploy key*' permettant à FluxCD d'accéder au dépôt GitHub dédié aux applications
+
+
+#### Intégration des '*secrets*' dans Vault
+
+Nous allons récupérer les clés privée et publique depuis le '*secret*' Kubernetes *k8s-kind-apps-gitrepository-deploykeys* dans le namespace '*podinfo*' et les écrire dans Vault, dans un chemin (ou '*path*') dédié à notre application '*podinfo*'.
+
+!!! Doc
+    [https://developer.hashicorp.com/vault/docs/commands/kv/put](https://developer.hashicorp.com/vault/docs/commands/kv/put)
+
+```sh
+# 'root token' de notre instance Vault :
+export VAULT_ROOT_TOKEN="hvs.CQwblgr767wFfJLVU5DgjIi8"
+
+# Ecriture des clés privée et publique dans des fichiers temporaires :
+kubectl -n podinfo get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity}' | base64 -d > gitrepository.kind-apps.deploykeys.identity.txt
+kubectl -n podinfo get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity\.pub}' | base64 -d > gitrepository.kind-apps.deploykeys.identity_pub.txt
+kubectl -n podinfo get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.known_hosts}' | base64 -d > gitrepository.kind-apps.deploykeys.known_hosts.txt
+
+# Port-forwarding du service Vault pour le rendre accessible :
+kubectl -n vault port-forward service/vault 8200 8200 &
+
+# Authentification à Vault avec le 'root token' :
+export VAULT_ADDR="http://localhost:8200"
+vault login ${VAULT_ROOT_TOKEN}
+
+# Insertion des clés privée et publique dans un 'path' Vault dédié à l'application 'podinfo' :
+vault kv put -mount kv podinfo/gitrepositories/k8s-kind-apps/deploykey identity=@gitrepository.kind-apps.deploykeys.identity.txt identity.pub=@gitrepository.kind-apps.deploykeys.identity_pub.txt knonw_hosts=@gitrepository.kind-apps.deploykeys.known_hosts.txt
+
+  # ===================== Secret Path =====================
+  # kv/data/podinfo/gitrepositories/k8s-kind-apps/deploykey
+  # 
+  # ======= Metadata =======
+  # Key                Value
+  # ---                -----
+  # created_time       2025-12-06T16:41:45.528051Z
+  # custom_metadata    <nil>
+  # deletion_time      n/a
+  # destroyed          false
+  # version            1
+
+
+# Suppresson des fichiers contenant les clés publique et privée :
+/bin/rm gitrepository.kind-apps.deploykeys.identity.txt gitrepository.kind-apps.deploykeys.identity_pub.txt gitrepository.kind-apps.deploykeys.known_hosts.txt
+```
+
+##### Vérification
+
+Vérifions la bonne présence de nos clés dans Vault via la CLI :
+
+=== "code"
+    ```sh
+    vault kv get -mount kv podinfo/gitrepositories/k8s-kind-apps/deploykey
+    ```
+
+=== "output"
+    ```sh
+    ===================== Secret Path =====================
+    kv/data/podinfo/gitrepositories/k8s-kind-apps/deploykey
+
+    ======= Metadata =======
+    Key                Value
+    ---                -----
+    created_time       2025-12-06T16:44:21.996881Z
+    custom_metadata    <nil>
+    deletion_time      n/a
+    destroyed          false
+    version            2
+
+    ======== Data ========
+    Key             Value
+    ---             -----
+    identity        -----BEGIN PRIVATE KEY-----
     MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDCsmDJSy9FKDpSxH94x
     wkFOcZlBWqwRN4pGC+mp0mxa8YQDlziKNQmcg4gT5B1a6TuhZANiAASm8PcjGzfE
     jyCUPT/A2cBlO1iWbsCra3OCjNt2hyxQQkMsfKKeP7+tv3obYmmZ6x+OYPTixgsI
     aufN0nPw64Apf3DyUmlmw1ZFxqMX8D2Buboa0tJHo2z11rZUgFGcDhI=
     -----END PRIVATE KEY-----
+    identity.pub    ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBKbw9yMbN8SPIJQ9P8DZwGU7WJZuwKtrc4KM23aHLFBCQyx8op4/v62/ehtiaZnrH45g9OLGCwhq583Sc/DrgCl/cPJSaWbDVkXGoxfwPYG5uhrS0kejbPXWtlSAUZwOEg==
+    ```
+
+Faisons maintenant la même vérification via la console Vault :
+
+![Git repository deploy key for podinfo in Vault UI](./images/vault.ui.podinfo.gitrepo.deploykey.png)
+
+
+
+#### La Vault Policy '*test-podinfo--ro*'
+
+
+Nous allons écrire une *policy* qui donnera uniquement un droit de lecture sur les secrets se trouvant dans le path 'kv/podinfo/*' :
+
+```sh
+# Port-forwarding du service Vault pour le rendre accessible :
+kubectl -n vault port-forward service/vault 8200 8200 &
+
+# Ouverture d'une session shell sur le pod exécutant l'application Vault :
+kubectl -n vault exec -it vault-0 -- sh
+
+# Authentification à Vault avec le 'root token' :
+export VAULT_ADDR="http://localhost:8200"
+export VAULT_ROOT_TOKEN="hvs.CQwblgr767wFfJLVU5DgjIi8"
+
+vault login ${VAULT_ROOT_TOKEN}
+
+vault policy write test-podinfo--ro - << EOF
+path "kv/metadata/podinfo/*" {
+  capabilities = ["list","read"]
+}
+path "kv/data/podinfo/*" {
+  capabilities = ["list","read"]
+}
+
+path "kv/metadata/podinfo" {
+  capabilities = ["list"]
+}
+path "kv/data/monitoring" {
+  capabilities = ["list"]
+}
+
+path "kv/metadata" {
+  capabilities = ["list"]
+}
+
+path "kv/metadata*" {
+  capabilities = ["deny"]
+}
+path "kv/data*" {
+  capabilities = ["deny"]
+}
+EOF
+```
+
+#### Le rôle Vault 
+
+Dans l'authentification *kubernetes* de Vault, un rôle permet de lier un *service account* à une *policy* donnée. En l'occurrence, nous allons définir ici le rôle '*test-podinfo--ro*' qui va permettre au *service account 'vault-auth'* du namespace *podinfo* d'hériter dees permissions définies dans la *policy 'test-podinfo--ro'*.
+
+```sh
+export VAULT_ADDR="http://localhost:8200"
+export VAULT_ROOT_TOKEN="hvs.CQwblgr767wFfJLVU5DgjIi8"
+
+vault login ${VAULT_ROOT_TOKEN}
+
+vault write auth/kubernetes/role/test-podinfo--ro \
+    bound_service_account_names=vault-auth \
+    bound_service_account_namespaces=podinfo \
+    policies=test-podinfo--ro
+```
+
+
+
+#### Le Service Account 'vault-auth' 
+
+Un *service account* est indispensable pour se connecter à Vault avec la méthode d'authentification *kubernetes*.
+
+=== "code"
+    ```sh
+    export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+    cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+    kubectl -n podinfo create serviceaccount vault-auth --dry-run=client -o yaml > apps/podinfo/vault-auth.serviceaccount.yaml
+    ```
+
+=== "service account 'vault-auth'"
+    ```yaml
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      creationTimestamp: null
+      name: vault-auth
+      namespace: podinfo
     ```
 
 
+
+#### Le Secret Store 'vault'
+
+Vault déployé sur notre cluster est notre *secret store*. Pour l'application *podinfo*, nous utiliserons le *service account 'vault-auth'* pour s'authentifier avec la méthode d'authentification *kubernetes* et utiliserons le rôle Vault *'test-podinfo--ro'* qui ne donne accès qu'en lecture aux secrets se trouvant dans le path 'kv/podinfo/*'.
+
+  ```sh
+  export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+  cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+  
+  cat << EOF >> apps/podinfo/vault.secretstore.yaml
+  apiVersion: external-secrets.io/v1
+  kind: SecretStore
+  metadata:
+    name: vault
+    namespace: podinfo
+  spec:
+    provider:
+      vault:
+        server: "http://vault.vault:8200"
+        path: "kv"
+        version : "v2"
+        auth:
+          kubernetes:
+            mountPath: "kubernetes"
+            role: "test-podinfo--ro"
+            serviceAccountRef:
+              name: "vault-auth"
+  EOF
+  ```
+
+
+#### L'External Secret 'k8s-kind-apps-gitrepository-deploykeys'
+
+Nous allons pouvoir définir un ExternalSecret que nous nommerons '*k8s-kind-apps-gitrepository-deploykeys*' et qui synchronisera la valeur du secret '*identity*' qui se trouve dans le *path* 'k8s-kind-apps-gitrepository-deploykeys' de Vault, et qu'il accèdera par le SecretStore 'vault', avec le secret kubernetes '*k8s-kind-apps-gitrepository-deploykeys*'.
+
+
 ```sh
-# Accès au pod du micro-service 'vault'
-kubectl -n vault exec -it vault-0 -- sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
 
-# Login sur Vault avec le Root token
-vault login hvs.CQwblgr767wFfJLVU5DgjIi8
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
 
-# Activation du 'secret engine' KVv2
-vault secrets enable -version=2 kv
-
-# Ecriture du secret 
-vault kv put -mount kv podinfo/gitrepositories/k8s-kind-apps/deploykey \
-  dentity="-----BEGIN PRIVATE KEY-----
-  MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDCsmDJSy9FKDpSxH94x
-  wkFOcZlBWqwRN4pGC+mp0mxa8YQDlziKNQmcg4gT5B1a6TuhZANiAASm8PcjGzfE
-  jyCUPT/A2cBlO1iWbsCra3OCjNt2hyxQQkMsfKKeP7+tv3obYmmZ6x+OYPTixgsI
-  aufN0nPw64Apf3DyUmlmw1ZFxqMX8D2Buboa0tJHo2z11rZUgFGcDhI="
-
-
-
+cat << EOF > apps/podinfo/k8s-kind-apps-gitrepository-deploykeys.externalsecret.yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: k8s-kind-apps-gitrepository-deploykeys
+  namespace: podinfo
+spec:
+  refreshInterval: "1h"
+  secretStoreRef:
+    name: vault
+    kind: SecretStore
+  target:
+    name: k8s-kind-apps-gitrepository-deploykeys # Le Secret K8s qui sera créé
+    creationPolicy: Owner
+  data:
+  - secretKey: identity
+    remoteRef:
+      key: kv/podinfo/gitrepositories/k8s-kind-apps/deploykey
+      property: identity
+EOF
 ```
+
+
+#### Création du service account, du secret store et de l'external secret
+
+Avant de créer nos objets, nous supprimons le *secret* '*k8s-kind-apps-gitrepository-deploykeys*' :
+
+```sh
+kubectl -n podinfo delete secret k8s-kind-apps-gitrepository-deploykeys
+```
+
+Appliquons les changements : 
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+git add .
+git commit -m "Defined a serviceaccount, secretstore and externalsecret to manage the github deploykey."
+git push
+
+flux reconcile kustomization flux-system --with-source
+flux reconcile source git k8s-kind-apps -n podinfo
+```
+
+
+##### Vérification
+
+Vérifions que tout fonctionne comme attendu :
+
+=== "code"
+    ```sh
+    kubectl -n podinfo get secretstore,externalsecrets,secrets
+    ```
+
+=== "output"
+    ```sh
+    NAME                                    AGE    STATUS   CAPABILITIES   READY
+    secretstore.external-secrets.io/vault   6m5s   Valid    ReadWrite      True
+
+    NAME                                                                        STORETYPE     STORE   REFRESH INTERVAL   STATUS             READY
+    externalsecret.external-secrets.io/k8s-kind-apps-gitrepository-deploykeys   SecretStore   vault   1h                 SecretSynced   True
+
+    NAME                                            TYPE                             DATA   AGE
+    secret/discord-webhook                          Opaque                           1      64d
+    secret/k8s-kind-apps-gitrepository-deploykeys   Opaque                           1      6m4s
+    secret/podinfo-helmrepository                   kubernetes.io/dockerconfigjson   1      64d
+    secret/sh.helm.release.v1.podinfo.v10           helm.sh/release.v1               1      75m
+    secret/sh.helm.release.v1.podinfo.v6            helm.sh/release.v1               1      63d
+    secret/sh.helm.release.v1.podinfo.v7            helm.sh/release.v1               1      63d
+    secret/sh.helm.release.v1.podinfo.v8            helm.sh/release.v1               1      63d
+    secret/sh.helm.release.v1.podinfo.v9            helm.sh/release.v1               1      15d
+    ```
+
+Le SecretStore est valide et l'ExternalSecret a pu synchroniser le secret, ce qui explique la présence du *secret 'k8s-kind-apps-gitrepository-deploykeys'* qui vient d'être re-créé.
+
+Vérifions son contenu :
+
+=== "code"
+    ```sh
+    kubectl -n podinfo get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity}'
+    ```
+
+=== "output"
+    ```sh
+    -----BEGIN PRIVATE KEY-----
+    (...)
+    -----END PRIVATE KEY-----
+    ```
+
+C'est bien la clé privée utilisée pour permettre à FluxCD d'interagir avec le dépôt GitHub dédié à nos applications !
+
+
+
+### Le *webhook* de la messagerie instantanée *Discord*
+
+Nous allons désormais nous occuper du webhook permettant à FluxCD d'envoyer des alertes concernant l'application '*podinfo*' dans le channel éponyme de notre serveur Discord. Pour le moment, ce webhook est stocké sous la forme d'un *secret kubernetes*. Nous allons le protéger en le plaçant dans Vault et créer un *external secret* qui le synchronisera dans un secret Kubernetes.
+
+XXXXX
+
+
+
+
 
 ## Intégration de Vault et External-Secrets à la Helm Release 'kube-prometheus-stack'
 
