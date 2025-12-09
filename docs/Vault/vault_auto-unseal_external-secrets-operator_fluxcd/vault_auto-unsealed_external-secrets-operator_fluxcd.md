@@ -1930,10 +1930,192 @@ C'est bien la clé privée utilisée pour permettre à FluxCD d'interagir avec l
 
 Nous allons désormais nous occuper du webhook permettant à FluxCD d'envoyer des alertes concernant l'application '*podinfo*' dans le channel éponyme de notre serveur Discord. Pour le moment, ce webhook est stocké sous la forme d'un *secret kubernetes*. Nous allons le protéger en le plaçant dans Vault et créer un *external secret* qui le synchronisera dans un secret Kubernetes.
 
+
+
+#### Placement du *webhook* dans Vault
+
+```sh
+# Récupération du webhook depuis le secret kubernetes :
+kubectl -n podinfo get secret discord-webhook -o jsonpath='{.data.address}' | base64 -d > discord.webhook.txt
+
+  # https://discord.com/api/webhooks/1424065205444415508/xEeNJVhhRpyu_mFOMWyYLJMuNhQjgr3tKPJYzs5eUHYYiNWnYgh_hMuZIABkJw8syPl4
+
+# Port-forwarding du service Vault pour le rendre accessible :
+kubectl -n vault port-forward service/vault 8200 8200 &
+
+# Authentification à Vault avec le 'root token' :
+export VAULT_ADDR="http://localhost:8200"
+export VAULT_ROOT_TOKEN="hvs.CQwblgr767wFfJLVU5DgjIi8"
+vault login ${VAULT_ROOT_TOKEN}
+
+# Insertion des clés privée et publique dans un 'path' Vault dédié à l'application 'podinfo' :
+vault kv put -mount kv podinfo/discord/webhook address=@discord.webhook.txt
+
+  # ========= Secret Path =========
+  # kv/data/podinfo/discord/webhook
+  # 
+  # ======= Metadata =======
+  # Key                Value
+  # ---                -----
+  # created_time       2025-12-08T18:47:08.522649Z
+  # custom_metadata    <nil>
+  # deletion_time      n/a
+  # destroyed          false
+  # version            1
+
+# Suppression du fichier local contenant le secret :
+/bin/rm discord.webhook.txt
+```
+
+
+#### Policy et role Vault, service-account 'vault-auth' et SecretStore 'vault'
+
+La *Vault policy 'test-podinfo--ro'* permet un accès en lecture aux *secrets* présents dans le *path 'kv/podinfo'* et convient parfaitement pour accéder au webhook que nous avons placé dans le *path 'kv/podinfo/discord'*.
+
+Le rôle '*test-podinfo--ro*' fait le lien entre le *service-account 'vault-auth'* du *namespace *'podinfo'* et la *policy 'test-podinfo--ro'* et n'ont pas non plus besoin d'être changés.
+
+Le *SecretStore 'vault'* définit le service Vault local comme notre coffre et autorise le *service-account 'vault-auth'* à s'authentifier avec le rôle '*test-podinfo--ro*' : là encore, ne changeons rien.
+
+
+#### L'ExternalSecret 'discord-webhook'
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+cat << EOF > apps/podinfo/discord-webhook.externalsecret.yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: discord-webhook
+  namespace: podinfo
+spec:
+  refreshInterval: "1h"
+  secretStoreRef:
+    name: vault
+    kind: SecretStore
+  target:
+    name: discord-webhook # Le Secret K8s qui sera créé
+    creationPolicy: Owner
+  data:
+  - secretKey: address
+    remoteRef:
+      key: kv/podinfo/discord/webhook
+      property: address
+EOF
+```
+
+
+#### Création de l'External Secret via FluxCD
+
+Appliquons les changements :
+
+```sh
+# Suppression du Secret 'discord-webhook' :
+kubectl -n podinfo delete secret discord-webhook
+
+
+# Poussons le code sur notre dépôt Git :
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+git add .
+git commit -m "Defined ExternalSecret 'discord-webhook'."
+git push
+
+
+# Forçons la réconciliation de notre dépôt Git :
+flux -n podinfo reconcile  source git k8s-kind-apps
+```
+
+##### Vérification
+
+```sh
+# Vérification des SecretStores, ExternalSecrets et des Secrets :
+kubectl -n podinfo get ss,es,secret
+
+  # NAME                                    AGE   STATUS   CAPABILITIES   READY
+  # secretstore.external-secrets.io/vault   44h   Valid    ReadWrite      True
+  # 
+  # NAME                                                                        STORETYPE     STORE   REFRESH INTERVAL   STATUS        
+  # READY
+  # externalsecret.external-secrets.io/discord-webhook                          SecretStore   vault   1h                 SecretSynced   True
+  # externalsecret.external-secrets.io/k8s-kind-apps-gitrepository-deploykeys   SecretStore   vault   1h                 SecretSynced   True
+  # 
+  # NAME                                            TYPE                             DATA   AGE
+  # secret/discord-webhook                          Opaque                           1      112s
+  # secret/k8s-kind-apps-gitrepository-deploykeys   Opaque                           2      23h
+  # secret/podinfo-helmrepository                   kubernetes.io/dockerconfigjson   1      66d
+  # secret/sh.helm.release.v1.podinfo.v10           helm.sh/release.v1               1      45h
+  # secret/sh.helm.release.v1.podinfo.v6            helm.sh/release.v1               1      65d
+  # secret/sh.helm.release.v1.podinfo.v7            helm.sh/release.v1               1      65d
+  # secret/sh.helm.release.v1.podinfo.v8            helm.sh/release.v1               1      65d
+  # secret/sh.helm.release.v1.podinfo.v9            helm.sh/release.v1               1      17d
+  # secret/tmp                                      Opaque                           3      30h
+
+
+# Vérification des providers et des alertes :
+kubectl -n podinfo get provider,alert
+
+  # NAME                                              AGE
+  # provider.notification.toolkit.fluxcd.io/discord   66d
+  # 
+  # NAME                                           AGE
+  # alert.notification.toolkit.fluxcd.io/discord   66d
+```
+
+Pour nous assurer que notre *alerting* reste bien opérationnel, nous allons changer la version de notre application '*podinfo*' :
+
+```sh
+# Notons la version actuelle de notre application :
+helm -n podinfo list
+
+  # NAME   	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART        	APP VERSION
+  # podinfo	podinfo  	10      	2025-12-07 20:14:04.563069 +0000 UTC	deployed	podinfo-6.9.4	6.9.4
+
+
+# Rétrogradons notre application à la version 5 : 
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps/podinfo
+
+gsed -i 's/version:.*$/version: <6\.0\.0/'  podinfo.helmrelease.yaml
+
+git add .
+git commit -m 'Test podinfo alerting.'
+git push
+
+flux -n podinfo reconcile source git k8s-kind-apps
+```
+
+Discord nous annonce le changement de version, ce qui confirme le bon fonctionnement de notre *alerting* :
+
+![Testing alerting is still working](./images/test_alerting_still_working_01.png)
+
+Puisque le test est concluant, nous revenons à présent à la version la plus récente de *podinfo* :
+
+```sh
+# Demandons à FluxCD de déployer la version la plus récente de notre application :
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-apps/podinfo
+
+gsed -i "s/version:.*$/version: '*'/" podinfo.helmrelease.yaml
+
+git add .
+git commit -m 'Test podinfo alerting.'
+git push
+
+flux -n podinfo reconcile source git k8s-kind-apps
+```
+
+Discord nous notifie tout de suite de la mise à jour de *podinfo* :
+
+![End testing](./images/test_alerting_still_working_02.png)
+
 XXXXX
-
-
-
 
 
 ## Intégration de Vault et External-Secrets à la Helm Release 'kube-prometheus-stack'
