@@ -2318,9 +2318,9 @@ Supprimons l'application '*podinfo*' et forçons la réconciliation de notre Hel
 === "output"
     ```sh
     ► annotating HelmRelease podinfo in podinfo namespace
-✔ HelmRelease annotated
-◎ waiting for HelmRelease reconciliation
-✔ applied revision 6.9.4
+    ✔ HelmRelease annotated
+    ◎ waiting for HelmRelease reconciliation
+    ✔ applied revision 6.9.4
     ```
 
 Discord envoie également une alerte confirmant la bonne réinstallation de '*podinfo*' :
