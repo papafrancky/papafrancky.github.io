@@ -2115,7 +2115,230 @@ Discord nous notifie tout de suite de la mise à jour de *podinfo* :
 
 ![End testing](./images/test_alerting_still_working_02.png)
 
+
+
+### Les secrets d'authentification au dépôt Helm de '*podinfo*'
+
+Il nous reste un dernier *secret* à sécuriser dans Vault : ```podinfo-helmrepository```.
+
+=== "code"
+    ```sh
+    kubectl -n podinfo get secrets
+    ```
+
+=== "output"
+    ```sh
+    NAME                                     TYPE                             DATA   AGE
+    discord-webhook                          Opaque                           1      130m
+    k8s-kind-apps-gitrepository-deploykeys   Opaque                           2      25h
+    podinfo-helmrepository                   kubernetes.io/dockerconfigjson   1      66d
+    sh.helm.release.v1.podinfo.v10           helm.sh/release.v1               1      47h
+    sh.helm.release.v1.podinfo.v11           helm.sh/release.v1               1      90m
+    sh.helm.release.v1.podinfo.v12           helm.sh/release.v1               1      45m
+    sh.helm.release.v1.podinfo.v8            helm.sh/release.v1               1      65d
+    sh.helm.release.v1.podinfo.v9            helm.sh/release.v1               1      17d
+    ```
+
+#### Placement ses secrets d'authentification au dépôt Helm dans Vault
+
+Commençons par récupérer ces *secrets* :
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+kubectl get secret podinfo-helmrepository -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d | jq > apps/podinfo/dockerconfig.json
+
+  # {
+  #   "auths": {
+  #     "ghcr.io": {
+  #       "username": "papafrancky",
+  #       "password": "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",
+  #       "auth": "cGFwYWZyYW5ja3k6Z2hwX29OY1BkeVBFTThKWWVjZ2I3RVBhZnpiTVdCTnM2ZDQwVG4xRw=="
+  #     }
+  #   }
+  # }
+```
+
+Intégrons-les maintenant à Vault
+
+```sh
+# Accès au pod du micro-service 'vault'
+kubectl -n vault exec -it vault-0 -- sh
+
+# Login sur Vault avec le Root token
+export VAULT_ROOT_TOKEN="hvs.CQwblgr767wFfJLVU5DgjIi8"
+vault login ${VAULT_ROOT_TOKEN}
+
+# Ecriture du secret 
+vault kv put -mount kv podinfo/helmrepositories/ghcr.io dockerconfig.json=@dockerconfig.json
+
+  # ============== Secret Path ==============
+  # kv/data/podinfo/helmrepositories/ghcr.io
+  # 
+  # ======= Metadata =======
+  # Key                Value
+  # ---                -----
+  # created_time       2025-12-10T20:31:41.433176Z
+  # custom_metadata    <nil>
+  # deletion_time      n/a
+  # destroyed          false
+  # version            1
+
+
+
+# Vérification de notre nouvele entrée :
+vault kv get -mount kv podinfo/helmrepositories/ghcr.io
+
+  # ============== Secret Path ==============
+  # kv/data/podinfo/helmrepositories/ghcr.io
+  # 
+  # ======= Metadata =======
+  # Key                Value
+  # ---                -----
+  # created_time       2025-12-10T20:31:41.433176Z
+  # custom_metadata    <nil>
+  # deletion_time      n/a
+  # destroyed          false
+  # version            1
+  # 
+  # ========== Data ==========
+  # Key                  Value
+  # ---                  -----
+  # dockerconfig.json    {
+  #   "auths": {
+  #     "ghcr.io": {
+  #       "username": "papafrancky",
+  #       "password": "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",
+  #       "auth": "cGFwYWZyYW5ja3k6Z2hwX29OY1BkeVBFTThKWWVjZ2I3RVBhZnpiTVdCTnM2ZDQwVG4xRw=="
+  #     }
+  #   }
+  # }
+
+# Deconnexion du pod 
+exit
+```
+
+
+
+#### L'ExternalSecret '*podinfo-helmrepository*'
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+
+# Définition de l'ExternalSecret :
+cat << EOF > apps/podinfo/podinfo-helmrepository.externalsecret.yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: podinfo-helmrepository
+  namespace: podinfo
+spec:
+  refreshInterval: "1h"
+  secretStoreRef:
+    name: vault
+    kind: SecretStore
+  target:
+    name: podinfo-helmrepository  # Le Secret K8s qui sera créé
+    creationPolicy: Owner
+  data:
+  - secretKey: dockerconfig.json
+    remoteRef:
+      key: podinfo/helmrepositories/ghcr.io
+      property: dockerconfig.json
+EOF
+
+# Suppression du fichier temporaire  :
+/bin/rm apps/podinfo/dockerconfig.json
+```
+
+
+
+#### Création de l'ExternalSecret via FluxCD
+
+```sh
+# Suppression du Secret 'podinfo-helmrepository' :
+kubectl -n podinfo delete secret podinfo-helmrepository
+
+
+# Poussons le code sur notre dépôt Git :
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+git add .
+git commit -m "Defined ExternalSecret 'podinfo-helmrepository'."
+git push
+
+
+# Forçons la réconciliation de notre dépôt Git :
+flux -n podinfo reconcile source git k8s-kind-apps
+```
+
+Vérifions que tout fonctionne comme attendu :
+
+=== "code"
+    ```sh
+    kubectl -n podinfo get ss,es,secrets
+    ```
+
+=== "output"
+    ```sh
+    NAME                                    AGE     STATUS   CAPABILITIES   READY
+    secretstore.external-secrets.io/vault   2d23h   Valid    ReadWrite      True
+
+    NAME                                                                        STORETYPE     STORE   REFRESH INTERVAL   STATUS         READY
+    externalsecret.external-secrets.io/discord-webhook                          SecretStore   vault   1h                 SecretSynced   True
+    externalsecret.external-secrets.io/k8s-kind-apps-gitrepository-deploykeys   SecretStore   vault   1h                 SecretSynced   True
+    externalsecret.external-secrets.io/podinfo-helmrepository                   SecretStore   vault   1h                 SecretSynced   True
+
+    NAME                                            TYPE                 DATA   AGE
+    secret/discord-webhook                          Opaque               1      26h
+    secret/k8s-kind-apps-gitrepository-deploykeys   Opaque               2      2d2h
+    secret/podinfo-helmrepository                   Opaque               1      43s
+    secret/sh.helm.release.v1.podinfo.v10           helm.sh/release.v1   1      3d
+    secret/sh.helm.release.v1.podinfo.v11           helm.sh/release.v1   1      26h
+    secret/sh.helm.release.v1.podinfo.v12           helm.sh/release.v1   1      25h
+    secret/sh.helm.release.v1.podinfo.v8            helm.sh/release.v1   1      66d
+    secret/sh.helm.release.v1.podinfo.v9            helm.sh/release.v1   1      18d
+    ```
+
+Supprimons l'application '*podinfo*' et forçons la réconciliation de notre HelmRelease  :
+
+=== "code"
+    ```sh
+    helm -n podinfo uninstall podinfo
+    flux -n podinfo reconcile helmrelease podinfo
+    ```
+
+=== "output"
+    ```sh
+    ► annotating HelmRelease podinfo in podinfo namespace
+✔ HelmRelease annotated
+◎ waiting for HelmRelease reconciliation
+✔ applied revision 6.9.4
+    ```
+
+Discord envoie également une alerte confirmant la bonne réinstallation de '*podinfo*' :
+
+[Test de re-déploiement de podinfo](./images/test_podinfo_reinstall.png)
+
+
+Nous en avons fini avec la sécurisation des *secrets* liés à notre application '*podinfo*' :fontawesome-regular-face-laugh-wink:
+
+
+
+
+
+
 XXXXX
+
+
+
 
 
 ## Intégration de Vault et External-Secrets à la Helm Release 'kube-prometheus-stack'
@@ -2133,44 +2356,7 @@ Tout un programme. ^^
 
 Connectons-nous au pod *'Vault-0'* pour activer le *'secret engine'* **'KVv2'** et y héberger le mot de passe du compte d'administration de Grafana :
 
-```sh
-# Accès au pod du micro-service 'vault'
-kubectl -n vault exec -it vault-0 -- sh
 
-# Login sur Vault avec le Root token
-vault login hvs.CQwblgr767wFfJLVU5DgjIi8
-
-# Activation du 'secret engine' KVv2
-vault secrets enable -version=2 kv
-
-# Ecriture du secret 
-vault kv put -mount kv monitoring/grafana/admin-account login=admin password=my-vaulted-custom-password
-
-
-# Vérification
-vault kv get -mount=kv monitoring/grafana/admin-account
-
-============== Secret Path ==============
-kv/data/monitoring/grafana/admin-account
-
-======= Metadata =======
-Key                Value
----                -----
-created_time       2024-06-04T14:45:27.639679075Z
-custom_metadata    <nil>
-deletion_time      n/a
-destroyed          false
-version            2
-
-====== Data ======
-Key         Value
----         -----
-login       admin
-password    my-vaulted-custom-password
-
-# Deconnexion du pod 
-exit
-```
 
 
 ### Définition d'une *'policy'* permettant d'accéder en lecture aux secrets dédiés à Grafana
