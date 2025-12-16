@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      containers:
+      - image: {{ .Values.image.repository }}:{{ .Chart.AppVersion }}
+        name: {{ .Values.image.repository }}
+        ports:
+        - containerPort: {{ .Values.service.targetPort }}
+        volumeMounts:
+        - name: webindex
+          mountPath: "/usr/local/apache2/htdocs/"
+          readOnly: true
+      volumes:
+      - name: webindex
+        secret:
+          secretName: webindex

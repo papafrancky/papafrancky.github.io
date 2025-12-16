@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: silly-webapp
+  labels:
+    app: silly-webapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: silly-webapp
+  template:
+    metadata:
+      labels:
+        app: silly-webapp
+    spec:
+      serviceAccountName: silly-webapp
+      containers:
+      - image: httpd:2.4
+        name: httpd
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: webindex
+          mountPath: "/usr/local/apache2/htdocs/"
+          readOnly: true
+      volumes:
+      - name: webindex
+        secret:
+          secretName: webindex

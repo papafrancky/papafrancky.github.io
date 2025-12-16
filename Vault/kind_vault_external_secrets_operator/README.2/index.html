@@ -1,0 +1,3037 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../../protect_secrets_using_Vault_and_External_Secrets_Operator/readme/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../images/poo.ico">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Kind - Vault - External-secrets operator - Papa Francky's HowTos</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+  
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+  
+  <style>:root{--md-admonition-icon--note:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M1%207.775V2.75C1%201.784%201.784%201%202.75%201h5.025c.464%200%20.91.184%201.238.513l6.25%206.25a1.75%201.75%200%200%201%200%202.474l-5.026%205.026a1.75%201.75%200%200%201-2.474%200l-6.25-6.25A1.75%201.75%200%200%201%201%207.775m1.5%200c0%20.066.026.13.073.177l6.25%206.25a.25.25%200%200%200%20.354%200l5.025-5.025a.25.25%200%200%200%200-.354l-6.25-6.25a.25.25%200%200%200-.177-.073H2.75a.25.25%200%200%200-.25.25ZM6%205a1%201%200%201%201%200%202%201%201%200%200%201%200-2%22/%3E%3C/svg%3E');--md-admonition-icon--abstract:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M2.5%201.75v11.5c0%20.138.112.25.25.25h3.17a.75.75%200%200%201%200%201.5H2.75A1.75%201.75%200%200%201%201%2013.25V1.75C1%20.784%201.784%200%202.75%200h8.5C12.216%200%2013%20.784%2013%201.75v7.736a.75.75%200%200%201-1.5%200V1.75a.25.25%200%200%200-.25-.25h-8.5a.25.25%200%200%200-.25.25m13.274%209.537zl-4.557%204.45a.75.75%200%200%201-1.055-.008l-1.943-1.95a.75.75%200%200%201%201.062-1.058l1.419%201.425%204.026-3.932a.75.75%200%201%201%201.048%201.074M4.75%204h4.5a.75.75%200%200%201%200%201.5h-4.5a.75.75%200%200%201%200-1.5M4%207.75A.75.75%200%200%201%204.75%207h2a.75.75%200%200%201%200%201.5h-2A.75.75%200%200%201%204%207.75%22/%3E%3C/svg%3E');--md-admonition-icon--info:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M0%208a8%208%200%201%201%2016%200A8%208%200%200%201%200%208m8-6.5a6.5%206.5%200%201%200%200%2013%206.5%206.5%200%200%200%200-13M6.5%207.75A.75.75%200%200%201%207.25%207h1a.75.75%200%200%201%20.75.75v2.75h.25a.75.75%200%200%201%200%201.5h-2a.75.75%200%200%201%200-1.5h.25v-2h-.25a.75.75%200%200%201-.75-.75M8%206a1%201%200%201%201%200-2%201%201%200%200%201%200%202%22/%3E%3C/svg%3E');--md-admonition-icon--tip:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M3.499.75a.75.75%200%200%201%201.5%200v.996C5.9%202.903%206.793%203.65%207.662%204.376l.24.202c-.036-.694.055-1.422.426-2.163C9.1.873%2010.794-.045%2012.622.26%2014.408.558%2016%201.94%2016%204.25c0%201.278-.954%202.575-2.44%202.734l.146.508.065.22c.203.701.412%201.455.476%202.226.142%201.707-.4%203.03-1.487%203.898C11.714%2014.671%2010.27%2015%208.75%2015h-6a.75.75%200%200%201%200-1.5h1.376a4.5%204.5%200%200%201-.563-1.191%203.84%203.84%200%200%201-.05-2.063%204.65%204.65%200%200%201-2.025-.293.75.75%200%200%201%20.525-1.406c1.357.507%202.376-.006%202.698-.318l.009-.01a.747.747%200%200%201%201.06%200%20.75.75%200%200%201-.012%201.074c-.912.92-.992%201.835-.768%202.586.221.74.745%201.337%201.196%201.621H8.75c1.343%200%202.398-.296%203.074-.836.635-.507%201.036-1.31.928-2.602-.05-.603-.216-1.224-.422-1.93l-.064-.221c-.12-.407-.246-.84-.353-1.29a2.4%202.4%200%200%201-.507-.441%203.1%203.1%200%200%201-.633-1.248.75.75%200%200%201%201.455-.364c.046.185.144.436.31.627.146.168.353.305.712.305.738%200%201.25-.615%201.25-1.25%200-1.47-.95-2.315-2.123-2.51-1.172-.196-2.227.387-2.706%201.345-.46.92-.27%201.774.019%203.062l.042.19.01.05c.348.443.666.949.94%201.553a.75.75%200%201%201-1.365.62c-.553-1.217-1.32-1.94-2.3-2.768L6.7%205.527c-.814-.68-1.75-1.462-2.692-2.619a3.7%203.7%200%200%200-1.023.88c-.406.495-.663%201.036-.722%201.508.116.122.306.21.591.239.388.038.797-.06%201.032-.19a.75.75%200%200%201%20.728%201.31c-.515.287-1.23.439-1.906.373-.682-.067-1.473-.38-1.879-1.193L.75%205.677V5.5c0-.984.48-1.94%201.077-2.664.46-.559%201.05-1.055%201.673-1.353z%22/%3E%3C/svg%3E');--md-admonition-icon--success:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M13.78%204.22a.75.75%200%200%201%200%201.06l-7.25%207.25a.75.75%200%200%201-1.06%200L2.22%209.28a.75.75%200%200%201%20.018-1.042.75.75%200%200%201%201.042-.018L6%2010.94l6.72-6.72a.75.75%200%200%201%201.06%200%22/%3E%3C/svg%3E');--md-admonition-icon--question:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M0%208a8%208%200%201%201%2016%200A8%208%200%200%201%200%208m8-6.5a6.5%206.5%200%201%200%200%2013%206.5%206.5%200%200%200%200-13M6.92%206.085h.001a.749.749%200%201%201-1.342-.67c.169-.339.436-.701.849-.977C6.845%204.16%207.369%204%208%204a2.76%202.76%200%200%201%201.637.525c.503.377.863.965.863%201.725%200%20.448-.115.83-.329%201.15-.205.307-.47.513-.692.662-.109.072-.22.138-.313.195l-.006.004a6%206%200%200%200-.26.16%201%201%200%200%200-.276.245.75.75%200%200%201-1.248-.832c.184-.264.42-.489.692-.661q.154-.1.313-.195l.007-.004c.1-.061.182-.11.258-.161a1%201%200%200%200%20.277-.245C8.96%206.514%209%206.427%209%206.25a.61.61%200%200%200-.262-.525A1.27%201.27%200%200%200%208%205.5c-.369%200-.595.09-.74.187a1%201%200%200%200-.34.398M9%2011a1%201%200%201%201-2%200%201%201%200%200%201%202%200%22/%3E%3C/svg%3E');--md-admonition-icon--warning:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M6.457%201.047c.659-1.234%202.427-1.234%203.086%200l6.082%2011.378A1.75%201.75%200%200%201%2014.082%2015H1.918a1.75%201.75%200%200%201-1.543-2.575Zm1.763.707a.25.25%200%200%200-.44%200L1.698%2013.132a.25.25%200%200%200%20.22.368h12.164a.25.25%200%200%200%20.22-.368Zm.53%203.996v2.5a.75.75%200%200%201-1.5%200v-2.5a.75.75%200%200%201%201.5%200M9%2011a1%201%200%201%201-2%200%201%201%200%200%201%202%200%22/%3E%3C/svg%3E');--md-admonition-icon--failure:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M2.344%202.343za8%208%200%200%201%2011.314%2011.314A8.002%208.002%200%200%201%20.234%2010.089a8%208%200%200%201%202.11-7.746m1.06%2010.253a6.5%206.5%200%201%200%209.108-9.275%206.5%206.5%200%200%200-9.108%209.275M6.03%204.97%208%206.94l1.97-1.97a.749.749%200%200%201%201.275.326.75.75%200%200%201-.215.734L9.06%208l1.97%201.97a.749.749%200%200%201-.326%201.275.75.75%200%200%201-.734-.215L8%209.06l-1.97%201.97a.749.749%200%200%201-1.275-.326.75.75%200%200%201%20.215-.734L6.94%208%204.97%206.03a.75.75%200%200%201%20.018-1.042.75.75%200%200%201%201.042-.018%22/%3E%3C/svg%3E');--md-admonition-icon--danger:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M9.504.43a1.516%201.516%200%200%201%202.437%201.713L10.415%205.5h2.123c1.57%200%202.346%201.909%201.22%203.004l-7.34%207.142a1.25%201.25%200%200%201-.871.354h-.302a1.25%201.25%200%200%201-1.157-1.723L5.633%2010.5H3.462c-1.57%200-2.346-1.909-1.22-3.004zm1.047%201.074L3.286%208.571A.25.25%200%200%200%203.462%209H6.75a.75.75%200%200%201%20.694%201.034l-1.713%204.188%206.982-6.793A.25.25%200%200%200%2012.538%207H9.25a.75.75%200%200%201-.683-1.06l2.008-4.418.003-.006-.004-.009-.006-.006-.008-.001q-.005%200-.009.004%22/%3E%3C/svg%3E');--md-admonition-icon--bug:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M4.72.22a.75.75%200%200%201%201.06%200l1%20.999a3.5%203.5%200%200%201%202.441%200l.999-1a.748.748%200%200%201%201.265.332.75.75%200%200%201-.205.729l-.775.776c.616.63.995%201.493.995%202.444v.327q0%20.15-.025.292c.408.14.764.392%201.029.722l1.968-.787a.75.75%200%200%201%20.556%201.392L13%207.258V9h2.25a.75.75%200%200%201%200%201.5H13v.5q-.002.615-.141%201.186l2.17.868a.75.75%200%200%201-.557%201.392l-2.184-.873A5%205%200%200%201%208%2016a5%205%200%200%201-4.288-2.427l-2.183.873a.75.75%200%200%201-.558-1.392l2.17-.868A5%205%200%200%201%203%2011v-.5H.75a.75.75%200%200%201%200-1.5H3V7.258L.971%206.446a.75.75%200%200%201%20.558-1.392l1.967.787c.265-.33.62-.583%201.03-.722a1.7%201.7%200%200%201-.026-.292V4.5c0-.951.38-1.814.995-2.444L4.72%201.28a.75.75%200%200%201%200-1.06m.53%206.28a.75.75%200%200%200-.75.75V11a3.5%203.5%200%201%200%207%200V7.25a.75.75%200%200%200-.75-.75ZM6.173%205h3.654A.17.17%200%200%200%2010%204.827V4.5a2%202%200%201%200-4%200v.327c0%20.096.077.173.173.173%22/%3E%3C/svg%3E');--md-admonition-icon--example:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M5%205.782V2.5h-.25a.75.75%200%200%201%200-1.5h6.5a.75.75%200%200%201%200%201.5H11v3.282l3.666%205.76C15.619%2013.04%2014.543%2015%2012.767%2015H3.233c-1.776%200-2.852-1.96-1.899-3.458Zm-2.4%206.565a.75.75%200%200%200%20.633%201.153h9.534a.75.75%200%200%200%20.633-1.153L12.225%2010.5h-8.45ZM9.5%202.5h-3V6c0%20.143-.04.283-.117.403L4.73%209h6.54L9.617%206.403A.75.75%200%200%201%209.5%206Z%22/%3E%3C/svg%3E');--md-admonition-icon--quote:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M1.75%202.5h10.5a.75.75%200%200%201%200%201.5H1.75a.75.75%200%200%201%200-1.5m4%205h8.5a.75.75%200%200%201%200%201.5h-8.5a.75.75%200%200%201%200-1.5m0%205h8.5a.75.75%200%200%201%200%201.5h-8.5a.75.75%200%200%201%200-1.5M2.5%207.75v6a.75.75%200%200%201-1.5%200v-6a.75.75%200%200%201%201.5%200%22/%3E%3C/svg%3E');}</style>
+
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M17%2013h-4v4h-2v-4H7v-2h4V7h2v4h4m-5-9A10%2010%200%200%200%202%2012a10%2010%200%200%200%2010%2010%2010%2010%200%200%200%2010-10A10%2010%200%200%200%2012%202%22/%3E%3C/svg%3E');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="blue-grey" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#kind-vault-external-secrets-operator" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Papa Francky&#39;s HowTos" class="md-header__button md-logo" aria-label="Papa Francky's HowTos" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M268.9.9c-5.5-.7-11 1.4-14.5 5.7s-4.6 10.1-2.8 15.4c2.8 8.2 4.3 16.9 4.3 26.1 0 44.1-35.7 79.9-79.8 80L160 128c-35.3 0-64 28.7-64 64 0 19.1 8.4 36.3 21.7 48H104c-39.8 0-72 32.2-72 72 0 23.2 11 43.8 28 57-34.1 5.7-60 35.3-60 71 0 39.8 32.2 72 72 72h368c39.8 0 72-32.2 72-72 0-35.7-25.9-65.3-60-71 17-13.2 28-33.8 28-57 0-39.8-32.2-72-72-72h-13.7c13.3-11.7 21.7-28.9 21.7-48 0-35.3-28.7-64-64-64h-5.5c3.5-10 5.5-20.8 5.5-32 0-48.6-36.2-88.8-83.1-95.1M192 256a32 32 0 1 1 0 64 32 32 0 1 1 0-64m96 32a32 32 0 1 1 64 0 32 32 0 1 1-64 0m64 108.3c0 2.4-.7 4.8-2.2 6.7-8.2 10.5-39.5 45-93.8 45s-85.6-34.6-93.8-45c-1.5-1.9-2.2-4.3-2.2-6.7 0-6.8 5.5-12.3 12.3-12.3h167.4c6.8 0 12.3 5.5 12.3 12.3"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Papa Francky's HowTos
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Kind - Vault - External-secrets operator
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue-grey" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7M9 21v-1h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1m3-17a5 5 0 0 0-5 5c0 2.05 1.23 3.81 3 4.58V16h4v-2.42c1.77-.77 3-2.53 3-4.58a5 5 0 0 0-5-5"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="orange" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7M9 21a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-1H9z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Papa Francky&#39;s HowTos" class="md-nav__button md-logo" aria-label="Papa Francky's HowTos" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M268.9.9c-5.5-.7-11 1.4-14.5 5.7s-4.6 10.1-2.8 15.4c2.8 8.2 4.3 16.9 4.3 26.1 0 44.1-35.7 79.9-79.8 80L160 128c-35.3 0-64 28.7-64 64 0 19.1 8.4 36.3 21.7 48H104c-39.8 0-72 32.2-72 72 0 23.2 11 43.8 28 57-34.1 5.7-60 35.3-60 71 0 39.8 32.2 72 72 72h368c39.8 0 72-32.2 72-72 0-35.7-25.9-65.3-60-71 17-13.2 28-33.8 28-57 0-39.8-32.2-72-72-72h-13.7c13.3-11.7 21.7-28.9 21.7-48 0-35.3-28.7-64-64-64h-5.5c3.5-10 5.5-20.8 5.5-32 0-48.6-36.2-88.8-83.1-95.1M192 256a32 32 0 1 1 0 64 32 32 0 1 1 0-64m96 32a32 32 0 1 1 64 0 32 32 0 1 1-64 0m64 108.3c0 2.4-.7 4.8-2.2 6.7-8.2 10.5-39.5 45-93.8 45s-85.6-34.6-93.8-45c-1.5-1.9-2.2-4.3-2.2-6.7 0-6.8 5.5-12.3 12.3-12.3h167.4c6.8 0 12.3 5.5 12.3 12.3"/></svg>
+
+    </a>
+    Papa Francky's HowTos
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MkDocs cheatsheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    000 setup
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    000 setup
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../000_setup/Command_line_tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command Line Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../000_setup/Kubernetes_en_local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes en local
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Docker
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Docker/build_pull_image_on_dockerhub/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Créer et publier une image sur DockerHub
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exposition Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Exposition Kubernetes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Exposition%20Kubernetes/NginX_Ingress_Controler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NginX Ingress Controler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FluxCD
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    FluxCD
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../FluxCD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../FluxCD/FlucCD_arborescence_par_produit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FluxCD - Proposition de nouvelle organisation des manifests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../FluxCD/FluxCD_demonstration_par_l_exemple/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FluxCD - Démonstration par l'exemple
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GKE
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    GKE
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cluster GKE SSL load balancer
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    cluster GKE SSL load balancer
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../GKE/cluster_GKE_SSL_load-balancer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster GKE en mode autopilot, load-balancer HTTPS et application 'stateless'
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cluster GKE Wordpress CloudSQL
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    cluster GKE Wordpress CloudSQL
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../GKE/cluster_GKE_Wordpress_CloudSQL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy WordPress on GKE with Persistent Disk and Cloud SQL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dkt upgrade cluster gke
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Dkt upgrade cluster gke
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../GKE/dkt_upgrade_cluster_gke/readme/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mise à jour des clusters Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    terraform GKE cluster
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    terraform GKE cluster
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../GKE/terraform_GKE_cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Minikube
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Minikube
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Minikube/minikube_nginx_controller_macos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Minikube et l'ingress Nginx sur macOS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_2" id="__nav_7_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prometheus on minikube from scratch
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Prometheus on minikube from scratch
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Minikube/prometheus_on_minikube_from_scratch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prometheus on MiniKube from scratch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prometheus and Grafana
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Prometheus and Grafana
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Prometheus_and_Grafana/kube-prometheus-stack_managed_with_fluxcd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    'kube-prometheus-stack' managed with FluxCD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Prometheus_and_Grafana/prometheus_grafana_on_k8s/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prometheus &amp; Grafana on Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vault
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Vault
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_1" id="__nav_9_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster minikube vault with raft storage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cluster minikube vault with raft storage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cluster_minikube_vault_with_raft_storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster [kind|minikube] - HashiCorp Vault with Raft integrated storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Helm vault auto unseal
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Helm vault auto unseal
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../helm_vault_auto-unseal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auto-unsealed Vault Helm deployment managed with FluxCD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_9_3" id="__nav_9_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kind vault external secrets operator
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Kind vault external secrets operator
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kind - Vault - External-secrets operator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kind - Vault - External-secrets operator
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kind - Vault - External-secrets operator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kind-installation-and-cluster-creation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        'Kind' installation and cluster creation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#helm-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helm installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubectl-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kubectl installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubens-and-kubectx-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kubens and kubectx installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#external-secrets-operator-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        External-secrets operator installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vault-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vault-initialization-and-unsealing-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault initialization and unsealing operations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Vault initialization and unsealing operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#loging-into-the-vault-pod" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loging into the Vault pod
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vault-initialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault initialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vault-unsealing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault unsealing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workshop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workshop
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Workshop">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vault-read-all-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault 'read all' policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enable-kubernetes-authentication-on-vault" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enable Kubernetes authentication on Vault
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-of-the-kubernetes-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration of the Kubernetes authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#role-definition-for-the-kubernetes-authentication-role-binding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Role definition for the Kubernetes authentication + role binding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vault-secret-provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault Secret provisioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-of-the-external-secrets-operator-eso" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration of the External Secrets Operator (ESO)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-the-good-accessibility-to-secrets-from-a-pod-using-the-relevant-service-account" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing the good accessibility to secrets from a pod using the relevant service-account
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing the good accessibility to secrets from a pod using the relevant service-account">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#definition-of-a-vault-external-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definition of a Vault external secret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#executing-a-pod-in-the-namespace-and-with-the-service-account-both-dedicated-to-our-application-app1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executing a pod in the namespace and with the service-account both dedicated to our application 'app1'
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_4" id="__nav_9_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    protect secrets using Vault and External Secrets Operator
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    protect secrets using Vault and External Secrets Operator
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../protect_secrets_using_Vault_and_External_Secrets_Operator/readme/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protect the secrets of your application using HashiCorp Vault and the External Secrets Operator (ESO)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_5" id="__nav_9_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vault auto unseal external secrets operator fluxcd
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Vault auto unseal external secrets operator fluxcd
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vault_auto-unseal_external-secrets-operator_fluxcd/kind_vault_auto-unsealed_eso_fluxcd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Déploiement de Vault (auto-unsealed) et ESO via FluxCD sur un cluster KinD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vault_auto-unseal_external-secrets-operator_fluxcd/vault_auto-unsealed_external-secrets-operator_fluxcd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Déploiement de Vault (auto-unsealed) et External Secrets Operator via FluxCD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kind-installation-and-cluster-creation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        'Kind' installation and cluster creation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#helm-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helm installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubectl-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kubectl installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubens-and-kubectx-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kubens and kubectx installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#external-secrets-operator-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        External-secrets operator installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vault-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vault-initialization-and-unsealing-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault initialization and unsealing operations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Vault initialization and unsealing operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#loging-into-the-vault-pod" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loging into the Vault pod
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vault-initialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault initialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vault-unsealing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault unsealing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workshop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workshop
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Workshop">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vault-read-all-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault 'read all' policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enable-kubernetes-authentication-on-vault" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enable Kubernetes authentication on Vault
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-of-the-kubernetes-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration of the Kubernetes authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#role-definition-for-the-kubernetes-authentication-role-binding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Role definition for the Kubernetes authentication + role binding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vault-secret-provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vault Secret provisioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-of-the-external-secrets-operator-eso" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration of the External Secrets Operator (ESO)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-the-good-accessibility-to-secrets-from-a-pod-using-the-relevant-service-account" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing the good accessibility to secrets from a pod using the relevant service-account
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing the good accessibility to secrets from a pod using the relevant service-account">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#definition-of-a-vault-external-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definition of a Vault external secret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#executing-a-pod-in-the-namespace-and-with-the-service-account-both-dedicated-to-our-application-app1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executing a pod in the namespace and with the service-account both dedicated to our application 'app1'
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="kind-vault-external-secrets-operator">Kind - Vault - External-secrets operator</h1>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Description</th>
+<th style="text-align: left;">URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">Kind install</td>
+<td style="text-align: left;">https://kind.sigs.k8s.io/docs/user/quick-start/#installing-from-release-binaries</td>
+</tr>
+<tr>
+<td style="text-align: right;">Helm installation</td>
+<td style="text-align: left;">https://helm.sh/docs/intro/install/</td>
+</tr>
+<tr>
+<td style="text-align: right;">External-secrets operator installation</td>
+<td style="text-align: left;">https://external-secrets.io/latest/introduction/getting-started/</td>
+</tr>
+<tr>
+<td style="text-align: right;">Vault helm installation</td>
+<td style="text-align: left;">https://developer.hashicorp.com/vault/tutorials/kubernetes/kubernetes-minikube-raft#install-the-vault-helm-chart</td>
+</tr>
+<tr>
+<td style="text-align: right;">Kubectl installation</td>
+<td style="text-align: left;">https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/</td>
+</tr>
+<tr>
+<td style="text-align: right;">kubens &amp; kubectx installation</td>
+<td style="text-align: left;">https://github.com/ahmetb/kubectx#manual-installation-macos-and-linux</td>
+</tr>
+<tr>
+<td style="text-align: right;">External-secrets - Vault provider</td>
+<td style="text-align: left;">https://external-secrets.io/latest/provider/hashicorp-vault/</td>
+</tr>
+<tr>
+<td style="text-align: right;">Tutorial: How to Set External-Secrets with Hashicorp Vault</td>
+<td style="text-align: left;">https://blog.container-solutions.com/tutorialexternal-secrets-with-hashicorp-vault</td>
+</tr>
+<tr>
+<td style="text-align: right;">Vault - Kubernetes authentication</td>
+<td style="text-align: left;">https://external-secrets.io/latest/provider/hashicorp-vault/#kubernetes-authentication</td>
+</tr>
+</tbody>
+</table>
+<h2 id="prerequisites">Prerequisites</h2>
+<h3 id="kind-installation-and-cluster-creation">'Kind' installation and cluster creation</h3>
+<div class="language-text highlight"><pre><span></span><code>curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+kind --version
+kind create cluster --name sandbox
+kind get clusters
+</code></pre></div>
+<h3 id="helm-installation">Helm installation</h3>
+<div class="language-text highlight"><pre><span></span><code>curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+helm version
+</code></pre></div>
+<h3 id="kubectl-installation">kubectl installation</h3>
+<div class="language-text highlight"><pre><span></span><code>curl -LO &quot;https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl&quot;
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/kubectl
+kubectl version
+printf &quot;\nalias k=kubectl\n&quot; &gt;&gt; ~/.bashrc &amp;&amp; source ~/.bashrc
+k get po -A
+</code></pre></div>
+<h3 id="kubens-and-kubectx-installation">kubens and kubectx installation</h3>
+<div class="language-text highlight"><pre><span></span><code>sudo git clone https://github.com/ahmetb/kubectx /opt/kubectx
+sudo ln -s /opt/kubectx/kubectx /usr/local/bin/kubectx
+sudo ln -s /opt/kubectx/kubens /usr/local/bin/kubens
+</code></pre></div>
+<h3 id="external-secrets-operator-installation">External-secrets operator installation</h3>
+<div class="language-text highlight"><pre><span></span><code>helm repo add external-secrets https://charts.external-secrets.io
+helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace
+
+    # NAME: external-secrets
+    # LAST DEPLOYED: Tue Sep 19 16:14:00 2023
+    # NAMESPACE: external-secrets
+    # STATUS: deployed
+    # REVISION: 1
+    # TEST SUITE: None
+    # NOTES:
+    # external-secrets has been deployed successfully!
+    # 
+    # In order to begin using ExternalSecrets, you will need to set up a SecretStore
+    # or ClusterSecretStore resource (for example, by creating a &#39;vault&#39; SecretStore).
+    # 
+    # More information on the different types of SecretStores and how to configure them
+    # can be found in our Github: https://github.com/external-secrets/external-secrets
+</code></pre></div>
+<h3 id="vault-installation">Vault installation</h3>
+<div class="language-text highlight"><pre><span></span><code>helm repo add hashicorp https://helm.releases.hashicorp.com
+helm repo update
+helm search repo hashicorp/vault
+helm show values hashicorp/vault
+cat &lt;&lt; EOF &gt; custom-values.yaml
+server:
+  affinity: &quot;&quot;
+  ha:
+    enabled: true
+    replicas: 1
+    raft:
+      enabled: true
+EOF
+
+helm install vault hashicorp/vault --values custom-values.yaml -n vault --create-namespace
+
+    # NAME: vault
+    # LAST DEPLOYED: Mon Sep 18 20:23:23 2023
+    # NAMESPACE: vault
+    # STATUS: deployed
+    # REVISION: 1
+    # NOTES:
+    # Thank you for installing HashiCorp Vault!
+    # 
+    # Now that you have deployed Vault, you should look over the docs on using
+    # Vault with Kubernetes available here:
+    # 
+    # https://www.vaultproject.io/docs/
+    # 
+    # 
+    # Your release is named vault. To learn more about the release, try:
+    #
+    # helm status vault
+    # helm get manifest vault
+
+
+helm list -A
+
+    # NAME                    NAMESPACE               REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+    # external-secrets        external-secrets        1               2023-09-26 19:45:58.063107607 +0000 UTC deployed        external-secrets-0.9.5  v0.9.5     
+    # vault                   vault                   1               2023-09-26 19:46:44.752525469 +0000 UTC deployed        vault-0.25.0            1.14.0
+
+
+
+k -n vault get po
+
+    # NAME                                    READY   STATUS    RESTARTS   AGE
+    # vault-0                                 0/1     Running   0          78s
+    # vault-agent-injector-67c48f8f4c-psznb   1/1     Running   0          79s
+
+export VAULT_ADDR=http://127.0.0.1:8200
+k -n vault exec --tty --stdin vault-0 -- /bin/sh
+
+vault status
+</code></pre></div>
+<h2 id="vault-initialization-and-unsealing-operations">Vault initialization and unsealing operations</h2>
+<h3 id="loging-into-the-vault-pod">Loging into the Vault pod</h3>
+<p>In namespace 'vault', the pod 'vault-0' is running but not ready.
+One must initialize Vault and unseal it.
+To do so, one must connect to the pod and interact with Vault using the provided CLI :</p>
+<div class="language-text highlight"><pre><span></span><code>k -n vault --tty --stdin exec vault-0 -- /bin/sh
+</code></pre></div>
+<p>All the following operations will be executed in this pod :</p>
+<div class="language-text highlight"><pre><span></span><code>vault status
+
+    # Key                Value
+    # ---                -----
+    # Seal Type          shamir
+    # Initialized        false
+    # Sealed             true
+    # Total Shares       0
+    # Threshold          0
+    # Unseal Progress    0/0
+    # Unseal Nonce       n/a
+    # Version            1.14.0
+    # Build Date         2023-06-19T11:40:23Z
+    # Storage Type       raft
+    # HA Enabled         true
+</code></pre></div>
+<h3 id="vault-initialization">Vault initialization</h3>
+<div class="language-text highlight"><pre><span></span><code>vault operator init -key-shares=1 -key-threshold=1 -format=json
+
+    # {
+    #   &quot;unseal_keys_b64&quot;: [
+    #     &quot;/yNqVmr967kJfM2vCjiRC+XFI304XApJDy8b2RVQaLs=&quot;
+    #   ],
+    #   &quot;unseal_keys_hex&quot;: [
+    #     &quot;ff236a566afdebb9097ccdaf0a38910be5c5237d385c0a490f2f1bd9155068bb&quot;
+    #   ],
+    #   &quot;unseal_shares&quot;: 1,
+    #   &quot;unseal_threshold&quot;: 1,
+    #   &quot;recovery_keys_b64&quot;: [],
+    #   &quot;recovery_keys_hex&quot;: [],
+    #   &quot;recovery_keys_shares&quot;: 0,
+    #   &quot;recovery_keys_threshold&quot;: 0,
+    #   &quot;root_token&quot;: &quot;hvs.fJuVStEaM1h2G66LnefKsDlI&quot;
+    # }
+</code></pre></div>
+<h3 id="vault-unsealing">Vault unsealing</h3>
+<div class="language-text highlight"><pre><span></span><code>vault operator unseal /yNqVmr967kJfM2vCjiRC+XFI304XApJDy8b2RVQaLs=
+
+    # Key                     Value
+    # ---                     -----
+    # Seal Type               shamir
+    # Initialized             true
+    # Sealed                  false
+    # Total Shares            1
+    # Threshold               1
+    # Version                 1.14.0
+    # Build Date              2023-06-19T11:40:23Z
+    # Storage Type            raft
+    # Cluster Name            vault-cluster-58870b24
+    # Cluster ID              39288dfb-5e4e-93f6-a085-83472f00350d
+    # HA Enabled              true
+    # HA Cluster              https://vault-0.vault-internal:8201
+    # HA Mode                 active
+    # Active Since            2023-09-26T19:59:18.358850261Z
+    # Raft Committed Index    36
+    # Raft Applied Index      36
+</code></pre></div>
+<p>Vault is fully operational from now.
+Let's quit the Vault-0 pod :</p>
+<div class="language-text highlight"><pre><span></span><code>exit
+</code></pre></div>
+<h2 id="workshop">Workshop</h2>
+<h3 id="vault-read-all-policy">Vault 'read all' policy</h3>
+<div class="language-text highlight"><pre><span></span><code># Login into the Vault pod :
+k -n vault --tty --stdin exec vault-0 -- /bin/sh
+
+# Connect to Vault using the root token :
+vault login hvs.fJuVStEaM1h2G66LnefKsDlI
+
+# Write a policy allowing every paths to be read :
+vault policy write read-all - &lt;&lt; EOF     
+path &quot;*&quot;                                                  
+{  capabilities = [&quot;read&quot;]                
+}                         
+EOF
+
+# Quit the pod :
+exit
+</code></pre></div>
+<h3 id="enable-kubernetes-authentication-on-vault">Enable Kubernetes authentication on Vault</h3>
+<div class="language-text highlight"><pre><span></span><code># Login into the Vault pod :
+k -n vault --tty --stdin exec vault-0 -- /bin/sh
+
+# Enable Kubernetes authentication :
+vault auth enable kubernetes
+
+vault auth list
+
+    # Path           Type          Accessor                    Description                Version
+    # ----           ----          --------                    -----------                -------
+    # kubernetes/    kubernetes    auth_kubernetes_9a149aa4    n/a                        n/a
+    # token/         token         auth_token_b498fd96         token based credentials    n/a
+
+# Let&#39;s quit the pod again :
+exit
+</code></pre></div>
+<h3 id="configuration-of-the-kubernetes-authentication">Configuration of the Kubernetes authentication</h3>
+<div class="language-text highlight"><pre><span></span><code># source: https://developer.hashicorp.com/vault/docs/auth/kubernetes#kubernetes-auth-method
+#
+#   Use local service account token as the reviewer JWT
+#   
+#   When running Vault in a Kubernetes pod the recommended option is to use the pod&#39;s local service account token.
+#   Vault will periodically re-read the file to support short-lived tokens. To use the local token and CA certificate,
+#   omit token_reviewer_jwt and kubernetes_ca_cert when configuring the auth method. Vault will attempt to load them
+#   from token and ca.crt respectively inside the default mount folder /var/run/secrets/kubernetes.io/serviceaccount/.
+
+
+# Login into the Vault pod :
+k -n vault --tty --stdin exec vault-0 -- /bin/sh
+
+# Configuration of the Kubernetes authentication :
+vault write auth/kubernetes/config kubernetes_host=https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}
+
+    # Success! Data written to: auth/kubernetes/config
+
+
+# Leave the pod :
+exit
+</code></pre></div>
+<h3 id="role-definition-for-the-kubernetes-authentication-role-binding">Role definition for the Kubernetes authentication + role binding</h3>
+<div class="language-text highlight"><pre><span></span><code># Kubernetes namespace dedicated to our application &quot;app1&quot; :
+kubectl create namespace ns-app1
+
+# Kubernetes service-account dedicated to &quot;app1&quot; :
+kubectl create sa sa-app1 -n ns-app1
+
+# Role binding 
+kubectl create clusterrolebinding sa-app1-tokenreview-access \
+    --clusterrole=system:auth-delegator \
+    --serviceaccount=ns-app1:sa-app1
+
+    # clusterrolebinding.rbac.authorization.k8s.io/sa-app1-tokenreview-access created
+
+
+# Login to the Vault pod :
+k -n vault --tty --stdin exec vault-0 -- /bin/sh
+
+# Role definition allowing our service-account from namespace &#39;ns-app1&#39; to read secrets from Vault :  
+vault write auth/kubernetes/role/vault-read \
+    bound_service_account_names=sa-app1 \
+    bound_service_account_namespaces=ns-app1 \
+    policies=read-all \
+    ttl=1h
+
+    # Success! Data written to: auth/kubernetes/role/vault-read
+
+
+# Let&#39;s check our role &#39;vault-read&#39; :
+vault read auth/kubernetes/role/vault-read
+
+# Key                                 Value
+# ---                                 -----
+# alias_name_source                   serviceaccount_uid
+# bound_service_account_names         [sa-app1]
+# bound_service_account_namespaces    [ns-app1]
+# policies                            [read-all]
+# token_bound_cidrs                   []
+# token_explicit_max_ttl              0s
+# token_max_ttl                       0s
+# token_no_default_policy             false
+# token_num_uses                      0
+# token_period                        0s
+# token_policies                      [read-all]
+# token_ttl                           1h
+# token_type                          default
+# ttl                                 1h
+
+# Let&#39;s leave the Vault pod :
+exit
+</code></pre></div>
+<h3 id="vault-secret-provisioning">Vault Secret provisioning</h3>
+<div class="language-text highlight"><pre><span></span><code># Login into the Vault pod :
+k -n vault --tty --stdin exec vault-0 -- /bin/sh
+
+# KV version 2 secrets engine activation :
+vault secrets enable -version=2 kv
+
+# Secret provisioning :
+vault kv put kv/path/to/my/secret password=secretpassword
+
+    # ====== Secret Path ======
+    # kv/data/path/to/my/secret
+    # 
+    # ======= Metadata =======
+    # Key                Value
+    # ---                -----
+    # created_time       2023-09-26T20:34:22.588811864Z
+    # custom_metadata    &lt;nil&gt;
+    # deletion_time      n/a
+    # destroyed          false
+    # version            1
+    # Let&#39;s leave the pod &#39;vault-0&#39;
+
+
+# Secrets retrieval :
+vault kv get kv/path/to/my/secret
+
+# Let&#39;s leave the pod :
+exit
+</code></pre></div>
+<h3 id="configuration-of-the-external-secrets-operator-eso">Configuration of the External Secrets Operator (ESO)</h3>
+<div class="language-text highlight"><pre><span></span><code>cat &lt;&lt; EOF | kubectl apply -f -
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: ss-app1
+  namespace: ns-app1
+spec:
+  provider:
+    vault:
+      server: &quot;http://vault.vault:8200&quot;
+      path: &quot;kv&quot;
+      version: &quot;v2&quot;
+      auth:
+        # Authenticate against Vault using a Kubernetes ServiceAccount
+        # token stored in a Secret.
+        # https://www.vaultproject.io/docs/auth/kubernetes
+        kubernetes:
+          # Path where the Kubernetes authentication backend is mounted in Vault
+          mountPath: &quot;kubernetes&quot;
+          # A required field containing the Vault Role to assume.
+          role: &quot;vault-read&quot;
+          # Optional service account field containing the name
+          # of a kubernetes ServiceAccount
+          serviceAccountRef:
+            name: &quot;sa-app1&quot;
+          # Optional secret field containing a Kubernetes ServiceAccount JWT
+          #  used for authenticating with Vault
+          #secretRef:
+          #  name: &quot;my-secret&quot;
+          #  key: &quot;vault&quot;
+EOF
+
+    # secretstore.external-secrets.io/ss-app1 created
+
+
+# Check the status of our newly created secret store :
+k -n ns-app1 get ss ss-app1
+
+    # NAME      AGE   STATUS   CAPABILITIES   READY
+    # ss-app1   38m   Valid    ReadWrite      True
+</code></pre></div>
+<h2 id="testing-the-good-accessibility-to-secrets-from-a-pod-using-the-relevant-service-account">Testing the good accessibility to secrets from a pod using the relevant service-account</h2>
+<h3 id="definition-of-a-vault-external-secret">Definition of a Vault external secret</h3>
+<div class="language-text highlight"><pre><span></span><code>cat &lt;&lt; EOF &gt; vault-secrets.externalsecret.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: vault-secrets
+spec:
+  refreshInterval: &quot;15s&quot;
+  secretStoreRef:
+    name: ss-app1
+    kind: SecretStore
+  target:
+    name: my-secret
+  data:
+  - secretKey: my_secret_password
+    remoteRef:
+      key: kv/path/to/my/secret
+      property: password
+EOF
+kubectl apply -f vault-secrets.externalsecret.yaml
+</code></pre></div>
+<h3 id="executing-a-pod-in-the-namespace-and-with-the-service-account-both-dedicated-to-our-application-app1">Executing a pod in the namespace and with the service-account both dedicated to our application 'app1'</h3>
+<div class="language-text highlight"><pre><span></span><code># Create an Alpine pod using the service-account dedicated to our application and printing a Vault external-secret :
+cat &lt;&lt; EOF &gt; app1.pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: app1
+  name: app1
+  namespace: ns-app1
+spec:
+  containers:
+  - name: app1
+    image: alpine
+    command: [&quot;printenv&quot;]
+    args: [&quot;MY_SECRET&quot;]
+    env:
+    - name: MY_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: my-secret
+          key: my_secret_password
+  restartPolicy: Never
+  serviceAccount: sa-app1
+EOF
+
+kubectl -n ns-app1 --tty --stdin exec app1
+
+k -n ns-app1 logs app1
+# -&gt; secretpassword
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>
