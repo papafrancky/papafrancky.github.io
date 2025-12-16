@@ -1701,7 +1701,7 @@ Faisons maintenant la même vérification via la console Vault :
 
 
 
-#### La Vault Policy '*test-podinfo--ro*'
+#### La Vault Policy '*podinfo-podinfo--ro*'
 
 
 Nous allons écrire une *policy* qui donnera uniquement un droit de lecture sur les secrets se trouvant dans le path 'kv/podinfo/*' :
@@ -1719,7 +1719,7 @@ export VAULT_ROOT_TOKEN="hvs.CQwblgr767wFfJLVU5DgjIi8"
 
 vault login ${VAULT_ROOT_TOKEN}
 
-vault policy write test-podinfo--ro - << EOF
+vault policy write podinfo-podinfo--ro - << EOF
 path "kv/metadata/podinfo/*" {
   capabilities = ["list","read"]
 }
@@ -1730,11 +1730,7 @@ path "kv/data/podinfo/*" {
 path "kv/metadata/podinfo" {
   capabilities = ["list"]
 }
-path "kv/data/monitoring" {
-  capabilities = ["list"]
-}
-
-path "kv/metadata" {
+path "kv/data/podinfo" {
   capabilities = ["list"]
 }
 
@@ -1749,7 +1745,7 @@ EOF
 
 #### Le rôle Vault 
 
-Dans l'authentification *kubernetes* de Vault, un rôle permet de lier un *service account* à une *policy* donnée. En l'occurrence, nous allons définir ici le rôle '*test-podinfo--ro*' qui va permettre au *service account 'vault-auth'* du namespace *podinfo* d'hériter dees permissions définies dans la *policy 'test-podinfo--ro'*.
+Dans l'authentification *kubernetes* de Vault, un rôle permet de lier un *service account* à une *policy* donnée. En l'occurrence, nous allons définir ici le rôle '*podinfo-podinfo--ro*' qui va permettre au *service account 'vault-auth'* du namespace *podinfo* d'hériter dees permissions définies dans la *policy 'podinfo-podinfo--ro'*.
 
 ```sh
 export VAULT_ADDR="http://localhost:8200"
@@ -1757,10 +1753,10 @@ export VAULT_ROOT_TOKEN="hvs.CQwblgr767wFfJLVU5DgjIi8"
 
 vault login ${VAULT_ROOT_TOKEN}
 
-vault write auth/kubernetes/role/test-podinfo--ro \
+vault write auth/kubernetes/role/podinfo-podinfo--ro \
     bound_service_account_names=vault-auth \
     bound_service_account_namespaces=podinfo \
-    policies=test-podinfo--ro
+    policies=podinfo-podinfo--ro
 ```
 
 
@@ -1792,7 +1788,7 @@ Un *service account* est indispensable pour se connecter à Vault avec la métho
 
 #### Le Secret Store 'vault'
 
-Vault déployé sur notre cluster est notre *secret store*. Pour l'application *podinfo*, nous utiliserons le *service account 'vault-auth'* pour s'authentifier avec la méthode d'authentification *kubernetes* et utiliserons le rôle Vault *'test-podinfo--ro'* qui ne donne accès qu'en lecture aux secrets se trouvant dans le path 'kv/podinfo/*'.
+Vault déployé sur notre cluster est notre *secret store*. Pour l'application *podinfo*, nous utiliserons le *service account 'vault-auth'* pour s'authentifier avec la méthode d'authentification *kubernetes* et utiliserons le rôle Vault *'podinfo-podinfo--ro'* qui ne donne accès qu'en lecture aux secrets se trouvant dans le path 'kv/podinfo/*'.
 
   ```sh
   export LOCAL_GITHUB_REPOS="${HOME}/code/github"
@@ -1814,7 +1810,7 @@ Vault déployé sur notre cluster est notre *secret store*. Pour l'application *
         auth:
           kubernetes:
             mountPath: "kubernetes"
-            role: "test-podinfo--ro"
+            role: "podinfo-podinfo--ro"
             serviceAccountRef:
               name: "vault-auth"
   EOF
@@ -1850,6 +1846,14 @@ spec:
     remoteRef:
       key: kv/podinfo/gitrepositories/k8s-kind-apps/deploykey
       property: identity
+  - secretKey: identity.pub
+    remoteRef:
+      key: kv/podinfo/gitrepositories/k8s-kind-apps/deploykey
+      property: identity.pub
+  - secretKey: known_hosts
+    remoteRef:
+      key: kv/podinfo/gitrepositories/k8s-kind-apps/deploykey
+      property: known_hosts
 EOF
 ```
 
@@ -1970,11 +1974,11 @@ vault kv put -mount kv podinfo/discord/webhook address=@discord.webhook.txt
 
 #### Policy et role Vault, service-account 'vault-auth' et SecretStore 'vault'
 
-La *Vault policy 'test-podinfo--ro'* permet un accès en lecture aux *secrets* présents dans le *path 'kv/podinfo'* et convient parfaitement pour accéder au webhook que nous avons placé dans le *path 'kv/podinfo/discord'*.
+La *Vault policy 'podinfo-podinfo--ro'* permet un accès en lecture aux *secrets* présents dans le *path 'kv/podinfo'* et convient parfaitement pour accéder au webhook que nous avons placé dans le *path 'kv/podinfo/discord'*.
 
-Le rôle '*test-podinfo--ro*' fait le lien entre le *service-account 'vault-auth'* du *namespace *'podinfo'* et la *policy 'test-podinfo--ro'* et n'ont pas non plus besoin d'être changés.
+Le rôle '*podinfo-podinfo--ro*' fait le lien entre le *service-account 'vault-auth'* du *namespace *'podinfo'* et la *policy 'podinfo-podinfo--ro'* et n'ont pas non plus besoin d'être changés.
 
-Le *SecretStore 'vault'* définit le service Vault local comme notre coffre et autorise le *service-account 'vault-auth'* à s'authentifier avec le rôle '*test-podinfo--ro*' : là encore, ne changeons rien.
+Le *SecretStore 'vault'* définit le service Vault local comme notre coffre et autorise le *service-account 'vault-auth'* à s'authentifier avec le rôle '*podinfo-podinfo--ro*' : là encore, ne changeons rien.
 
 
 #### L'ExternalSecret 'discord-webhook'
@@ -2333,6 +2337,290 @@ Nous en avons fini avec la sécurisation des *secrets* liés à notre applicatio
 
 
 
+## Gestion des secrets d'agnhost par Vault et ESO
+
+L'application *agnhost* compte 2 *secrets Kubernetes* : 
+
+=== "code"
+    ```sh
+    kubectl -n agnhost get secrets
+    ```
+
+=== "output"
+    ```sh
+    NAME                                     TYPE     DATA   AGE
+    discord-webhook                          Opaque   1      70d
+    k8s-kind-apps-gitrepository-deploykeys   Opaque   3      72d
+    ```
+
+|Secret|Usage|
+|---|---|
+|discord-webhook|Le '*webhook*' permettant à FluxCD d'envoyer des alertes sur le channel *Discord* dédié à l'application '*agnhost*'.|
+|k8s-kind-apps-gitrepository-deploykeys|La paire de clés publique et privée ainsi que le '*known_hosts*' permettant à FluxCD d'interagir avec le dépôt GitHub dédié à nos applications.|
+
+
+Maintenant que nous avons un peu d'expérience avec notre première application '*podinfo*', nous irons un peu plus vite :
+
+Au niveau de Kubernetes :
+
+- création du '*service-account Kubernetes*' nécessaire pour s'authentifier auprès de Vault (avec le moteur d'authentification '*ubernetes*';
+  
+Au niveau de Vault :
+
+  - ajout de nos 2 secrets dans leur '*path*';
+  - définition d'une '*policy*' permettant d'accéder en lecture aux secrets de l'application '*agnhost*';
+  - définition d'un rôle permettant le rattachement de la '*policy*' au service-account créé;
+
+Au niveau d'External Secrets Operator :
+
+  - définition du '*secret store*' (notre instance Vault locale);
+  - définition d'un '*external secrets*' pour chacun des deux '*secrets Kubernetes*'.
+
+
+### Le '*service-account Kubernetes*'
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+kubectl -n podinfo create serviceaccount vault-auth --dry-run=client -o yaml > apps/agnhost/vault-auth.serviceaccount.yaml
+```
+
+
+### Ajout de nos 2 *secrets* dans Vault
+
+```sh
+# Récupération des secrets existants que nous souhaitons placer dans Vault :
+kubectl -n agnhost get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity}'      | base64 -d > identity.txt
+kubectl -n agnhost get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.identity\.pub}' | base64 -d > identity_pub.txt
+kubectl -n agnhost get secret k8s-kind-apps-gitrepository-deploykeys -o jsonpath='{.data.known_hosts}'   | base64 -d > known_hosts.txt
+kubectl -n agnhost get secret discord-webhook                        -o jsonpath='{.data.address}'       | base64 -d > webhook.txt
+# Port-forwarding du service Vault pour le rendre accessible :
+kubectl -n vault port-forward service/vault 8200 8200 &
+
+# Authentification à Vault avec le 'root token' :
+export VAULT_ADDR="http://localhost:8200"
+export VAULT_ROOT_TOKEN="hvs.CQwblgr767wFfJLVU5DgjIi8"
+vault login ${VAULT_ROOT_TOKEN}
+
+# Insertion des 'secrets' dans Vault :
+vault kv put -mount kv agnhost/gitrepositories/k8s-kind-apps/deploykey \
+  identity=@identity.txt \
+  identity.pub=@identity_pub.txt \
+  known_hosts=@known_hosts.txt
+vault kv put -mount kv agnhost/discord/webhook address=@discord.webhook.txt
+
+# Vérification de la bonne insertion des secrets :
+vault kv get -mount kv agnhost/gitrepositories/k8s-kind-apps/deploykey
+
+# Suppression du fichier local contenant le secret :
+/bin/rm identity.txt identity_pub.txt known_hosts.txt
+```
+
+### Définition de la 'Vault policy' donnant accès aux secrets en lecture
+
+```sh
+# Port-forwarding du service Vault pour le rendre accessible :
+kubectl -n vault port-forward service/vault 8200 8200 &
+
+# Authentification à Vault avec le 'root token' :
+export VAULT_ADDR="http://localhost:8200"
+export VAULT_ROOT_TOKEN="hvs.CQwblgr767wFfJLVU5DgjIi8"
+
+vault login ${VAULT_ROOT_TOKEN}
+
+vault policy write agnhost-agnhost--ro - << EOF
+path "kv/metadata/agnhost/*" {
+  capabilities = ["list","read"]
+}
+path "kv/data/agnhost/*" {
+  capabilities = ["list","read"]
+}
+
+path "kv/metadata/agnhost" {
+  capabilities = ["list"]
+}
+path "kv/data/agnhost" {
+  capabilities = ["list"]
+}
+
+path "kv/metadata*" {
+  capabilities = ["deny"]
+}
+path "kv/data*" {
+  capabilities = ["deny"]
+}
+EOF
+
+# Vérification : 
+vault policy read agnhost-agnhost--ro
+```
+
+### Le rôle '*vault-auth*'
+
+```sh
+# Port-forwarding du service Vault pour le rendre accessible :
+kubectl -n vault port-forward service/vault 8200 8200 &
+
+# Authentification à Vault avec le 'root token' :
+export VAULT_ADDR="http://localhost:8200"
+export VAULT_ROOT_TOKEN="hvs.CQwblgr767wFfJLVU5DgjIi8"
+
+vault login ${VAULT_ROOT_TOKEN}
+
+# Définition du rôle :
+vault write auth/kubernetes/role/agnhost-agnhost--ro \
+    bound_service_account_names=vault-auth \
+    bound_service_account_namespaces=agnhost \
+    policies=agnhost-agnhost--ro
+
+# Vérification :
+vault read auth/kubernetes/role/agnhost-agnhost--ro
+```
+
+
+### Le Secret Store '*vault*'
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+cat << EOF >> apps/agnhost/vault.secretstore.yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault
+  namespace: agnhost
+spec:
+  provider:
+    vault:
+      server: "http://vault.vault:8200"
+      path: "kv"
+      version : "v2"
+      auth:
+        kubernetes:
+          mountPath: "kubernetes"
+          role: "agnhost-agnhost--ro"
+          serviceAccountRef:
+            name: "vault-auth"
+EOF
+```
+
+
+### Les External Secrets
+
+```sh
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+
+# La *deploy key* :
+cat << EOF > apps/agnhost/k8s-kind-apps-gitrepository-deploykeys.externalsecret.yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: k8s-kind-apps-gitrepository-deploykeys
+  namespace: agnhost
+spec:
+  refreshInterval: "1h"
+  secretStoreRef:
+    name: vault
+    kind: SecretStore
+  target:
+    name: k8s-kind-apps-gitrepository-deploykeys # Le Secret K8s qui sera créé
+    creationPolicy: Owner
+  data:
+  - secretKey: identity
+    remoteRef:
+      key: kv/agnhost/gitrepositories/k8s-kind-apps/deploykey
+      property: identity
+  - secretKey: identity.pub
+    remoteRef:
+      key: kv/agnhost/gitrepositories/k8s-kind-apps/deploykey
+      property: identity.pub
+  - secretKey: known_hosts
+    remoteRef:
+      key: kv/agnhost/gitrepositories/k8s-kind-apps/deploykey
+      property: known_hosts
+EOF
+
+
+# Le *webhook Discord* :
+cat << EOF > apps/agnhost/discord-webhook.externalsecret.yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: discord-webhook
+  namespace: agnhost
+spec:
+  refreshInterval: "1h"
+  secretStoreRef:
+    name: vault
+    kind: SecretStore
+  target:
+    name: discord-webhook     # Le Secret K8s qui sera créé
+    creationPolicy: Owner
+  data:
+  - secretKey: address
+    remoteRef:
+      key: kv/agnhost/discord/webhook
+      property: address
+EOF
+```
+
+
+
+# Prise en compte des modifications 
+
+En poussant notre code sur notre dépôt GitHub, nous allons créer 1 *service account*, 1 *secret store* et 2 *external secrets*.
+
+Avant celà, nous supprimerons les *secrets Kubernetes* existants qui seront re-créés par ESO.
+
+```sh
+# Suppression des secrets existants : discorddiscord-webhook et k8s-kind-apps-gitrepository-deploykeys
+kubectl -n agnhost delete secret discord-webhook
+kubectl -n agnhost delete secret k8s-kind-apps-gitrepository-deploykeys
+
+
+# Poussons le code sur notre dépôt Git :
+export LOCAL_GITHUB_REPOS="${HOME}/code/github"
+
+cd ${LOCAL_GITHUB_REPOS}/k8s-kind-fluxcd
+
+git add .
+git commit -m "Defined vault-auth ServiceAccount, SecretStore and ExternalSecrets for 'agnhost' application."
+git push
+
+
+# Forçons la réconciliation de notre dépôt Git :
+flux -n podinfo reconcile source git k8s-kind-apps
+```
+
+Vérifions notre travail :
+
+=== "code"
+    ```sh
+    kubectl -n agnhost get secrets
+    ```
+
+=== "output"
+    ```sh
+    NAME                                    AGE     STATUS   CAPABILITIES   READY
+    secretstore.external-secrets.io/vault   5m27s   Valid    ReadWrite      True
+
+    NAME                                                                        STORETYPE     STORE   REFRESH INTERVAL   STATUS         READY
+    externalsecret.external-secrets.io/discord-webhook                          SecretStore   vault   1h                 SecretSynced   True
+    externalsecret.external-secrets.io/k8s-kind-apps-gitrepository-deploykeys   SecretStore   vault   1h                 SecretSynced   True
+
+    NAME                                            TYPE     DATA   AGE
+    secret/discord-webhook                          Opaque   1      5m27s
+    secret/k8s-kind-apps-gitrepository-deploykeys   Opaque   3      5m27s
+    ```
+
+Nos *secrets Kubernetes* ont réapparus grâce aux *external secrets* fraîchement définis. C'est bien à quoi nous souhaitions arriver.
 
 
 XXXXX
